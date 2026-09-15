@@ -9,11 +9,12 @@ import { useTranslation } from 'react-i18next';
  * accidentally inflate section rhythm. `fixedToPage` is inert chrome.
  */
 import classes from "./Textarea.module.css";
-import { memo, useLayoutEffect, useRef, useState } from "react";
+import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useCanvasOutlineStyle } from "../../../store/canvas-outline-context";
 import Resize from "../../common/Resize/Resize";
 import {
+    createTextareaHeightResolver,
     measureNaturalTextHeight,
     shouldShrinkPreservedLayout,
     trimTrailingEmptyTextareaPayload,
@@ -249,6 +250,24 @@ function Textarea({
     // the mount effect whenever fitTextareaToContent updates `height`.
     const heightRef = useRef(height);
     heightRef.current = height;
+    // Content and run offsets change while typing, but cannot by themselves
+    // change a line's height. Width/base typography changes must refit normally.
+    const heightMetricsKey = JSON.stringify([
+        width, fontFamily, fontSize, lineHeight, letterSpacing, !!bold, !!italic,
+        !!bulletList, align || "left", textTransform || "none",
+    ]);
+    const heightResolverRef = useRef(null);
+    if (!heightResolverRef.current) {
+        heightResolverRef.current = createTextareaHeightResolver(heightMetricsKey);
+    }
+    const heightMetricsRef = useRef(null);
+    heightMetricsRef.current = { key: heightMetricsKey, lineHeight: Number(lineHeight) };
+    // Font-ready callbacks may outlive the render that registered them. Read
+    // current metrics without reseeding the editable DOM or moving the caret.
+    const resolveMeasuredHeight = useCallback((measured) => {
+        const metrics = heightMetricsRef.current;
+        return heightResolverRef.current(measured, heightRef.current, metrics.key, metrics.lineHeight);
+    }, []);
     const selectedCount = A4_Elements.filter((element) => element.isSelected).length;
     function handleIsResizeable(active) {
         setIsResizeable(Boolean(active));
@@ -320,6 +339,11 @@ function Textarea({
         const applyMeasuredHeight = (measuredHeight, { allowGrow }) => {
             if (cancelled || isCanvasEnterReflowSuppressed()) return;
             if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) return;
+            const naturalHeight = measuredHeight;
+            measuredHeight = resolveMeasuredHeight(measuredHeight);
+            // Legacy rounding alone must not trigger reflow. Canonical equal
+            // heights retain the existing display-only page-break reclaim pass.
+            if (measuredHeight === Number(heightRef.current) && naturalHeight !== measuredHeight) return;
             if (
                 !allowGrow
                 && !shouldShrinkPreservedLayout(heightRef.current, measuredHeight)
@@ -379,11 +403,13 @@ function Textarea({
         fontFamily,
         fontSize,
         isEditing,
+        heightMetricsKey,
         letterSpacing,
         lineHeight,
         mastheadRole,
         preserveInitialLayout,
         preserveSavedLayout,
+        resolveMeasuredHeight,
         // Uppercasing glyphs are wider than mixed case at the same width, so a
         // masthead name-case toggle (`applyNameCaseToggle`) can change the
         // browser's wrap point without touching `content`/`width`/`fontSize`.
@@ -449,14 +475,18 @@ function Textarea({
         let cancelled = false;
         const measureSeededEditable = () => {
             const target = editingRef.current;
-            if (cancelled || !autoHeight || !target || preserveSavedLayout) return;
+            if (cancelled || !autoHeight || !target) return;
             const current = serializeEditable(target);
-            const measuredHeight = measureEditableContentHeight(
+            const measuredHeight = resolveMeasuredHeight(measureEditableContentHeight(
                 target,
                 current.content,
                 current.runs,
                 { bulletList: !!bulletList, metadataHints },
-            );
+            ));
+            // Capture the original measurement even for saved boxes, without
+            // changing them on focus. The first input can then distinguish a
+            // real extra line from the old rounding convention.
+            if (preserveSavedLayout || measuredHeight === Number(heightRef.current)) return;
             if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) return;
             if (
                 shrinkOnlyFirstPass
@@ -656,12 +686,12 @@ function Textarea({
 
             // Measure from the serialized content, not the live editable DOM,
             // so browser-inserted block wrappers cannot inflate height.
-            const measuredHeight = measureEditableContentHeight(
+            const measuredHeight = resolveMeasuredHeight(measureEditableContentHeight(
                 node,
                 nextContent,
                 nextRuns,
                 { bulletList: !!bulletList, metadataHints },
-            );
+            ));
             node.style.height = `${measuredHeight}px`;
             if (metadataHints && recordHistory) {
                 // Structural replacements cannot participate in the browser's
@@ -683,7 +713,12 @@ function Textarea({
                 }, elementId);
                 // This is a user edit, not a background settle: keep it as a real
                 // undo step (quiet: false) so the content change can be undone.
-                fitTextareaToContent(elementId, measuredHeight, { quiet: false });
+                // The shared content updater collapses whitespace-only fields
+                // before this queued fit. Restore authored blank rows even if
+                // the pre-update height already matched their measurement.
+                if (measuredHeight !== Number(heightRef.current) || nextContent.trim() === "") {
+                    fitTextareaToContent(elementId, measuredHeight, { quiet: false });
+                }
             } else {
                 editElementValues({
                     content: nextContent,

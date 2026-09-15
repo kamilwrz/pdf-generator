@@ -1966,6 +1966,19 @@ test("a wrapped chip grid's reserved height is its 2D extent, not the sum of eve
   assert.ok(byId["rect4"].top > byId["rect0"].top, "row 2 sits below row 1");
 });
 
+test("adding and removing a row restores fractional saved heights and downstream gaps", () => {
+  const initial = [
+    textarea({ content: "Two rows", height: 24.08 }),
+    { element_id: "next", category: "text", left: 40, top: 144.08, width: 180, fontSize: 12, page: 1 },
+  ];
+  const grown = reflowTextareaHeight(initial, "textarea", 37, 842);
+  assert.equal(grown.elements[0].height, 37);
+  assert.equal(grown.elements[1].top, 157);
+  const restored = reflowTextareaHeight(grown.elements, "textarea", 24.08, 842);
+  assert.equal(restored.elements[0].height, 24.08);
+  assert.ok(Math.abs(restored.elements[1].top - 144.08) < 1e-10);
+});
+
 test("remeasuring an Experience description keeps a category-led chip grid on page 1", () => {
   // Categorised Skills records begin with a textarea label and continue with
   // rectangle/text grid members in the same flowGroup. Clicking an earlier

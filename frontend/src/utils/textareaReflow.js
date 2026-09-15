@@ -795,7 +795,9 @@ export function reflowTextareaHeight(
     const changed = JSON.stringify(result.elements) !== JSON.stringify(elements);
     return { ...result, elements: changed ? result.elements : elements, changed };
   }
-  const nextHeight = Math.max(0, Math.round(number(measuredHeight)));
+  // The measurer owns rounding. Saved boxes may have fractional heights, and
+  // restoring their original row count must also restore the exact box/gap.
+  const nextHeight = Math.max(0, number(measuredHeight));
   // An AI "Skróć CV" patch may intentionally clear a whole auto-height block.
   // Zero is therefore a valid measured height only for empty content; rejecting
   // it retained the old box height and left a conspicuous empty gap.

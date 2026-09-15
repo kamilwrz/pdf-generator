@@ -152,6 +152,8 @@ for (const width of [390, 834, 1280, 1920]) {
       return current.height === Math.ceil(current.lineHeight * 3);
     }).toBe(true);
     const blankHeight = await geometry(blank);
+    await blank.pressSequentially(" ");
+    await expect.poll(() => geometry(blank), { message: "A space inside authored blank rows must retain their measured height" }).toEqual(blankHeight);
     await blank.press("Escape");
     await expect(blank).not.toHaveAttribute("contenteditable", "true");
     expect(await geometry(blank)).toEqual(blankHeight);
@@ -267,3 +269,126 @@ test("switching the template preserves freshly generated heights through typing 
   expect(JSON.stringify(payload)).not.toContain("canvas-hover");
   api.assertHermetic();
 });
+
+for (const { name, lineHeight, storedHeight, bulletList = true } of [
+  { name: "rounded-down", lineHeight: 12.04, storedHeight: 24 },
+  { name: "fractional", lineHeight: 12.04, storedHeight: 24.08 },
+  { name: "fractional-short-leading", lineHeight: 11.8, storedHeight: 23.6 },
+  { name: "rounded-down-plain", lineHeight: 12.04, storedHeight: 24, bulletList: false },
+]) {
+  test(`legacy saved ${name} textarea stays stable after space and letter input`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 950 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(() => {
+      localStorage.setItem("token", "local-playwright-token");
+      localStorage.setItem("cvstudio.uiLanguage", "pl");
+    });
+    const bodyId = "fit-fixture-26";
+    const originalContent = `${bulletList ? "• " : ""}Prowadzenie dokumentacji administracyjnej, kontrola terminów i przygotowywanie raportów dla zespołu.`;
+    let elements = fixture.elements.map((element) => ({ ...element,
+      ...(element.element_id === bodyId ? {
+        content: originalContent, lineHeight, height: storedHeight, fontSize: 9.5, width: 310, bulletList,
+      } : {}),
+    }));
+    let savedDocument = { ...SAVED_DOCUMENT, template_id: "linden", cv_data: null,
+      pages: Math.max(...elements.map((element) => element.page || 1)) };
+    const api = await installMockApi(page, { savedDocument, savedElements: elements });
+    await page.route("**/api/pdf/show_pdf", (route) => route.fulfill({ json: {
+      document: savedDocument, elements: elements.map((element) => ({ ...element, extra_properties: element })),
+    } }));
+    await page.route("**/api/pdf/update_pdf", async (route) => {
+      const body = route.request().postDataJSON();
+      elements = body.root;
+      savedDocument = { ...savedDocument, revision: savedDocument.revision + 1 };
+      await route.fulfill({ json: { updated: true, pdf_id: savedDocument.id, revision: savedDocument.revision } });
+    });
+    await page.goto("/app/documents/41");
+    const node = page.locator(`[id="${bodyId}"]`);
+    const next = page.locator('[id="fit-fixture-27"]');
+    await expect(node).toBeAttached({ timeout: 25_000 });
+    await waitForGeneratedCanvas(page, node);
+    const countRows = () => node.evaluate((element) => {
+      const originalHeight = element.style.height;
+      element.style.height = "auto";
+      const style = getComputedStyle(element);
+      const count = Math.round(parseFloat(style.height) / parseFloat(style.lineHeight));
+      element.style.height = originalHeight;
+      return count;
+    });
+    expect(await countRows(), "The legacy fixture must contain exactly two actual browser rows").toBe(2);
+    const before = await geometry(node);
+    const downstreamBefore = await geometry(next);
+    expect(before.height).toBeCloseTo(storedHeight, 1);
+    for (const value of [" ", "x"]) {
+      await node.focus();
+      await node.press("F2");
+      await expect(node).toHaveAttribute("contenteditable", "true");
+      await expect(page.locator('[data-anchor="topbar-zoom"]')).toContainText("280%");
+      expect(await geometry(node)).toEqual(before);
+      if (value === " ") await page.screenshot({ path: testInfo.outputPath(`legacy-${name}-before-space.png`) });
+      await node.press("ControlOrMeta+End");
+      await node.pressSequentially(value);
+      expect(await countRows(), "A space or a short suffix must not introduce a new visual line").toBe(2);
+      await page.screenshot({ path: testInfo.outputPath(`legacy-${name}-after-${value.trim() ? "letter" : "space"}.png`) });
+      await expect.poll(() => geometry(node), { message: "An unchanged line count must preserve the saved fractional geometry" }).toEqual(before);
+      expect(await geometry(next)).toEqual(downstreamBefore);
+      await node.press("Escape");
+      await expect(node).not.toHaveAttribute("contenteditable", "true");
+      expect(await geometry(node)).toEqual(before);
+    }
+    // A long token must genuinely soft-wrap. Removing the token restores the
+    // original two rows, including the saved fractional rounding baseline.
+    await node.focus();
+    await node.press("F2");
+    await expect(node).toHaveAttribute("contenteditable", "true");
+    await node.press("ControlOrMeta+End");
+    await node.pressSequentially(` ${"a".repeat(120)}`);
+    expect(await countRows()).toBeGreaterThan(2);
+    await expect.poll(async () => (await geometry(node)).height).toBeGreaterThan(before.height + 10);
+    await node.press("ControlOrMeta+Backspace");
+    await node.press("Backspace");
+    expect(await countRows()).toBe(2);
+    await expect.poll(() => geometry(node)).toEqual(before);
+    await node.press("Escape");
+    await expect(node).not.toHaveAttribute("contenteditable", "true");
+    await node.focus();
+    await node.press("F2");
+    await expect(node).toHaveAttribute("contenteditable", "true");
+    await node.press("ControlOrMeta+End");
+    await node.press("Enter");
+    if (bulletList) await node.press("Enter");
+    await expect.poll(async () => (await geometry(node)).height).toBeGreaterThan(before.height + 10);
+    const grown = await geometry(node);
+    await node.press("Escape");
+    await expect(node).not.toHaveAttribute("contenteditable", "true");
+    expect(await geometry(node)).toEqual(grown);
+    await node.focus();
+    await node.press("F2");
+    await expect(node).toHaveAttribute("contenteditable", "true");
+    await node.press("ControlOrMeta+End");
+    await node.press("Backspace");
+    await node.press("Escape");
+    await expect(node).not.toHaveAttribute("contenteditable", "true");
+    await expect.poll(() => geometry(node)).toEqual(before);
+    expect(await geometry(next)).toEqual(downstreamBefore);
+    await page.getByRole("button", { name: "Zapisz dokument", exact: true }).click();
+    await expect(page.getByText("Zapisano w Moich dokumentach", { exact: true })).toBeVisible();
+    const saved = elements.find((element) => element.element_id === bodyId);
+    expect(saved.content).toBe(`${originalContent} x`);
+    expect(saved.height).toBeCloseTo(storedHeight, 10);
+    await page.reload();
+    await expect(node).toBeAttached({ timeout: 25_000 });
+    await waitForGeneratedCanvas(page, node);
+    expect(await geometry(node)).toEqual(before);
+    expect(await geometry(next)).toEqual(downstreamBefore);
+    await node.focus();
+    await node.press("F2");
+    await expect(node).toHaveAttribute("contenteditable", "true");
+    await node.press("ControlOrMeta+End");
+    await node.pressSequentially(" ");
+    await node.press("Escape");
+    await expect(node).not.toHaveAttribute("contenteditable", "true");
+    expect(await geometry(node)).toEqual(before);
+    api.assertHermetic();
+  });
+}

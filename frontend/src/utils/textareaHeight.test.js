@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  createTextareaHeightResolver,
   isEmptyTextareaLine,
   measureNaturalTextHeight,
   measureTextareaHeight,
@@ -8,6 +9,54 @@ import {
   trimTrailingEmptyTextareaLines,
   trimTrailingEmptyTextareaPayload,
 } from "./textareaHeight.js";
+
+for (const authored of [24, 24.08, 25]) {
+  test(`preserves a ${authored}px two-row box across edits and row growth/removal`, () => {
+    const resolve = createTextareaHeightResolver();
+    assert.equal(resolve(25, authored, "original typography", 12.04), authored);
+    // Space and ordinary letters keep the same two rendered rows.
+    assert.equal(resolve(25, authored, "original typography", 12.04), authored);
+    assert.equal(resolve(37, authored, "original typography", 12.04), 37);
+    assert.equal(resolve(37, 37, "original typography", 12.04), 37);
+    assert.equal(resolve(25, 37, "original typography", 12.04), authored);
+    assert.equal(resolve(25, authored, "original typography", 12.04), authored);
+  });
+}
+
+test("refits when typography or width changes even within the rounding tolerance", () => {
+  const resolve = createTextareaHeightResolver();
+  assert.equal(resolve(25, 24, "original", 12.04), 24);
+  assert.equal(resolve(25, 24, "changed", 12.3), 25);
+  assert.equal(resolve(25, 25, "changed", 12.3), 25);
+});
+
+test("recognizes inspector changes before a saved box has ever been measured", () => {
+  const resolve = createTextareaHeightResolver("mounted metrics");
+  assert.equal(resolve(25, 24, "changed metrics", 12.3), 25);
+  assert.equal(resolve(25, 25, "changed metrics", 12.3), 25);
+});
+
+test("replaces the row baseline when a different document height is restored", () => {
+  const resolve = createTextareaHeightResolver();
+  assert.equal(resolve(25, 24, "metrics", 12.04), 24);
+  assert.equal(resolve(37, 36.12, "metrics", 12.04), 36.12);
+  assert.equal(resolve(25, 36.12, "metrics", 12.04), 25);
+  assert.equal(resolve(37, 25, "metrics", 12.04), 36.12);
+});
+
+test("corrects materially oversized or undersized boxes rather than freezing their height", () => {
+  for (const authored of [20, 23.9, 96, 0, NaN]) {
+    const resolve = createTextareaHeightResolver();
+    assert.equal(resolve(25, authored, "metrics", 12.04), 25);
+  }
+});
+
+test("unavailable measurements do not replace the original row baseline", () => {
+  const resolve = createTextareaHeightResolver();
+  assert.equal(resolve(25, 24.08, "metrics", 12.04), 24.08);
+  assert.equal(resolve(0, 24.08, "metrics", 12.04), 0);
+  assert.equal(resolve(25, 24.08, "metrics", 12.04), 24.08);
+});
 
 test("measures intrinsic content height instead of preserving an oversized box", () => {
   const node = {

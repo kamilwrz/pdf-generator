@@ -233,6 +233,46 @@ export function measureNaturalTextHeight(node) {
 }
 
 /**
+ * Keep an existing row height across edits that only change its text.
+ *
+ * Older saved boxes used nearest-integer or fractional heights instead of the
+ * current ceiling. Preserve only that one-pixel rounding difference, and only
+ * for the same measured row count. Other row counts use the normal fitted
+ * height; returning to the original count restores the original geometry.
+ * Typography changes invalidate the baseline. An externally replaced height
+ * starts a new baseline instead of retaining geometry from a previous snapshot.
+ *
+ * @param {string} [initialMetricsKey] - Metrics at mount, before any inspector edit.
+ * @returns {(measured: number, current: number, metricsKey: string, lineHeight: number) => number}
+ * A per-field resolver; its transient baseline is never saved or exported.
+ */
+export function createTextareaHeightResolver(initialMetricsKey) {
+  let baseline = null;
+  let lastCurrent;
+  let lastResult;
+  return (measured, current, metricsKey, lineHeight) => {
+    if (!Number.isFinite(measured) || measured <= 0) return measured;
+    const authored = Number(current);
+    const replaced = baseline && authored !== lastCurrent && authored !== lastResult;
+    // Saved display boxes skip measurement. Still recognize an inspector
+    // change that happens before their first inline edit/measurement.
+    const metricsChanged = baseline
+      ? baseline.key !== metricsKey
+      : initialMetricsKey !== undefined && initialMetricsKey !== metricsKey;
+    if (!baseline || replaced || metricsChanged) {
+      const sameRows = Number.isFinite(lineHeight) && lineHeight > 0
+        && Math.round(authored / lineHeight) === Math.round(measured / lineHeight);
+      const preserveRounding = !metricsChanged && sameRows
+        && authored > 0 && Math.abs(authored - measured) <= 1;
+      baseline = { key: metricsKey, measured, height: preserveRounding ? authored : measured };
+    }
+    lastCurrent = authored;
+    lastResult = measured === baseline.measured ? baseline.height : measured;
+    return lastResult;
+  };
+}
+
+/**
  * Whether a preserveInitialLayout textarea should shrink to browser metrics.
  *
  * ReportLab-authored heights can overshoot the browser's line boxes, leaving
