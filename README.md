@@ -689,6 +689,8 @@ Models: `backend/app/models/models.py` (`User`, `Pdf`, `PdfElements`, …).
 
 ## Features (implementation map)
 
+The shared Pro plan description advertises AI for text editing and ATS analysis. Layout adjustments do not use AI. The landing page, pricing, registration and plan selection share this wording through `frontend/src/utils/planPresentation.js` (lines 20–27, `PRO_PLAN_HIGHLIGHTS`), with Polish and English translations and matching backend catalogue copy.
+
 ### Source-based career profile
 
 #### Start an interview from the career profile
@@ -4233,6 +4235,8 @@ Modele: `backend/app/models/models.py`.
 ---
 
 ## Funkcje (mapa implementacji)
+
+Wspólny opis planu Pro wskazuje AI do poprawiania tekstu i analizy ATS. Zmiany układu nie korzystają z AI. Strona główna, cennik, rejestracja i wybór planu współdzielą ten opis przez `frontend/src/utils/planPresentation.js` (linie 20–27, `PRO_PLAN_HIGHLIGHTS`), z polskimi i angielskimi tłumaczeniami oraz zgodnym opisem katalogu backendu.
 
 ### Profil zawodowy oparty na źródle CV
 

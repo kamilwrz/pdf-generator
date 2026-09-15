@@ -27,7 +27,7 @@ test("Pro presentation sells scale and assistance instead of output quality", ()
         "Profil zawodowy do wykorzystania w kolejnych CV",
         "Wszystkie szablony i warianty wyglądu",
         "Nielimitowane projekty, importy i pobrania PDF",
-        "AI do poprawiania tekstu, analizy ATS i układu",
+        "AI do poprawiania tekstu i analizy ATS",
         "200 kredytów na wywiad i pozostałe funkcje AI",
     ]);
     assert.doesNotMatch(JSON.stringify(FALLBACK_PLAN_CATALOG), /watermark|znak wodny|oznaczeni/i);

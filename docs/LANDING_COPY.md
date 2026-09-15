@@ -92,7 +92,7 @@ Przycisk: **Stwórz CV za darmo**. Informacja: Nie potrzebujesz karty, plan nie 
 - Profil zawodowy do wykorzystania w kolejnych CV
 - Wszystkie szablony i warianty wyglądu
 - Nielimitowane projekty, importy i pobrania PDF
-- AI do poprawiania tekstu, analizy ATS i układu
+- AI do poprawiania tekstu i analizy ATS
 - 200 kredytów na wywiad i pozostałe funkcje AI
 
 Przycisk: **Wybierz Pro na 30 dni**. Informacja: Płatność jednorazowa, bez automatycznego odnowienia.

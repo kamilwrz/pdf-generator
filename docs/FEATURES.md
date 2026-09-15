@@ -157,7 +157,7 @@ Cały interfejs mówi po polsku: marketing, edytor, akcje AI, powiadomienia i mo
 | Plan | Co dostajesz |
 |---|---|
 | **Free** | 1 zapisany projekt; 1 udany import CV miesięcznie; Sterling, Meridian i Linden po 6 wariantów; pełny edytor z kontrolą czcionek, typografii, odstępów i sekcji; 3 czyste PDF-y miesięcznie; bez AI, karty i limitu czasu |
-| **Pro** | Wszystkie 9 aktualnych szablonów i ich warianty; projekty, importy i pobrania bez limitu; AI do treści, ATS i układu; 200 kredytów na 30-dniowy okres |
+| **Pro** | Wszystkie 9 aktualnych szablonów i ich warianty; projekty, importy i pobrania bez limitu; AI do treści i analizy ATS; 200 kredytów na 30-dniowy okres |
 
 Pro kosztuje 59 zł za 30 dni i jest jednorazowym dostępem bez automatycznego odnawiania. Model kredytów: 1 kredyt = 5 gr — rozliczenie zbliżone do realnego użycia.
 

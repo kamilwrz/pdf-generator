@@ -265,7 +265,7 @@ PLAN_DISPLAY: dict[str, dict[str, Any]] = {
             "Wszystkie szablony i warianty wyglądu",
             "Wiele zapisanych CV · eksporty bez limitu",
             "Importy CV bez limitu",
-            "AI do treści, ATS i układu",
+            "AI do treści i analizy ATS",
             "200 kredytów AI / okres",
         ],
         "cta": "Odblokuj Pro",
