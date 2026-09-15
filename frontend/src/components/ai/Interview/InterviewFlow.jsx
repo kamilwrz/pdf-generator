@@ -57,10 +57,17 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const [correctingProposal, setCorrectingProposal] = useState(false);
   const [autoTemplateRevision, setAutoTemplateRevision] = useState(null);
   const [scanningTemplateRevision, setScanningTemplateRevision] = useState(null);
+  const [templateChoice, setTemplateChoice] = useState(null);
   // A late cleanup for a previous preview cannot release a newer scan's save
   // guard. The callback stays stable so child effects do not restart on render.
   const handleTemplateChecking = useCallback((revision, checking) => {
     setScanningTemplateRevision(current => checking ? revision : current === revision ? null : current);
+  }, []);
+  // Bind the staged choice to its measured preview. Cleanup from an older
+  // preview must not clear a choice made after a newer revision was adopted.
+  const handleTemplateChoice = useCallback((revision, candidate) => {
+    setTemplateChoice(current => candidate ? { revision, candidate }
+      : current?.revision === revision ? null : current);
   }, []);
   const lock = useRef(false);
   const alive = useRef(true);
@@ -225,6 +232,27 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       setAutoTemplateRevision(next.revision);
     }
     if (alive.current && action === 'preview-template') setNotice(messageRef('interview:templates.applied'));
+    return next;
+  }
+
+  /** Apply a staged layout before saving, using its newly confirmed revision. */
+  async function saveDocument() {
+    let selectedSession = null;
+    if (templateChoice?.revision === session.revision) {
+      const candidate = templateChoice.candidate;
+      selectedSession = await operation('preview-template', {
+        template_id: candidate.template_id, elements: candidate.elements, spacing_px: candidate.spacing_px,
+      });
+      // A failed selection throws before saving. Closing or replacing the
+      // interview during application must not save through this old handler.
+      if (!selectedSession || !alive.current || sessionRef.current?.id !== session.id) return;
+    }
+    // React has not replaced this handler's captured session yet. Use the
+    // template response's versions for the second write, never the old preview.
+    await operation('document', selectedSession ? {
+      revision: selectedSession.revision, profile_revision: selectedSession.profile_revision,
+      evidence_scope: selectedSession.evidence_scope,
+    } : {});
   }
 
   // Navigation is the save boundary: one explicit next action persists changed
@@ -292,6 +320,8 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const fitPending = session?.preview?.fit?.status === 'pending';
   const templateCheckPending = session?.revision != null
     && (autoTemplateRevision === session.revision || scanningTemplateRevision === session.revision);
+  const selectedAlternative = templateChoice?.revision === session?.revision
+    ? TEMPLATES.find(item => item.id === templateChoice?.candidate.template_id) : null;
   const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : fitPending && panel === 'preview' ? 'prepare' : panel;
   const waiting = busy || initialLoading;
   const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review', 'preview-template', 'answer-help'].includes(pendingOperation);
@@ -485,6 +515,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             disabled={busy || factEditing || sourceChanged || hasPending || session.preview.profile_revision !== profile.revision}
             autoCheck={autoTemplateRevision === session.revision} onAutoStart={() => setAutoTemplateRevision(null)}
             onCheckingChange={handleTemplateChecking}
+            onChoiceChange={handleTemplateChoice}
             onSelect={candidate => run(() => operation('preview-template', {
               template_id: candidate.template_id, elements: candidate.elements, spacing_px: candidate.spacing_px,
             }), 'preview-template')} />}
@@ -496,8 +527,11 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             }, 'preview-review')} />
           <div className={classes.resultActions}><p>{uiText("interview:interviewFlow.saveASeparateDocumentTheSourceCv")}</p>
           {templateCheckPending && <p id={`template-check-${session.id}`} role="status">{uiText('interview:templates.waitBeforeSave')}</p>}
+          {selectedAlternative && <p id={`template-choice-${session.id}`} role="status">{uiText('interview:templates.selectedForSave', { name: selectedAlternative.name })}</p>}
           <div className={classes.actions}>
-            <button className={classes.primary} aria-describedby={templateCheckPending ? `template-check-${session.id}` : undefined} disabled={busy || factEditing || hasPending || sourceChanged || templateCheckPending || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(() => operation('document'))}>{uiText("interview:interviewFlow.saveAsANewCv")}</button>
+            <button className={classes.primary} aria-describedby={[
+              templateCheckPending && `template-check-${session.id}`, selectedAlternative && `template-choice-${session.id}`,
+            ].filter(Boolean).join(' ') || undefined} disabled={busy || factEditing || hasPending || sourceChanged || templateCheckPending || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(saveDocument, 'document')}>{uiText("interview:interviewFlow.saveAsANewCv")}</button>
             {session.phase !== 'completed' && <button type="button" disabled={busy || factEditing} onClick={() => goTo('prepare')}>{uiText("interview:interviewFlow.changeTemplateOrRefresh")}</button>}
           </div></div>
         </>}

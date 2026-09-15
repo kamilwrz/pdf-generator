@@ -12,9 +12,10 @@ import styles from './InterviewTemplateOptions.module.css';
  * Offers only measured one-page layouts of the current verified interview text.
  * Scanning is free and leaves the current preview readable. Revision-keyed mounts
  * discard stale measurements; cancellation/unmount prevent late publication.
- * Only the explicit apply action asks the parent to persist a replacement.
+ * A choice is staged for the parent's final save; the optional apply action
+ * persists it immediately. An empty selection keeps the current template.
  */
-export default function InterviewTemplateOptions({ session, entitlements, disabled, autoCheck = false, onAutoStart, onCheckingChange, onSelect }) {
+export default function InterviewTemplateOptions({ session, entitlements, disabled, autoCheck = false, onAutoStart, onCheckingChange, onChoiceChange, onSelect }) {
   useTranslation();
   const [result, setResult] = useState({ status: 'idle', candidates: [], failedTemplateIds: [] });
   const [progress, setProgress] = useState(null);
@@ -30,8 +31,9 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
       mounted.current = false;
       sequence.current += 1;
       onCheckingChange?.(session.revision, false);
+      onChoiceChange?.(session.revision, null);
     };
-  }, [onCheckingChange, session.revision]);
+  }, [onCheckingChange, onChoiceChange, session.revision]);
 
   const scan = useCallback(async (automatic = false) => {
     if (disabled || scanning.current) return;
@@ -41,6 +43,8 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
     onCheckingChange?.(session.revision, true);
     const token = ++sequence.current;
     const isCurrent = () => mounted.current && token === sequence.current;
+    setSelectedId('');
+    onChoiceChange?.(session.revision, null);
     setResult({ status: 'loading', candidates: [], failedTemplateIds: [] });
     setProgress(null);
     try {
@@ -64,7 +68,7 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
       }
       if (isCurrent() && !automatic) heading.current?.focus();
     }
-  }, [disabled, session, onCheckingChange]);
+  }, [disabled, session, onCheckingChange, onChoiceChange]);
 
   useEffect(() => {
     // A completed generation may request one automatic scan. Ordinary reads
@@ -86,12 +90,14 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
     const template = TEMPLATES.find(item => item.id === candidate.template_id);
     return template && isTemplateAllowed(template, entitlements);
   });
-  const selected = candidates.find(candidate => candidate.template_id === selectedId) || candidates[0];
+  const selected = candidates.find(candidate => candidate.template_id === selectedId);
   const selectedTemplate = TEMPLATES.find(template => template.id === selected?.template_id);
   const cancel = () => {
     sequence.current += 1;
     scanning.current = false;
     onCheckingChange?.(session.revision, false);
+    onChoiceChange?.(session.revision, null);
+    setSelectedId('');
     setResult({ status: 'idle', candidates: [], failedTemplateIds: [] });
     heading.current?.focus();
   };
@@ -109,27 +115,32 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
       {result.status === 'complete' && candidates.length > 0 && result.failedTemplateIds.length > 0 && <p className={classes.hint}>{uiText('interview:templates.partial')}</p>}
     </div>
     {result.status === 'error' && <p role="alert" className={classes.error}>{uiText('interview:templates.error')}</p>}
-    {selectedTemplate && <details open>
+    {candidates.length > 0 && <details open>
       <summary>{uiText('interview:templates.choose')}</summary>
       <div className={styles.choice}>
         <div>
-          <label>{uiText('interview:templates.select')}<select value={selected.template_id} disabled={disabled}
-            onChange={event => setSelectedId(event.target.value)}>
+          <label>{uiText('interview:templates.select')}<select value={selected?.template_id || ''} disabled={disabled}
+            onChange={event => {
+              setSelectedId(event.target.value);
+              onChoiceChange?.(session.revision, candidates.find(candidate => candidate.template_id === event.target.value) || null);
+            }}>
+            <option value="">{uiText('interview:templates.keepCurrent')}</option>
             {candidates.map(candidate => <option key={candidate.template_id} value={candidate.template_id}>
               {TEMPLATES.find(template => template.id === candidate.template_id).name}
             </option>)}
           </select></label>
-          <p>{uiText('interview:templates.settings')}</p>
-          <p className={classes.hint}>{uiText('interview:templates.samples')}</p>
-          <button type="button" className={classes.primary} disabled={disabled} onClick={() => {
-            if (!disabled) onSelect(selected);
+          {selected && <p>{uiText('interview:templates.settings')}</p>}
+          <p className={classes.hint}>{uiText('interview:templates.saveChoice')}</p>
+          {selected && <p className={classes.hint}>{uiText('interview:templates.samples')}</p>}
+          <button type="button" className={classes.primary} disabled={disabled || !selected} onClick={() => {
+            if (!disabled && selected) onSelect(selected);
           }}>{uiText('interview:templates.apply')}</button>
         </div>
-        <figure className={styles.sample}>
+        {selectedTemplate && <figure className={styles.sample}>
           <img key={selectedTemplate.id} src={templatePreviewPath(selectedTemplate.id)}
             alt={uiText('interview:templates.sampleAlt', { name: selectedTemplate.name })} loading="lazy" />
           <figcaption>{selectedTemplate.name}</figcaption>
-        </figure>
+        </figure>}
       </div>
     </details>}
     <div className={classes.actions}>

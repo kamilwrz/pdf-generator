@@ -22,7 +22,8 @@ beforeEach(() => {
 
 it('keeps an existing preview read-only until checking and applies only on explicit choice', async () => {
   const onSelect = vi.fn();
-  setup({ onSelect });
+  const onChoiceChange = vi.fn();
+  setup({ onSelect, onChoiceChange });
   expect(interviewRequest).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole('button', { name: 'Sprawdź inne szablony' }));
   await screen.findByText('Ta treść mieści się na jednej stronie w 1 innym szablonie.');
@@ -31,6 +32,12 @@ it('keeps an existing preview read-only until checking and applies only on expli
   });
   expect(onSelect).not.toHaveBeenCalled();
   expect(screen.getByRole('heading', { name: 'Jedna strona w innym szablonie' })).toHaveFocus();
+  const selector = screen.getByRole('combobox', { name: 'Pasujący szablon' });
+  expect(selector).toHaveValue('');
+  expect(screen.getByRole('button', { name: /Użyj tego szablonu/ })).toBeDisabled();
+  await userEvent.selectOptions(selector, candidate.template_id);
+  expect(onChoiceChange).toHaveBeenLastCalledWith(4, candidate);
+  expect(onSelect).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole('button', { name: /Użyj tego szablonu/ }));
   expect(onSelect).toHaveBeenCalledExactlyOnceWith(candidate);
 });
@@ -52,11 +59,36 @@ it('offers every measured alternative and applies the explicitly selected layout
   setup({ onSelect });
   await userEvent.click(screen.getByRole('button', { name: 'Sprawdź inne szablony' }));
   const selector = await screen.findByRole('combobox', { name: 'Pasujący szablon' });
-  expect(screen.getAllByRole('option').map(option => option.value)).toEqual(['linden', 'sterling', 'cadenza']);
+  expect(screen.getAllByRole('option').map(option => option.value)).toEqual(['', 'linden', 'sterling', 'cadenza']);
   await userEvent.selectOptions(selector, 'cadenza');
   expect(onSelect).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole('button', { name: /Użyj tego szablonu/ }));
   expect(onSelect).toHaveBeenCalledExactlyOnceWith(alternatives[2]);
+});
+
+it('clears the pending choice when keeping the current template, rescanning, cancelling or unmounting', async () => {
+  const onChoiceChange = vi.fn();
+  const view = setup({ onChoiceChange });
+  await userEvent.click(screen.getByRole('button', { name: 'Sprawdź inne szablony' }));
+  let selector = await screen.findByRole('combobox', { name: 'Pasujący szablon' });
+  await userEvent.selectOptions(selector, candidate.template_id);
+  expect(onChoiceChange).toHaveBeenLastCalledWith(4, candidate);
+  await userEvent.selectOptions(selector, '');
+  expect(onChoiceChange).toHaveBeenLastCalledWith(4, null);
+  expect(screen.getByRole('button', { name: /Użyj tego szablonu/ })).toBeDisabled();
+  await userEvent.selectOptions(selector, candidate.template_id);
+  interviewRequest.mockImplementationOnce(() => new Promise(() => {}));
+  await userEvent.click(screen.getByRole('button', { name: 'Sprawdź ponownie' }));
+  expect(onChoiceChange).toHaveBeenLastCalledWith(4, null);
+  await userEvent.click(screen.getByRole('button', { name: 'Przerwij sprawdzanie' }));
+  expect(onChoiceChange).toHaveBeenLastCalledWith(4, null);
+  await userEvent.click(screen.getByRole('button', { name: 'Sprawdź inne szablony' }));
+  selector = await screen.findByRole('combobox', { name: 'Pasujący szablon' });
+  expect(selector).toHaveValue('');
+  await userEvent.selectOptions(selector, candidate.template_id);
+  expect(onChoiceChange).toHaveBeenLastCalledWith(4, candidate);
+  view.unmount();
+  expect(onChoiceChange).toHaveBeenLastCalledWith(4, null);
 });
 
 it('retains retry after a scan failure and distinguishes partial checks from no fit', async () => {

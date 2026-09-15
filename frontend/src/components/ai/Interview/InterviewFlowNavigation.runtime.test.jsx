@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import InterviewFlow from './InterviewFlow';
 import { interviewRequest } from '../../../services/interviews';
+import { measureInterviewTemplateCandidates } from '../../../utils/interviewTemplateFit.js';
 import classes from './Interview.module.css';
 
 vi.mock('../../../hooks/useEntitlements', () => ({
@@ -13,19 +14,29 @@ vi.mock('../../../hooks/useEntitlements', () => ({
   }),
 }));
 vi.mock('../../../services/interviews', async (original) => ({ ...await original(), interviewRequest: vi.fn() }));
+vi.mock('../../../utils/interviewTemplateFit.js', () => ({ measureInterviewTemplateCandidates: vi.fn() }));
 
 const name = { id: 'name', text: 'Anna Nowak', kind: 'fact', context: '', path: '/name', source: 'document:30' };
 const note = { id: 'note', text: 'Przygotowywałam raporty.', kind: 'fact', context: 'Notatki', path: '', source: 'interview:saved' };
 const question = { id: 'q1', topic: 'project', text: 'Jaki projekt ukończyłaś?', reason: 'Pokażemy Twój wkład.', context: 'Projekt' };
+const alternative = { template_id: 'aurelia', pages: 1, elements: [{ element_id: 'fitted-name', content: name.text }],
+  spacing_px: { stack: 2, record: 5, section: 13, after_rule: 4 } };
 let session;
 let profile;
 let failAnswer;
 let failConfirm;
+let failTemplate;
+let failDocument;
+let savedTemplates;
 
 afterEach(cleanup);
 beforeEach(() => {
   failAnswer = false;
   failConfirm = false;
+  failTemplate = false;
+  failDocument = false;
+  savedTemplates = [];
+  measureInterviewTemplateCandidates.mockReset().mockResolvedValue({ candidates: [alternative], failedTemplateIds: [], cancelled: false });
   profile = { revision: 1, facts: [name] };
   session = {
     evidence_scope: 'profile', id: 'navigation', revision: 2, mode: 'create', phase: 'ready',
@@ -51,6 +62,17 @@ beforeEach(() => {
       session = { ...session, revision: session.revision + 1, confirmed: true, proposed_facts: [] };
       return { session, profile };
     }
+    if (path.endsWith('/preview-templates')) return { revision: session.revision, candidates: [alternative] };
+    if (path.endsWith('/preview-template')) {
+      if (failTemplate) throw new Error('Nie udało się zastosować szablonu.');
+      session = { ...session, revision: session.revision + 1, template_id: body.template_id,
+        spacing_px: body.spacing_px, preview: { ...session.preview, pages: 1, elements: body.elements } };
+    }
+    if (path.endsWith('/document')) {
+      if (failDocument) throw new Error('Nie udało się zapisać CV.');
+      savedTemplates.push({ template_id: session.template_id, spacing_px: session.spacing_px, elements: session.preview.elements });
+      return { document_id: 91 };
+    }
     return session;
   });
 });
@@ -63,7 +85,83 @@ function writes() {
   return interviewRequest.mock.calls.filter(([, method]) => method === 'POST').map(([path]) => path.split('/').at(-1));
 }
 
+/** Start at a resumed result so scanning and final saving remain explicit user actions. */
+async function renderTemplateResult() {
+  session = { ...session, phase: 'preview', profile_revision: profile.revision, preview: {
+    pages: 2, profile_revision: profile.revision, cv_data: { name: name.text },
+    elements: [{ element_id: 'original-name', content: name.text }], changes: [], remaining_gaps: [],
+  } };
+  renderInterview();
+  await userEvent.click(await screen.findByRole('button', { name: 'Sprawdź inne szablony' }));
+  return screen.findByRole('combobox', { name: 'Pasujący szablon' });
+}
+
 describe('interview task navigation', () => {
+  it('applies the selected alternative before saving with its new revision and measured geometry', async () => {
+    const selector = await renderTemplateResult();
+    await userEvent.selectOptions(selector, alternative.template_id);
+    expect(writes()).toEqual(['preview-templates']);
+    await userEvent.click(screen.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true }));
+    await waitFor(() => expect(savedTemplates).toEqual([{
+      template_id: alternative.template_id, spacing_px: alternative.spacing_px, elements: alternative.elements,
+    }]));
+    expect(writes()).toEqual(['preview-templates', 'preview-template', 'document']);
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/navigation/preview-template', 'POST', {
+      revision: 2, profile_revision: 1, evidence_scope: 'profile', template_id: alternative.template_id,
+      elements: alternative.elements, spacing_px: alternative.spacing_px,
+    });
+    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/navigation/document', 'POST', {
+      revision: 3, profile_revision: 1, evidence_scope: 'profile',
+    });
+  });
+
+  it('retains a failed template choice for retry and never saves the previous template', async () => {
+    failTemplate = true;
+    const selector = await renderTemplateResult();
+    await userEvent.selectOptions(selector, alternative.template_id);
+    await userEvent.click(screen.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się zastosować szablonu.');
+    expect(screen.getByRole('combobox', { name: 'Pasujący szablon' })).toHaveValue(alternative.template_id);
+    expect(writes()).toEqual(['preview-templates', 'preview-template']);
+    expect(savedTemplates).toEqual([]);
+    failTemplate = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true }));
+    await waitFor(() => expect(savedTemplates).toHaveLength(1));
+    expect(writes()).toEqual(['preview-templates', 'preview-template', 'preview-template', 'document']);
+    expect(savedTemplates[0].template_id).toBe(alternative.template_id);
+  });
+
+  it('keeps the applied template after document save fails and retries only the document save', async () => {
+    failDocument = true;
+    const selector = await renderTemplateResult();
+    await userEvent.selectOptions(selector, alternative.template_id);
+    await userEvent.click(screen.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się zapisać CV.');
+    expect(writes()).toEqual(['preview-templates', 'preview-template', 'document']);
+    expect(screen.queryByRole('combobox', { name: 'Pasujący szablon' })).not.toBeInTheDocument();
+    expect(session.template_id).toBe(alternative.template_id);
+    failDocument = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true }));
+    await waitFor(() => expect(savedTemplates).toHaveLength(1));
+    expect(writes()).toEqual(['preview-templates', 'preview-template', 'document', 'document']);
+    const documentCalls = interviewRequest.mock.calls.filter(([path]) => path.endsWith('/document'));
+    expect(documentCalls.map(([, , body]) => body.revision)).toEqual([3, 3]);
+    expect(savedTemplates[0].template_id).toBe(alternative.template_id);
+  });
+
+  it.each(['untouched', 'restored'])('preserves the current template when the selector is %s', async (choice) => {
+    const selector = await renderTemplateResult();
+    expect(selector).toHaveValue('');
+    if (choice === 'restored') {
+      await userEvent.selectOptions(selector, alternative.template_id);
+      await userEvent.selectOptions(selector, '');
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true }));
+    await waitFor(() => expect(savedTemplates).toHaveLength(1));
+    expect(writes()).toEqual(['preview-templates', 'document']);
+    expect(savedTemplates[0].template_id).toBe('linden');
+  });
+
   it('keeps optional notes open while clearing text and restores each source draft', async () => {
     profile = { ...profile, sources: { documents: [
       { id: 30, title: 'Anna CV' }, { id: 31, title: 'Other CV' },

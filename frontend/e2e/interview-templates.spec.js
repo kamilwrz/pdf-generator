@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { installMockApi } from './support/mockApi.js';
+import { installMockApi, SAVED_DOCUMENT } from './support/mockApi.js';
 
 const storedFixture = JSON.parse(readFileSync(new URL('./fixtures/interview-templates.json', import.meta.url), 'utf8'));
 const fixture = { ...storedFixture.response, cv_data: storedFixture.cv_data,
@@ -11,7 +11,7 @@ const regentSterling = JSON.parse(readFileSync(new URL('./fixtures/interview-reg
 const spacingBoundary = JSON.parse(readFileSync(new URL('./fixtures/interview-template-spacing.json', import.meta.url), 'utf8'));
 
 for (const [language, width] of [['pl', 390], ['en', 1280]]) {
-  test(`offers Aurelia after reducing supported spacing and commits its measured layout ${language}`, async ({ page }) => {
+  test(`saves the selected Aurelia layout directly, retains it on retry and reopens it ${language}`, async ({ page }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -29,6 +29,17 @@ for (const [language, width] of [['pl', 390], ['en', 1280]]) {
       preview: { cv_data: spacingBoundary.cv_data, elements: [], pages: 2, profile_revision: 1,
         changes: [], remaining_gaps: [], fit: { status: 'complete', original_pages: 2 } } };
     const posts = [];
+    let failSelection = true;
+    let savedDocument = null;
+    let savedElements = [];
+    let documentReads = 0;
+    await page.route('**/api/pdf/fetch_pdfs', route => route.fulfill({ json: savedDocument ? [savedDocument] : [] }));
+    await page.route('**/api/pdf/show_pdf', route => {
+      expect(route.request().postDataJSON()).toBe(92);
+      expect(savedDocument?.template_id).toBe('aurelia');
+      documentReads += 1;
+      return route.fulfill({ json: { document: savedDocument, elements: savedElements } });
+    });
     await page.route('**/api/ai/interviews**', async route => {
       const action = route.request().url().split('/').at(-1);
       if (action === 'credits') return route.fulfill({ json: { requests: [], credits_charged: 0 } });
@@ -36,7 +47,19 @@ for (const [language, width] of [['pl', 390], ['en', 1280]]) {
         const body = route.request().postDataJSON();
         posts.push({ action, body });
         if (action === 'preview-templates') return route.fulfill({ json: spacingBoundary });
+        if (action === 'document') {
+          // Saving must use the response revision from the successful template
+          // transaction, never the original two-page interview snapshot.
+          expect(body.revision).toBe(5);
+          expect(session.template_id).toBe('aurelia');
+          savedDocument = { ...SAVED_DOCUMENT, id: 92, revision: 1, title: 'Aurelia interview regression',
+            template_id: session.template_id, spacing_px: session.spacing_px, pages: session.preview.pages,
+            cv_data: session.preview.cv_data };
+          savedElements = session.preview.elements.map(element => ({ ...element, extra_properties: { ...element } }));
+          return route.fulfill({ json: { document_id: savedDocument.id } });
+        }
         if (action !== 'preview-template') throw new Error(`Unexpected operation: ${action}`);
+        expect(body.revision).toBe(4);
         expect(body.template_id).toBe('aurelia');
         expect(Math.max(...body.elements.map(element => element.page || 1))).toBe(1);
         // This real-font fixture cannot fit at S plus compact spacing. The
@@ -52,6 +75,10 @@ for (const [language, width] of [['pl', 390], ['en', 1280]]) {
         for (const element of original.elements.filter(element => !element.fixedToPage)) {
           expect(body.elements.find(item => item.element_id === element.element_id)?.content).toBe(element.content);
         }
+        if (failSelection) {
+          failSelection = false;
+          return route.fulfill({ status: 503, json: { detail: 'Retry selected template before saving.' } });
+        }
         session = { ...session, revision: 5, template_id: body.template_id, spacing_px: body.spacing_px,
           preview: { ...session.preview, elements: body.elements, pages: 1 } };
       }
@@ -61,17 +88,34 @@ for (const [language, width] of [['pl', 390], ['en', 1280]]) {
     await page.getByRole('button', { name: english ? 'Check other templates' : 'Sprawdź inne szablony', exact: true }).click();
     const matching = page.getByRole('combobox', { name: english ? 'Matching template' : 'Pasujący szablon' });
     await expect(matching.locator('option[value="aurelia"]')).toBeAttached({ timeout: 60_000 });
-    expect(await matching.locator('option').count()).toBeGreaterThan(1);
+    expect(await matching.locator('option:not([value=""])').count()).toBeGreaterThan(1);
     await matching.selectOption('aurelia');
     expect(posts.map(post => post.action)).toEqual(['preview-templates']);
-    const choose = page.getByRole('button', { name: english ? /Use this template/ : /Użyj tego szablonu/ });
-    await choose.focus();
+    const save = page.getByRole('button', { name: english ? 'Save as a new CV' : 'Zapisz jako nowe CV', exact: true });
+    await save.focus();
     await page.keyboard.press('Enter');
-    await expect(page.getByText(english ? 'Template changed. Your CV fits on one page; its content is unchanged.' : 'Zmieniono szablon. CV mieści się na jednej stronie; treść pozostała bez zmian.')).toBeVisible();
+    await expect(page.getByText('Retry selected template before saving.')).toBeVisible();
     expect(posts.map(post => post.action)).toEqual(['preview-templates', 'preview-template']);
-    expect(session.template_id).toBe('aurelia');
+    expect(savedDocument).toBeNull();
+    await expect(matching).toHaveValue('aurelia');
+    await expect(save).toBeEnabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-    await expect(page.getByRole('button', { name: english ? 'Save as a new CV' : 'Zapisz jako nowe CV', exact: true })).toBeEnabled();
+    await save.click();
+    await expect(page).toHaveURL(/\/app\/documents\/92$/);
+    expect(posts.map(post => post.action)).toEqual(['preview-templates', 'preview-template', 'preview-template', 'document']);
+    const name = savedElements.find(element => element.content === spacingBoundary.cv_data.name);
+    for (const reload of [false, true]) {
+      if (reload) await page.reload();
+      await expect(page.getByRole('textbox', { name: english ? 'Current document name' : 'Nazwa bieżącego dokumentu' })).toHaveValue('Aurelia interview regression');
+      const canvasName = page.locator(`[data-page-canvas="1"] [id="${name.element_id}"]`);
+      await expect(canvasName).toHaveText(spacingBoundary.cv_data.name);
+      await expect(canvasName).toHaveCSS('font-size', `${name.fontSize}px`);
+      await page.getByRole('button', { name: english ? 'Change template' : 'Zmień szablon', exact: true }).click();
+      await expect(page.getByRole('dialog').getByText(english ? /^Current template: Aurelia/ : /^Aktualny szablon: Aurelia/)
+        .filter({ has: page.locator('strong') })).toBeVisible();
+      await page.keyboard.press('Escape');
+    }
+    expect(documentReads).toBeGreaterThanOrEqual(2);
   });
 }
 
@@ -136,6 +180,7 @@ for (const [outcome, width] of [['complete', 390], ['complete', 834], ['complete
     }
     if (outcome === 'complete') {
       await expect(page.getByRole('option', { name: 'Sterling' })).toBeAttached();
+      await page.getByRole('combobox', { name: 'Pasujący szablon' }).selectOption('sterling');
       await page.getByRole('button', { name: /Użyj tego szablonu/ }).click();
       await expect(page.getByText('Zmieniono szablon. CV mieści się na jednej stronie; treść pozostała bez zmian.')).toBeVisible();
     } else if (outcome === 'failure') {
@@ -201,7 +246,8 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     const choose = page.getByRole('button', { name: english ? /Use this template/ : /Użyj tego szablonu/ });
     await expect(choose).toBeVisible({ timeout: 30000 });
     const matching = page.getByRole('combobox', { name: english ? 'Matching template' : 'Pasujący szablon' });
-    await expect(matching.locator('option')).toHaveCount(4);
+    await expect(matching.locator('option')).toHaveCount(5);
+    await expect(matching).toHaveValue('');
     await matching.selectOption({ 390: 'linden', 834: 'cadenza', 1280: 'sterling', 1920: 'meridian' }[width]);
     expect((await choose.boundingBox()).height).toBeGreaterThanOrEqual(44);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
