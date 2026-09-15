@@ -14,7 +14,7 @@ import { useCanvasContext } from "../../../store/canvas-context";
 import { useCanvasOutlineStyle } from "../../../store/canvas-outline-context";
 import Resize from "../../common/Resize/Resize";
 import {
-    measureNaturalScrollHeight,
+    measureNaturalTextHeight,
     shouldShrinkPreservedLayout,
     trimTrailingEmptyTextareaPayload,
 } from "../../../utils/textareaHeight";
@@ -32,7 +32,7 @@ import {
     createTextareaBackspaceEdit,
     createTextareaEnterEdit,
     getSelectionOffsets,
-    runsToHtml,
+    plainRunsToEditableHtml,
     seedBulletEditableHtml,
     serializeEditable,
     setSelectionOffsets,
@@ -95,8 +95,11 @@ function renderBulletLines(content, runs) {
 // (fast path) the raw sanitized string when the element carries no inline runs.
 function renderTextareaBody(content, runs, bulletList) {
     if (bulletList && content) return renderBulletLines(content, runs);
-    if (hasRuns(runs)) return renderStyledText(content, runs);
-    return content;
+    const body = hasRuns(runs) ? renderStyledText(content, runs) : content;
+    // CSS pre-wrap does not create a final line box for a terminal newline.
+    // A visual break keeps that authored blank paragraph, matching the explicit
+    // paragraphs used during generation/export. It never enters stored text.
+    return content.endsWith("\n") ? <>{body}<br /></> : body;
 }
 
 // Measure the true rendered height of the edit box's CONTENT, independent of the
@@ -106,13 +109,13 @@ function renderTextareaBody(content, runs, bulletList) {
 // Enter or paste). Under white-space: pre-wrap those wrappers coexist with the
 // original "\n" text nodes, so every line is counted twice and the element's own
 // scrollHeight returns roughly double the real height. Measuring a detached
-// mirror that holds exactly the serialized content (flat run spans for ordinary
-// text, deterministic marker/body paragraphs for bullets) yields the same height
+// mirror that holds exactly the serialized content (explicit plain paragraphs
+// or marker/body paragraphs for bullets) yields the same height
 // as the display <div>. The mirror is cloned from the live node so it inherits
 // the identical box width and typography, then sizes itself to the content.
 function measureEditableContentHeight(node, content, runs, { bulletList = false, metadataHints } = {}) {
     if (!node?.cloneNode || typeof document === "undefined") {
-        return measureNaturalScrollHeight(node);
+        return measureNaturalTextHeight(node);
     }
     const mirror = node.cloneNode(false);
     mirror.removeAttribute("id");
@@ -122,24 +125,24 @@ function measureEditableContentHeight(node, content, runs, { bulletList = false,
     mirror.style.position = "absolute";
     mirror.style.left = "-99999px";
     mirror.style.top = "0";
-    // Bullet mirrors need the same paragraph grid as the live editor; ordinary
-    // textareas retain their flat run-span structure.
+    // Both mirrors use the live editor's explicit paragraphs. Empty final rows
+    // therefore have the same line boxes during typing and after generation.
     mirror.innerHTML = bulletList
         ? bulletRunsToEditableHtml(content, runs)
-        : runsToHtml(content, runs);
+        : plainRunsToEditableHtml(content, runs);
     // Empty bullet paragraphs otherwise suppress :empty and measure one line
     // instead of the full returning advice. Keep this cleanup in the mirror
     // so native editing, blank paragraphs, and undo remain browser-owned.
-    if (!metadataHints && node.dataset.placeholder && !content.trim()) {
+    if (!metadataHints && node.dataset.placeholder && content === "") {
         mirror.textContent = "";
     }
     if (metadataHints) seedCompositeMetadata(mirror, content, runs, metadataHints);
     // Append inside the same parent so inherited styles and the containing block
     // width match the live edit box exactly.
     (node.parentNode ?? document.body).appendChild(mirror);
-    const height = mirror.scrollHeight;
+    const height = measureNaturalTextHeight(mirror);
     mirror.remove();
-    return Number.isFinite(height) && height > 0 ? height : measureNaturalScrollHeight(node);
+    return Number.isFinite(height) && height > 0 ? height : measureNaturalTextHeight(node);
 }
 
 // Rebuild only when Enter/paste/delete changed the logical paragraph shape.
@@ -286,9 +289,9 @@ function Textarea({
         textTransform: textTransform || "none",
     };
 
-    // scrollHeight is the browser's actual line layout for this exact font,
-    // width, spacing, and bullet rendering. It is more accurate than the
-    // authoring-time estimate carried by a template spec.
+    // The intrinsic CSS height measures actual lines for this font, width,
+    // spacing and bullet rendering. Round up exactly as generation/fitting
+    // does; scrolling overflow would also count editor-only hover outlines.
     // While canvas enter holds content at opacity 0, reflow is suppressed —
     // remasure as soon as that hold ends so webfont metrics drive packing.
     //
@@ -342,7 +345,7 @@ function Textarea({
 
         const measure = ({ allowGrow }) => {
             applyMeasuredHeight(
-                measureNaturalScrollHeight(blockRef.current),
+                measureNaturalTextHeight(blockRef.current),
                 { allowGrow },
             );
         };
@@ -392,10 +395,9 @@ function Textarea({
         width,
     ]);
 
-    // Seed the contentEditable edit surface with the current content, then
-    // focus it with the caret at the end. Plain content is written as a text
-    // node (byte-identical editing to the former <textarea>); decorated content
-    // is written as styled spans so inline marks are visible and editable.
+    // Seed the contentEditable edit surface with explicit paragraphs, then
+    // focus it with the caret at the end. Inline runs stay styled spans inside
+    // each paragraph; empty final rows retain a selectable caret position.
     // The DOM is authoritative while editing; React must not re-render children
     // of the editable, so this runs once per edit-enter.
     useLayoutEffect(() => {
@@ -420,8 +422,10 @@ function Textarea({
             // Seed one editor-only marker so the first typed character starts
             // a real bullet item; blur cleanup removes it when left untouched.
             node.innerHTML = seedBulletEditableHtml(seeded, seededPayload.runs);
-        } else if (hasRuns(seededPayload.runs)) {
-            node.innerHTML = runsToHtml(seeded, seededPayload.runs);
+        } else if (seeded) {
+            // Explicit paragraphs keep trailing blank lines reachable by End
+            // and Backspace; flat newline text has no final caret line box.
+            node.innerHTML = plainRunsToEditableHtml(seeded, seededPayload.runs);
         } else {
             node.textContent = seeded;
         }
@@ -643,10 +647,8 @@ function Textarea({
             if (!metadataHints && finalize && nextContent !== serialized.content) {
                 if (bulletList) {
                     node.innerHTML = bulletRunsToEditableHtml(nextContent, nextRuns);
-                } else if (hasRuns(nextRuns)) {
-                    node.innerHTML = runsToHtml(nextContent, nextRuns);
                 } else {
-                    node.textContent = nextContent;
+                    node.innerHTML = nextContent ? plainRunsToEditableHtml(nextContent, nextRuns) : "";
                 }
             } else if (bulletList) {
                 normalizeBulletEditableDom(node, nextContent, nextRuns);
@@ -722,10 +724,12 @@ function Textarea({
                     data-skills-field={skillsField ? "true" : undefined}
                     data-contact-channel={contactChannel || undefined}
                     onInput={(e) => {
-                        // Chromium leaves a solitary <br> after clearing a contact.
-                        // Remove that empty editing artifact so :empty restores the
-                        // hint; preserve authored blank paragraphs in body fields.
-                        if (contactChannel && !e.nativeEvent.isComposing && !e.currentTarget.textContent) {
+                        // Clearing the last text can leave one empty <div><br>
+                        // in Chromium. It is a caret artifact, not an authored
+                        // newline. Keep multiple explicit empty paragraphs,
+                        // which represent intentional blank rows from Enter.
+                        if (!metadataHints && !e.nativeEvent.isComposing && !e.currentTarget.textContent
+                            && e.currentTarget.querySelectorAll('[data-editable-paragraph]').length <= 1) {
                             e.currentTarget.replaceChildren();
                         }
                         if (metadataHints && e.nativeEvent.isComposing) {
@@ -784,9 +788,9 @@ function Textarea({
                         }
                         // Chromium sometimes reports Backspace on an empty
                         // explicit paragraph without removing that paragraph.
-                        // Handle only structural bullet-list boundaries here;
+                        // Handle empty rows and structural bullet boundaries;
                         // ordinary character deletion stays native.
-                        if (e.key === "Backspace" && bulletList) {
+                        if (e.key === "Backspace") {
                             const node = e.currentTarget;
                             const serialized = serializeEditable(node);
                             const selection = getSelectionOffsets(node);
@@ -794,11 +798,13 @@ function Textarea({
                                 content: serialized.content,
                                 runs: serialized.runs,
                                 selection,
-                                bulletList: true,
+                                bulletList: !!bulletList,
                             });
                             if (edit) {
                                 e.preventDefault();
-                                node.innerHTML = bulletRunsToEditableHtml(edit.content, edit.runs);
+                                node.innerHTML = bulletList
+                                    ? bulletRunsToEditableHtml(edit.content, edit.runs)
+                                    : plainRunsToEditableHtml(edit.content, edit.runs);
                                 setSelectionOffsets(node, edit.caret, edit.caret);
                                 commitEditable(node);
                             }
@@ -824,7 +830,7 @@ function Textarea({
                             });
                             node.innerHTML = bulletList
                                 ? bulletRunsToEditableHtml(edit.content, edit.runs)
-                                : runsToHtml(edit.content, edit.runs);
+                                : plainRunsToEditableHtml(edit.content, edit.runs);
                             setSelectionOffsets(node, edit.caret, edit.caret);
                             commitEditable(node);
                         }
@@ -971,7 +977,7 @@ function Textarea({
                         {renderStyledText(part.text, sliceRuns(cleanRuns, part.start, part.start + part.text.length))}
                     </span>
                 </span>
-            )) : editorPlaceholder && !cleanContent.trim()
+            )) : editorPlaceholder && cleanContent === ""
                 ? null
                 : renderTextareaBody(cleanContent, cleanRuns, bulletList)}
         </div>

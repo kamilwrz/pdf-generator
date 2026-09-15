@@ -142,7 +142,7 @@ import {
 } from "../../../utils/regentTypographyLayout";
 import {
   createCanvasTextWidthMeasurer,
-  measureNaturalScrollHeight,
+  measureNaturalTextHeight,
 } from "../../../utils/textareaHeight";
 import classes from "./SectionsPanel.module.css";
 
@@ -492,7 +492,7 @@ export default function SectionsPanel({ onClose }) {
           continue;
         }
         const node = document.getElementById(element.element_id);
-        const measuredHeight = measureNaturalScrollHeight(node);
+        const measuredHeight = measureNaturalTextHeight(node);
         if (Number.isFinite(measuredHeight) && measuredHeight > 0) {
           measuredHeights.set(element.element_id, measuredHeight);
         }

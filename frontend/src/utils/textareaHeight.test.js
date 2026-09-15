@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   isEmptyTextareaLine,
-  measureNaturalScrollHeight,
+  measureNaturalTextHeight,
   measureTextareaHeight,
   shouldShrinkPreservedLayout,
   trimTrailingEmptyTextareaLines,
@@ -12,17 +12,39 @@ import {
 test("measures intrinsic content height instead of preserving an oversized box", () => {
   const node = {
     style: { height: "96px" },
-    get scrollHeight() {
-      return this.style.height === "auto" ? 42 : 96;
-    },
+    ownerDocument: { defaultView: { getComputedStyle: (target) => ({
+      height: target.style.height === "auto" ? "41.25px" : "96px",
+    }) } },
+    // Scrolling overflow includes editor chrome and must never own text size.
+    scrollHeight: 46,
   };
 
-  assert.equal(measureNaturalScrollHeight(node), 42);
+  assert.equal(measureNaturalTextHeight(node), 42);
   assert.equal(node.style.height, "96px");
 });
 
 test("returns zero for an unavailable element", () => {
-  assert.equal(measureNaturalScrollHeight(null), 0);
+  assert.equal(measureNaturalTextHeight(null), 0);
+});
+
+test("tall fractional line boxes use the same rounding as generated CVs", () => {
+  const node = {
+    style: { height: "301px" },
+    ownerDocument: { defaultView: { getComputedStyle: () => ({
+      height: "301.172px", lineHeight: "12.04px",
+    }) } },
+  };
+  assert.equal(measureNaturalTextHeight(node), Math.ceil(25 * 12.04));
+  assert.equal(node.style.height, "301px");
+});
+
+test("restores the authored height when intrinsic layout is unavailable or fails", () => {
+  const node = { style: { height: "32px" } };
+  assert.equal(measureNaturalTextHeight(node), 0);
+  assert.equal(node.style.height, "32px");
+  node.ownerDocument = { defaultView: { getComputedStyle() { throw new Error("layout failed"); } } };
+  assert.throws(() => measureNaturalTextHeight(node), /layout failed/);
+  assert.equal(node.style.height, "32px");
 });
 
 test("shrinks preserveInitialLayout boxes only when browser metrics are shorter", () => {

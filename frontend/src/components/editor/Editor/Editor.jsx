@@ -67,6 +67,7 @@ import { insertInlineSkillSeparator } from "../../../utils/flatSectionLayout";
 import { isInlineSkillsContentElement } from "../../../utils/skillsDisplayMode";
 import {
   bulletRunsToEditableHtml,
+  plainRunsToEditableHtml,
   getSelectionOffsets,
   runsToHtml,
   serializeEditable,
@@ -74,7 +75,6 @@ import {
 } from "../../../utils/editableSerialize";
 import {
   applyMark,
-  hasRuns,
   rangeColor,
   rangeHasMark,
 } from "../../../utils/textRuns";
@@ -439,11 +439,9 @@ export default function Editor() {
     );
     if (!edit.changed) return;
 
-    if (hasRuns(edit.runs)) {
-      el.innerHTML = runsToHtml(edit.content, edit.runs);
-    } else {
-      el.textContent = edit.content;
-    }
+    // Preserve explicit paragraphs so inserting a separator cannot collapse
+    // trailing blank rows or move the next Backspace onto the preceding text.
+    el.innerHTML = plainRunsToEditableHtml(edit.content, edit.runs);
     setSelectionOffsets(el, edit.caret, edit.caret);
     // Let Textarea.commitEditable persist content/runs + remeasure height.
     el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -597,7 +595,9 @@ export default function Editor() {
     const nextRuns = applyMark(content, runs, offsets.start, offsets.end, mark, nextValue);
     node.innerHTML = selectedElement.category === "textarea" && selectedElement.bulletList
       ? bulletRunsToEditableHtml(content, nextRuns)
-      : runsToHtml(content, nextRuns);
+      : selectedElement.category === "textarea"
+        ? plainRunsToEditableHtml(content, nextRuns)
+        : runsToHtml(content, nextRuns);
     setSelectionOffsets(node, offsets.start, offsets.end);
     editElementValues({ content, runs: nextRuns }, selectedElement.element_id);
     // Textarea remasures height from its own input handler.

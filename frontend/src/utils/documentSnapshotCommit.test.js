@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeCommittedDocumentSnapshot } from "./documentSnapshotCommit.js";
+import { hasUnchangedSavedTextLayout } from "./savedTextLayout.js";
+
+test("regenerated content retaining a document ID is measured before editing", () => {
+  const input = { pdfId: 27, revision: 6, elements: [{ element_id: "role", category: "textarea",
+    content: "Specialist", autoHeight: true, width: 280, height: 15, lineHeight: 11 }] };
+  const saved = normalizeCommittedDocumentSnapshot(input);
+  const regenerated = normalizeCommittedDocumentSnapshot(input, { preserveSavedLayout: false });
+  assert.equal(hasUnchangedSavedTextLayout(saved.elements[0]), true);
+  assert.equal(hasUnchangedSavedTextLayout(regenerated.elements[0]), false);
+  assert.equal(regenerated.pdfId, 27);
+  assert.equal(regenerated.serverRevision, 6);
+});
 
 test("complete snapshot normalization clears metadata that is not supplied", () => {
   const snapshot = normalizeCommittedDocumentSnapshot({ elements: [] });

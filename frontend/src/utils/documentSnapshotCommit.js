@@ -33,6 +33,8 @@ function positiveInteger(value) {
  * import, template, id, and server-revision state from leaking across A→B.
  *
  * @param {Record<string, unknown>} input Raw saved, guest, template, or AI data.
+ * @param {{preserveSavedLayout?: boolean}} options - Disable saved-geometry
+ * protection for regenerated content that retains an existing document ID.
  * @returns {{
  *   elements: Array,
  *   deletedElements: Array,
@@ -49,7 +51,7 @@ function positiveInteger(value) {
  *   isDemoContent: boolean,
  * }} Canonical snapshot ready for one synchronous React commit.
  */
-export function normalizeCommittedDocumentSnapshot(input = {}) {
+export function normalizeCommittedDocumentSnapshot(input = {}, { preserveSavedLayout = true } = {}) {
   const elements = removeLegacyLanguageLevelStyling(
     normalizeLoadedElements(Array.isArray(input.elements) ? input.elements : []),
   );
@@ -73,7 +75,9 @@ export function normalizeCommittedDocumentSnapshot(input = {}) {
   const pdfId = input.pdfId ?? input.pdf_id ?? null;
 
   return {
-    elements: positiveInteger(pdfId) ? preserveSavedTextLayouts(elements) : elements,
+    // A template switch keeps the saved document ID but replaces its layout.
+    // Only actual saved geometry may skip the font-ready measurement pass.
+    elements: positiveInteger(pdfId) && preserveSavedLayout ? preserveSavedTextLayouts(elements) : elements,
     deletedElements,
     title: String(input.title ?? "").replace(/\.pdf$/i, ""),
     pageCount,

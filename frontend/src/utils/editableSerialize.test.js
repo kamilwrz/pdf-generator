@@ -6,6 +6,7 @@ import {
   bulletRunsToEditableHtml,
   createTextareaBackspaceEdit,
   createTextareaEnterEdit,
+  plainRunsToEditableHtml,
   seedBulletEditableHtml,
   serializeEditable,
   runsToHtml,
@@ -211,6 +212,24 @@ test("Backspace removes one trailing plain paragraph from a bullet list", () => 
 
   assert.equal(edit.content, "• First\n");
   assert.equal(edit.caret, edit.content.length);
+});
+
+test("plain editing preserves trailing paragraphs and does not interpret literal bullets", () => {
+  assert.equal(plainRunsToEditableHtml("• A\nB\n", [{ start: 4, end: 5, italic: true }]),
+    '<div data-editable-paragraph="plain">• A</div>'
+    + '<div data-editable-paragraph="plain"><span data-italic="true" style="font-style:italic">B</span></div>'
+    + '<div data-editable-paragraph="plain"></div>');
+});
+
+test("Backspace removes one plain blank row while preserving ordinary native deletion", () => {
+  const edit = createTextareaBackspaceEdit({ content: "First\n\n", runs: [{ start: 0, end: 5, bold: true }],
+    selection: { start: 7, end: 7 } });
+  assert.equal(edit.content, "First\n");
+  assert.equal(edit.caret, 6);
+  assert.deepEqual(edit.runs, [{ start: 0, end: 5, bold: true }]);
+  assert.equal(createTextareaBackspaceEdit({ content: "First", selection: { start: 5, end: 5 } }), null);
+  assert.equal(createTextareaBackspaceEdit({ content: "First\nSecond", selection: { start: 6, end: 6 } }), null);
+  assert.equal(createTextareaBackspaceEdit({ content: "First\n", selection: { start: 0, end: 6 } }), null);
 });
 
 test("Backspace at the start of a bullet body converts it to a plain paragraph", () => {

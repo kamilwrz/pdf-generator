@@ -9,11 +9,11 @@
  * execCommand output), so serialization is deterministic. Pasted rich content
  * is parsed on a best-effort basis from common tags and inline styles.
  *
- * Newline handling: the editing surfaces use `white-space: pre-wrap`, so our
- * seeded content keeps literal "\n" text nodes. Browsers may still insert
- * `<br>` / block elements when the user presses Enter; serialization folds both
- * back to "\n", and the offset helpers count them identically so toolbar
- * selection offsets always line up with `content`.
+ * Newline handling: textareas use explicit blocks for authored paragraphs,
+ * including empty final rows; single-line text keeps flat run spans. Browsers
+ * and older edit surfaces may also supply literal newlines, `<br>` or blocks.
+ * Serialization folds these into "\n", and the offset helpers use the same
+ * rules so toolbar selection offsets always line up with `content`.
  */
 
 import {
@@ -71,6 +71,28 @@ export function runsToHtml(content, runs) {
       return `<span ${attrs.join(" ")} style="${styles.join(";")}">${text}</span>`;
     })
     .join("");
+}
+
+/**
+ * Render plain textarea paragraphs with stable, selectable empty final rows.
+ *
+ * A terminal newline in a flat pre-wrap text node has no final line box, so
+ * Chromium's End/Backspace can target the preceding text instead. Explicit
+ * paragraphs share the existing serializer's newline rules and preserve runs.
+ * Callers displaying an empty-field hint may keep the root empty instead.
+ *
+ * @param {string} content - Authored text, including blank paragraphs.
+ * @param {object[]} runs - Inline styles indexed against the complete content.
+ * @returns {string} Escaped paragraph HTML for editing, measurement and export.
+ */
+export function plainRunsToEditableHtml(content, runs) {
+  let offset = 0;
+  return String(content ?? "").split("\n").map((line) => {
+    const start = offset;
+    offset += line.length + 1;
+    return '<div data-editable-paragraph="plain">'
+      + runsToHtml(line, sliceRuns(runs, start, start + line.length)) + "</div>";
+  }).join("");
 }
 
 /**
@@ -215,7 +237,7 @@ export function createTextareaEnterEdit({
 }
 
 /**
- * Build a structural Backspace edit for a bullet-list paragraph boundary.
+ * Build a structural Backspace edit for an empty row or bullet boundary.
  *
  * Chromium can emit `input` for Backspace in an empty explicit paragraph
  * without removing that paragraph from the contentEditable DOM. Returning a
@@ -239,7 +261,7 @@ export function createTextareaBackspaceEdit({
   selection,
   bulletList = false,
 }) {
-  if (!bulletList || !Number.isFinite(selection?.start)) return null;
+  if (!Number.isFinite(selection?.start)) return null;
 
   const text = typeof content === "string" ? content : String(content ?? "");
   const rawStart = Math.max(0, Math.min(text.length, selection.start));
@@ -252,7 +274,7 @@ export function createTextareaBackspaceEdit({
   const lineEndIndex = text.indexOf("\n", rawStart);
   const lineEnd = lineEndIndex === -1 ? text.length : lineEndIndex;
   const line = text.slice(lineStart, lineEnd);
-  const bulletMatch = line.match(/^\s*•[ \t]*/);
+  const bulletMatch = bulletList ? line.match(/^\s*•[ \t]*/) : null;
 
   if (bulletMatch && rawStart === lineStart + bulletMatch[0].length) {
     return replaceEditableTextRange(
@@ -264,7 +286,7 @@ export function createTextareaBackspaceEdit({
     );
   }
 
-  if (rawStart === lineStart && lineStart > 0) {
+  if (rawStart === lineStart && lineStart > 0 && (bulletList || line === "")) {
     // Remove exactly the newline before the current paragraph. Consecutive
     // blank rows therefore collapse one at a time and keep undo granularity.
     return replaceEditableTextRange(text, runs, lineStart - 1, lineStart, "");
@@ -336,7 +358,7 @@ function flatten(root) {
       const isExplicitParagraph = BLOCK_TAGS.has(tag)
         && child.getAttribute?.("data-editable-paragraph") !== null;
       if (isExplicitParagraph) {
-        // Our bullet editor renders one explicit block per stored logical
+        // Our textarea editor renders one explicit block per stored logical
         // line. Every boundary is authoritative, including two adjacent empty
         // paragraphs; collapsing those boundaries made repeated Enter a no-op.
         if (explicitParagraphCount > 0) {

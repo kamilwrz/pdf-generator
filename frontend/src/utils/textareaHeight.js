@@ -196,24 +196,46 @@ export function measureTextareaHeight(
   return renderedLines * lineHeight + 6;
 }
 
-// scrollHeight cannot be smaller than an element's currently assigned height.
-// Measure with an intrinsic height so auto-height fields can shrink as well as
-// grow, then restore the rendered style before React's state update lands.
-export function measureNaturalScrollHeight(node) {
+/**
+ * Read a zero-padding textarea's intrinsic line-box height in document pixels.
+ *
+ * `scrollHeight` rounds fractional lines to the nearest integer and includes
+ * overflowing hover pseudo-elements. Both differ from generated/interview
+ * boxes, which round the content height up. Read the resolved CSS height with
+ * `height: auto` instead: it excludes out-of-flow chrome and canvas transforms.
+ * All rows share one line height. Recover their count before rounding because
+ * Chromium quantizes each row to subpixels (25 rows at 12.04px can occupy
+ * 301.172px instead of 301px). Using the authored line height keeps tall fields
+ * consistent with generation as well. Restore the live height synchronously
+ * so measurement never paints a resize.
+ *
+ * @param {HTMLElement|null} node - Mounted display node or serialized edit mirror.
+ * @returns {number} Content height rounded up, or zero without layout support.
+ */
+export function measureNaturalTextHeight(node) {
   if (!node?.style) return 0;
 
   const previousHeight = node.style.height;
-  node.style.height = "auto";
-  const measuredHeight = node.scrollHeight;
-  node.style.height = previousHeight;
-
-  return Number.isFinite(measuredHeight) ? measuredHeight : 0;
+  try {
+    node.style.height = "auto";
+    const view = node.ownerDocument?.defaultView;
+    const style = view?.getComputedStyle(node);
+    const measuredHeight = Number.parseFloat(style?.height);
+    if (!Number.isFinite(measuredHeight)) return 0;
+    const lineHeight = Number.parseFloat(style?.lineHeight);
+    const contentHeight = Number.isFinite(lineHeight) && lineHeight > 0
+      ? Math.round(measuredHeight / lineHeight) * lineHeight
+      : measuredHeight;
+    return Math.ceil(contentHeight);
+  } finally {
+    node.style.height = previousHeight;
+  }
 }
 
 /**
  * Whether a preserveInitialLayout textarea should shrink to browser metrics.
  *
- * ReportLab-authored heights can overshoot the canvas scrollHeight, leaving
+ * ReportLab-authored heights can overshoot the browser's line boxes, leaving
  * empty space that inflates visual section gaps. Growing on first mount still
  * races and stretches gaps, so the first pass is shrink-only.
  */

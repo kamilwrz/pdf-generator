@@ -654,7 +654,9 @@ export function EditorController() {
    * Callers must finish dirty/stale checks before invoking this function.
    */
   const commitDocumentSnapshot = useCallback((input, options = {}) => {
-    const snapshot = normalizeCommittedDocumentSnapshot(input);
+    const snapshot = normalizeCommittedDocumentSnapshot(input, {
+      preserveSavedLayout: options.preserveSavedLayout !== false,
+    });
     const committedFlowSpacing = normalizeFlowSpacing(
       snapshot.flowSpacing ?? DEFAULT_FLOW_SPACING,
     );
@@ -1807,7 +1809,7 @@ export function EditorController() {
       pdfId,
       revision: serverRevision,
       currentPage: 1,
-    }, { animateContent: true, preserveConversation: true });
+    }, { animateContent: true, preserveConversation: true, preserveSavedLayout: false });
   }, [
     activeCvData,
     activeImportId,

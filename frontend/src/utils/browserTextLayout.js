@@ -7,8 +7,8 @@
  * records measured by Chromium; persisted canvas content remains plain text.
  */
 import { canvasFontFamily } from "./canvasFont.js";
-import { bulletRunsToEditableHtml, runsToHtml } from "./editableSerialize.js";
-import { sliceRuns, styledSegments } from "./textRuns.js";
+import { bulletRunsToEditableHtml, plainRunsToEditableHtml } from "./editableSerialize.js";
+import { styledSegments } from "./textRuns.js";
 
 const BULLET_RE = /^\s*•[ \t]*/;
 const STRONG_RTL_RE = /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff\u{10800}-\u{10fff}\u{1e800}-\u{1eeff}]/u;
@@ -20,20 +20,6 @@ function finiteNumber(value, fallback) {
 
 function codePointLength(value) {
   return Array.from(String(value ?? "")).length;
-}
-
-function plainParagraphsHtml(content, runs) {
-  let offset = 0;
-  return String(content ?? "").split("\n").map((line) => {
-    const start = offset;
-    const end = start + line.length;
-    offset = end + 1;
-    return (
-      '<div data-export-paragraph="plain">'
-      + runsToHtml(line, sliceRuns(runs, start, end))
-      + "</div>"
-    );
-  }).join("");
 }
 
 function textNodes(root, documentRef) {
@@ -232,7 +218,7 @@ export function resolveTextareaBrowserLines(
   });
   mirror.innerHTML = element.bulletList
     ? bulletRunsToEditableHtml(content, element.runs)
-    : plainParagraphsHtml(content, element.runs);
+    : plainRunsToEditableHtml(content, element.runs);
 
   const paragraphs = Array.from(mirror.children);
   const logicalLines = content.split("\n");
