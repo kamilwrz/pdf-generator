@@ -1,11 +1,12 @@
 /**
  * Compare server-generated templates against the same verified interview CV.
- * Browser fonts and the editor's S/compact transactions determine eligibility;
+ * Browser fonts, S typography and the supported spacing range determine eligibility;
  * this module never sends requests, edits prose or changes the active preview.
  */
 import { applyTemplateSmallTypography } from './templatePageFit.js';
 import { applyFlowSpacing } from './sectionStructure.js';
-import { COMPACT_FLOW_SPACING } from './flowSpacing.js';
+import { COMPACT_FLOW_SPACING, MIN_FLOW_SPACING } from './flowSpacing.js';
+import { buildSpacingLadder } from './fitToPages.js';
 import { contentMaxPage, reconcileDocumentPages } from './structureOperation.js';
 import { createCanvasTextWidthMeasurer } from './textareaHeight.js';
 import { resolveBrowserTextLayouts } from './browserTextLayout.js';
@@ -124,7 +125,7 @@ function hasValidGeometry(elements) {
 }
 
 /**
- * Measure one template at S and the shared compact spacing floor.
+ * Measure one template at S across the supported automatic spacing range.
  *
  * @param {object} candidate - Server template geometry for verified CV content.
  * @param {object} [options] - Lifecycle guard and injectable browser measurement.
@@ -142,30 +143,46 @@ export async function measureInterviewTemplateCandidate(candidate, {
   const source = await measuredElements(candidate.elements, resolveLayouts);
   if (!isCurrent()) return null;
   const createId = localIdFactory(source);
-  const spacing = { ...COMPACT_FLOW_SPACING };
-  let elements = applyTemplateSmallTypography({ elements: withoutLines(source),
-    templateId: candidate.template_id, spacing, createId, measureTextWidth });
-  if (!elements) throw new Error('Template does not support small typography.');
-  // Remeasure after packing so contact relayout and typography changes cannot
-  // preserve stale wrap heights. Keep the canonical template's lane allocation;
-  // the optional editor-only main-to-sidebar transfer changes immutable style.
-  for (let pass = 0; pass < 3; pass += 1) {
-    elements = await measuredElements(elements, resolveLayouts);
+  const smallElements = applyTemplateSmallTypography({ elements: withoutLines(source),
+    templateId: candidate.template_id, spacing: COMPACT_FLOW_SPACING, createId, measureTextWidth });
+  if (!smallElements) throw new Error('Template does not support small typography.');
+  // Compact is the preferred rhythm, not the eligibility cutoff. The editor's
+  // supported tighter rhythms can fit the same complete CV in more templates.
+  // Check each distinct rounded step from loose to tight and keep the first
+  // verified fit; never shrink typography repeatedly between spacing trials.
+  const rhythms = [...new Map(buildSpacingLadder(COMPACT_FLOW_SPACING, MIN_FLOW_SPACING)
+    .map(spacing => [JSON.stringify(spacing), spacing])).values()];
+  let invalidGeometry = false;
+  for (const [index, spacing] of rhythms.entries()) {
+    if (index > 0) await new Promise(resolve => setTimeout(resolve, 0));
     if (!isCurrent()) return null;
-    elements = reconcileDocumentPages(applyFlowSpacing(withoutLines(elements), spacing, PAGE_HEIGHT),
-      createId, { collapseEmpty: true }).elements;
+    let elements = smallElements;
+    // Remeasure after packing so contact relayout and typography changes cannot
+    // preserve stale wrap heights. Each trial starts from the same S snapshot
+    // and retains the template's column allocation and complete content.
+    for (let pass = 0; pass < 3; pass += 1) {
+      elements = await measuredElements(elements, resolveLayouts);
+      if (!isCurrent()) return null;
+      elements = reconcileDocumentPages(applyFlowSpacing(withoutLines(elements), spacing, PAGE_HEIGHT),
+        createId, { collapseEmpty: true }).elements;
+    }
+    const measured = await measuredElements(elements, resolveLayouts);
+    if (!isCurrent()) return null;
+    if (!preservesContent(candidate.elements, measured)) throw new Error('Template fitting changed content.');
+    if (contentMaxPage(measured) !== 1) continue;
+    // A final height increase requires another pack and cannot certify this
+    // trial. A tighter rhythm may still produce a fully verified alternative.
+    if (measured.some((element, elementIndex) => resizedHeight(element)
+      && Number(element.height) > Number(elements[elementIndex]?.height) + EPSILON)
+      || !hasValidGeometry(measured)) {
+      invalidGeometry = true;
+      continue;
+    }
+    return { ...candidate, elements: withoutLines(measured), pages: 1,
+      spacing_px: spacing, typography_preset: 'S' };
   }
-  const measured = await measuredElements(elements, resolveLayouts);
-  if (!isCurrent()) return null;
-  if (!preservesContent(candidate.elements, measured)) throw new Error('Template fitting changed content.');
-  if (contentMaxPage(measured) !== 1) return null;
-  // The last measurement validates the committed boxes; a final height change
-  // would need another pack, so it must not silently certify this candidate.
-  if (measured.some((element, index) => resizedHeight(element)
-    && Number(element.height) > Number(elements[index]?.height) + EPSILON)
-    || !hasValidGeometry(measured)) throw new Error('Template fitting could not verify a clear one-page layout.');
-  return { ...candidate, elements: withoutLines(measured), pages: 1,
-    spacing_px: spacing, typography_preset: 'S' };
+  if (invalidGeometry) throw new Error('Template fitting could not verify a clear one-page layout.');
+  return null;
 }
 
 /**

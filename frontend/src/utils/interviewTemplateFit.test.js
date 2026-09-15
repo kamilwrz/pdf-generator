@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { COMPACT_FLOW_SPACING } from './flowSpacing.js';
+import { COMPACT_FLOW_SPACING, MIN_FLOW_SPACING } from './flowSpacing.js';
 import { applyFlowSpacing } from './sectionStructure.js';
 import { contentMaxPage } from './structureOperation.js';
 import { measureInterviewTemplateCandidate, measureInterviewTemplateCandidates } from './interviewTemplateFit.js';
@@ -205,4 +205,41 @@ test('the public template fixture keeps every nonfixed element and verified text
   for (const original of elements.filter(element => !element.fixedToPage)) {
     assert.equal(result.elements.find(element => element.element_id === original.element_id)?.content, original.content);
   }
+});
+
+test('offers a complete CV that fits below compact spacing and keeps the loosest successful rhythm', async () => {
+  const elements = [{ element_id: 'heading', category: 'text', flowRole: 'section-chrome',
+    content: 'EXPERIENCE', left: 245, top: 75, fontFamily: 'Inter', fontSize: 10, width: 200 },
+  ...Array.from({ length: 38 }, (_, index) => text(`field-${index}`, {
+    content: `Verified field ${index}`, flowGroup: `record-${index}`, left: 245,
+    top: 100 + index * 18, width: 280,
+  }))];
+  const original = candidate('linden', elements);
+  const snapshot = structuredClone(original);
+  const result = await measureInterviewTemplateCandidate(original, options);
+  assert.equal(result.pages, 1);
+  assert.notDeepEqual(result.spacing_px, COMPACT_FLOW_SPACING);
+  assert.notDeepEqual(result.spacing_px, MIN_FLOW_SPACING);
+  assert.equal(contentMaxPage(applyFlowSpacing(result.elements, COMPACT_FLOW_SPACING, 842)), 2);
+  assert.equal(result.elements.length, elements.length);
+  for (const element of result.elements.filter(element => element.category === 'textarea')) {
+    assert.equal(element.content, elements.find(source => source.element_id === element.element_id).content);
+    assert.equal(element.fontSize, result.elements.find(item => item.element_id === 'field-0').fontSize);
+  }
+  assert.deepEqual(original, snapshot);
+});
+
+test('can cancel between tighter-spacing trials without publishing a partial candidate', async () => {
+  let current = true;
+  let calls = 0;
+  const result = await measureInterviewTemplateCandidate(candidate('linden', [
+    text('first'), text('second', { page: 2 }),
+  ]), { ...options, isCurrent: () => current, resolveLayouts: async source => {
+    calls += 1;
+    if (calls === 5) setTimeout(() => { current = false; }, 0);
+    return source.map(element => ({ ...element,
+      resolvedLines: Array.from({ length: 55 }, () => line(element)) }));
+  } });
+  assert.equal(calls, 5);
+  assert.equal(result, null);
 });

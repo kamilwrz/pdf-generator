@@ -8,6 +8,72 @@ const fixture = { ...storedFixture.response, cv_data: storedFixture.cv_data,
 const ID = 'b71056d4-534b-4c15-a8c7-ce5b65be56ae';
 const spacing = { stack: 4, record: 10, section: 21, after_rule: 8 };
 const regentSterling = JSON.parse(readFileSync(new URL('./fixtures/interview-regent-sterling.json', import.meta.url), 'utf8'));
+const spacingBoundary = JSON.parse(readFileSync(new URL('./fixtures/interview-template-spacing.json', import.meta.url), 'utf8'));
+
+for (const [language, width] of [['pl', 390], ['en', 1280]]) {
+  test(`offers Aurelia after reducing supported spacing and commits its measured layout ${language}`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMockApi(page);
+    await page.addInitScript(lng => {
+      localStorage.setItem('token', 'local-playwright-token');
+      localStorage.setItem('cvstudio.uiLanguage', lng);
+    }, language);
+    const english = language === 'en';
+    let session = { id: ID, revision: 4, profile_revision: 1, evidence_scope: 'session',
+      evidence_profile: { revision: 1, facts: [] }, mode: 'enrich', phase: 'preview', language: 'pl',
+      template_id: 'regent', question: null, answers: [], confirmed: true, proposed_facts: [],
+      requirements: [], question_limit: 10, planned_question_count: 10,
+      source_cv_data: spacingBoundary.cv_data, spacing_px: spacing,
+      preview: { cv_data: spacingBoundary.cv_data, elements: [], pages: 2, profile_revision: 1,
+        changes: [], remaining_gaps: [], fit: { status: 'complete', original_pages: 2 } } };
+    const posts = [];
+    await page.route('**/api/ai/interviews**', async route => {
+      const action = route.request().url().split('/').at(-1);
+      if (action === 'credits') return route.fulfill({ json: { requests: [], credits_charged: 0 } });
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON();
+        posts.push({ action, body });
+        if (action === 'preview-templates') return route.fulfill({ json: spacingBoundary });
+        if (action !== 'preview-template') throw new Error(`Unexpected operation: ${action}`);
+        expect(body.template_id).toBe('aurelia');
+        expect(Math.max(...body.elements.map(element => element.page || 1))).toBe(1);
+        // This real-font fixture cannot fit at S plus compact spacing. The
+        // comparison must retain the exact tighter rhythm selected by fitting.
+        const compact = { stack: 3, record: 7, section: 15, after_rule: 6 };
+        const minimum = { stack: 2, record: 2, section: 10, after_rule: 2 };
+        expect(Object.keys(compact).some(key => body.spacing_px[key] < compact[key])).toBe(true);
+        for (const key of Object.keys(compact)) {
+          expect(body.spacing_px[key]).toBeGreaterThanOrEqual(minimum[key]);
+          expect(body.spacing_px[key]).toBeLessThanOrEqual(compact[key]);
+        }
+        const original = spacingBoundary.candidates.find(candidate => candidate.template_id === 'aurelia');
+        for (const element of original.elements.filter(element => !element.fixedToPage)) {
+          expect(body.elements.find(item => item.element_id === element.element_id)?.content).toBe(element.content);
+        }
+        session = { ...session, revision: 5, template_id: body.template_id, spacing_px: body.spacing_px,
+          preview: { ...session.preview, elements: body.elements, pages: 1 } };
+      }
+      await route.fulfill({ json: session });
+    });
+    await page.goto(`/app/interview/${ID}`);
+    await page.getByRole('button', { name: english ? 'Check other templates' : 'Sprawdź inne szablony', exact: true }).click();
+    const matching = page.getByRole('combobox', { name: english ? 'Matching template' : 'Pasujący szablon' });
+    await expect(matching.locator('option[value="aurelia"]')).toBeAttached({ timeout: 60_000 });
+    expect(await matching.locator('option').count()).toBeGreaterThan(1);
+    await matching.selectOption('aurelia');
+    expect(posts.map(post => post.action)).toEqual(['preview-templates']);
+    const choose = page.getByRole('button', { name: english ? /Use this template/ : /Użyj tego szablonu/ });
+    await choose.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByText(english ? 'Template changed. Your CV fits on one page; its content is unchanged.' : 'Zmieniono szablon. CV mieści się na jednej stronie; treść pozostała bez zmian.')).toBeVisible();
+    expect(posts.map(post => post.action)).toEqual(['preview-templates', 'preview-template']);
+    expect(session.template_id).toBe('aurelia');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await expect(page.getByRole('button', { name: english ? 'Save as a new CV' : 'Zapisz jako nowe CV', exact: true })).toBeEnabled();
+  });
+}
 
 for (const [outcome, width] of [['complete', 390], ['complete', 834], ['complete', 1280], ['complete', 1920], ['cancel', 1280], ['failure', 1280]]) {
   test(`generation waits for the Regent to Sterling comparison before saving: ${outcome} ${width}`, async ({ page }) => {

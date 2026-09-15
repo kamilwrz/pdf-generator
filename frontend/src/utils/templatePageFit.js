@@ -64,7 +64,7 @@ function createProbeIdFactory(elements) {
 
 /**
  * Apply the registered S transaction independently of the spacing-first search.
- * Alternative-template comparisons explicitly promise S with compact spacing,
+ * Alternative-template comparisons use S before comparing spacing rhythms,
  * so they must apply S even when the initial M geometry already fits.
  *
  * @param {object} args - The template, elements and typography layout options.

@@ -43,6 +43,22 @@ it('automatically checks once after generation even under StrictMode', async () 
   expect(onAutoStart).toHaveBeenCalledTimes(1);
 });
 
+it('offers every measured alternative and applies the explicitly selected layout', async () => {
+  const alternatives = ['linden', 'sterling', 'cadenza'].map(template_id => ({ ...candidate, template_id }));
+  measureInterviewTemplateCandidates.mockResolvedValueOnce({
+    candidates: alternatives, failedTemplateIds: [], cancelled: false,
+  });
+  const onSelect = vi.fn();
+  setup({ onSelect });
+  await userEvent.click(screen.getByRole('button', { name: 'Sprawdź inne szablony' }));
+  const selector = await screen.findByRole('combobox', { name: 'Pasujący szablon' });
+  expect(screen.getAllByRole('option').map(option => option.value)).toEqual(['linden', 'sterling', 'cadenza']);
+  await userEvent.selectOptions(selector, 'cadenza');
+  expect(onSelect).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: /Użyj tego szablonu/ }));
+  expect(onSelect).toHaveBeenCalledExactlyOnceWith(alternatives[2]);
+});
+
 it('retains retry after a scan failure and distinguishes partial checks from no fit', async () => {
   interviewRequest.mockRejectedValueOnce(new Error('Unavailable'));
   setup();
