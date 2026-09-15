@@ -12,6 +12,7 @@ import { measureDocumentPageFills } from './layoutDensity.js';
 import { createCanvasTextWidthMeasurer } from './textareaHeight.js';
 import { resolveBrowserTextLayouts } from './browserTextLayout.js';
 import { t as uiText } from '../i18n/index.js';
+import { isTransientNetworkError } from '../services/api.js';
 
 const PROSE_PATH = /^\/(?:summary|experience\/\d+\/bullets\/\d+|education\/\d+\/(?:description|bullets\/\d+)|custom_sections\/\d+\/items\/\d+(?:\/(?:description|bullets\/\d+))?)$/;
 const PAGE_TOP = 66;
@@ -159,10 +160,27 @@ export async function completeInterviewFit(session, send, isCurrent = () => true
     if (!isCurrent()) return current;
     const proposal = await prepare(current);
     if (!isCurrent()) return current;
-    current = await send(`/ai/interviews/${current.id}/preview-fit`, 'POST', {
-      revision: current.revision, profile_revision: current.profile_revision,
-      evidence_scope: current.evidence_scope, ...proposal,
-    });
+    try {
+      current = await send(`/ai/interviews/${current.id}/preview-fit`, 'POST', {
+        revision: current.revision, profile_revision: current.profile_revision,
+        evidence_scope: current.evidence_scope, ...proposal,
+      });
+    } catch (error) {
+      // The final write can commit before its response is lost. Recover only
+      // that completed revision with a read; never replay a paid shortening or
+      // continue from an unrelated edit, restored baseline or pending result.
+      if (proposal.action === 'finish' && isCurrent() && isTransientNetworkError(error)) {
+        try {
+          const saved = await send(`/ai/interviews/${current.id}`);
+          if (isCurrent() && saved.id === current.id && saved.revision === current.revision + 1
+            && saved.profile_revision === current.profile_revision
+            && saved.evidence_scope === current.evidence_scope && saved.template_id === current.template_id
+            && saved.phase === 'preview' && saved.preview?.fit?.status === 'complete'
+            && saved.preview.profile_revision === current.profile_revision) return saved;
+        } catch { /* Keep the original write failure if the recovery read also fails. */ }
+      }
+      throw error;
+    }
   }
   return current;
 }

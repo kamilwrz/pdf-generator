@@ -51,3 +51,59 @@ test('unavailable browser fonts preserve the server layout without paid shorteni
   assert.equal(result.elements, elements);
   assert.equal(result.required_reduction, 0);
 });
+
+const pendingFit = { id: 'session', revision: 4, profile_revision: 2, evidence_scope: 'session',
+  template_id: 'linden', phase: 'preview', preview: { profile_revision: 2, fit: { status: 'pending' } } };
+const committedFit = { ...pendingFit, revision: 5,
+  preview: { profile_revision: 2, fit: { status: 'complete' } } };
+
+test('recovers a lost final response by reading the committed fit without another write', async () => {
+  for (const error of [new TypeError('Failed to fetch'), Object.assign(new Error('Timeout'), { name: 'AbortError' }),
+    Object.assign(new Error('Gateway unavailable'), { status: 503 })]) {
+    const calls = [];
+    const send = async (path, method = 'GET') => {
+      calls.push([path, method]);
+      if (method === 'POST') throw error;
+      return committedFit;
+    };
+    assert.equal(await completeInterviewFit(pendingFit, send, () => true, async () => ({ action: 'finish' })), committedFit);
+    assert.deepEqual(calls, [['/ai/interviews/session/preview-fit', 'POST'], ['/ai/interviews/session', 'GET']]);
+  }
+});
+
+test('never treats an unfinished, stale or unrelated recovery snapshot as successful fitting', async () => {
+  const error = new TypeError('Failed to fetch');
+  for (const saved of [pendingFit, { ...committedFit, revision: 6 }, { ...committedFit, id: 'other' },
+    { ...committedFit, profile_revision: 3 }, { ...committedFit, evidence_scope: 'profile' },
+    { ...committedFit, template_id: 'sterling' }, { ...committedFit, phase: 'clarification' },
+    { ...committedFit, preview: { profile_revision: 3, fit: { status: 'complete' } } },
+    { ...committedFit, preview: { profile_revision: 2, fit: { status: 'restored' } } }, null]) {
+    await assert.rejects(completeInterviewFit(pendingFit, async (_path, method) => {
+      if (method === 'POST') throw error;
+      return saved;
+    }, () => true, async () => ({ action: 'finish' })), value => value === error);
+  }
+});
+
+test('keeps the original error when recovery fails or the workflow closes', async () => {
+  const error = new TypeError('Failed to fetch');
+  for (const close of [false, true]) {
+    let active = true;
+    await assert.rejects(completeInterviewFit(pendingFit, async (_path, method) => {
+      if (method === 'POST') throw error;
+      if (!close) throw new Error('Recovery unavailable');
+      active = false;
+      return committedFit;
+    }, () => active, async () => ({ action: 'finish' })), value => value === error);
+  }
+});
+
+test('does not recover validation failures or automatically resume interrupted paid shortening', async () => {
+  for (const [action, error] of [['finish', Object.assign(new Error('Invalid layout'), { status: 422 })],
+    ['shorten', new TypeError('Failed to fetch')]]) {
+    let calls = 0;
+    await assert.rejects(completeInterviewFit(pendingFit, async () => { calls += 1; throw error; },
+      () => true, async () => ({ action })), value => value === error);
+    assert.equal(calls, 1);
+  }
+});

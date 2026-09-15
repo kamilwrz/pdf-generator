@@ -187,7 +187,18 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
 
   async function operation(action, extra = {}) {
     setPendingOperation(action);
-    let result = await interviewRequest(`/ai/interviews/${session.id}/${action}`, 'POST', { ...versions(), ...extra });
+    let result;
+    try {
+      result = await interviewRequest(`/ai/interviews/${session.id}/${action}`, 'POST', { ...versions(), ...extra });
+    } catch (err) {
+      // Generation can persist its attempt or verified content before losing
+      // the response. Refresh revisions for explicit recovery, without asking
+      // the model again or discarding the original error if the read fails.
+      if (action === 'preview' && alive.current) {
+        try { await load(); } catch { /* Preserve the generation failure. */ }
+      }
+      throw err;
+    }
     if (['preview', 'preview-review'].includes(action) && result.phase === 'preview' && result.preview?.fit?.status === 'pending' && alive.current) {
       const { completeInterviewFit } = await import('../../../utils/interviewFit.js');
       setPendingOperation('preview');
@@ -196,7 +207,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       } catch (err) {
         // Reload only saved state after a partial fit. Recovery remains an
         // explicit action; a GET must never start another paid shortening.
-        await load();
+        try { await load(); } catch { /* Preserve the fitting failure. */ }
         throw err;
       }
     }

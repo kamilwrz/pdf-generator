@@ -1,5 +1,15 @@
 # English
 
+## Recovering a lost interview response
+
+The final layout can be saved even when the browser receives a network error. During an explicitly started fit, `completeInterviewFit` now reads `GET /ai/interviews/{id}` once after a failed final `finish` response. It accepts only the immediately following revision with the same session, evidence scope, template and profile revision, a matching preview profile revision and completed fitting. It returns that stored result through the normal result view and free template comparison, without repeating the write or spending AI credits. Unfinished, restored, stale or unrelated snapshots retain the original error and explicit recovery actions. Closing the workflow prevents late recovery from being adopted.
+
+If initial generation fails, `InterviewFlow.operation` refreshes saved session state so an existing pending fit can be resumed explicitly with the current revision. If that read also fails, the original generation/fitting error remains visible. This performs no automatic paid retry. The shared HTTP client marks opaque transport failures with `code: network_error` in both JSON and download requests, so recovery works independently of translated wording. Its Polish and English messages no longer assert that the server is starting.
+
+Implementation: `frontend/src/utils/interviewFit.js`, lines 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–475 (`operation`); `frontend/src/services/api.js`, lines 1–405 (`ApiClient`, `isTransientNetworkError`). Tests: `frontend/src/utils/interviewFit.test.js`, lines 1–109; `frontend/src/services/api.test.js`, lines 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, lines 1–649; `frontend/e2e/interview-fit.spec.js`, lines 1–162. The browser regression commits the layout and then aborts the response, covering PL/EN, four viewport widths, keyboard use, 200% text zoom and reduced motion. Synthetic fixtures never call paid AI. Run the existing unit/runtime/lint/build scripts and the interview-fit Playwright suite from `frontend`.
+
+This is a frontend recovery fix; no API endpoint, database schema, dependency or configuration changes are required. It does not diagnose production network interruptions or poll a still-running operation. If no completed result is available at recovery time, the user must load saved state and explicitly resume. [MDN Fetch documentation](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) explains browser network rejection; it does not establish whether an application write was committed.
+
 ## Answer suggestions during the interview
 
 Answer help always provides a usable hint after an eligible request: a checked draft, selectable activities, or coaching tailored to the question's angle. A brief existing duty description also qualifies for hypothetical activities when it lacks the requested detail. If the model returns guidance or verification rejects the entire proposal, `public_answer_help` selects local Polish/English coaching (steps, quality, collaboration, decisions, constraints, problems, learning, application or overview). For example, a process question prompts the candidate to describe the input, checks and next step, with “First…, then…, finally…” as sentence starters. These are writing prompts, not candidate facts or text that can be applied automatically. Saved guidance receives the new copy on read without changing evidence or charging again. A failed request also displays local writing help beside the error and explicit retry. Existing AI access and factual-question restrictions remain in force. Regression tests cover all nine angles in both languages, old saved guidance, complete/partial rejection, draft preservation and retry recovery; providers are mocked, so live suggestion quality is not measured.
@@ -26,7 +36,7 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -90,10 +100,10 @@ Implementation and regression coverage:
 | `backend/app/services/interview_fit.py` | 1–237; `initialise_fit`, `fit_preview`: baseline, limits, evidence checks and final publication |
 | `backend/app/schemas/interview_schema.py` | 105–123; `PreviewFitWrite`, `FitVerification`: layout request and independent factual review |
 | `backend/app/api/routes/interviews.py` | 599–602; `fit_interview_preview`: authenticated `POST /ai/interviews/{session_id}/preview-fit` |
-| `frontend/src/utils/interviewFit.js` | 1–168; `prepareInterviewFit`, `completeInterviewFit`, `balanceInterviewPages`: measured typography/spacing and ordered record pagination |
+| `frontend/src/utils/interviewFit.js` | 1–186; `prepareInterviewFit`, `completeInterviewFit`, `balanceInterviewPages`: measured typography/spacing and ordered record pagination |
 | `backend/tests/test_interview_fit.py` | 1–220; synthetic tests for ownership, stale writes, loss of facts, limits, restore and billing recovery |
-| `frontend/src/utils/interviewFit.test.js` | 1–53; measurement and orchestration contracts |
-| `frontend/e2e/interview-fit.spec.js` | 1–152; actual template geometry, measured field heights and saved-editor focus, PL/EN, keyboard, responsive states, interrupted persistence and restore |
+| `frontend/src/utils/interviewFit.test.js` | 1–109; measurement and orchestration contracts |
+| `frontend/e2e/interview-fit.spec.js` | 1–162; actual template geometry, measured field heights and saved-editor focus, PL/EN, keyboard, responsive states, interrupted persistence and restore |
 
 The new domain service belongs in `backend/app/services/`, its schemas stay in the existing schema module, and the browser coordinator belongs in `frontend/src/utils/`. The synthetic generated fixture is `frontend/e2e/fixtures/interview-fit.json`; it contains no uploaded candidate data. Run the existing frontend test, runtime, lint and build scripts; run `npm run test:e2e -- e2e/interview-fit.spec.js --project=desktop-chromium` for the new browser flow. Backend commands and external references are in the linked tutorial. Browser coverage includes 390, 834, 1280 and 1920 px, 200% text zoom, reduced motion and 44px actions. Loading, errors and focus use the existing shared interview components; application controls never enter PDF output.
 
@@ -292,7 +302,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–464, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–475, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
@@ -941,7 +951,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; apply, cancel, undo, focus, search, question-and-answer presentation |
@@ -960,7 +970,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–732; state, answer prompt persistence, legacy restoration, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–625; question plans, answer-ceiling state, clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–649; question plans, answer-ceiling state, clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
 | `frontend/e2e/interview-sources.spec.js` | 1–108; isolated source selection, confirmation, resumption |
 | `frontend/e2e/interviews.spec.js` | 1–223; create, question plan, clarification decisions, immediate answer persistence, resume, profile and assistant flows |
 
@@ -3583,6 +3593,16 @@ Notable product facts:
 
 # Polski
 
+## Odzyskiwanie wywiadu po utracie odpowiedzi
+
+Końcowy układ może zostać zapisany, mimo że przeglądarka otrzyma błąd sieci. Podczas jawnie uruchomionego dopasowania `completeInterviewFit` odczytuje teraz jednokrotnie `GET /ai/interviews/{id}` po nieudanej odpowiedzi końcowego `finish`. Akceptuje wyłącznie bezpośrednio następującą rewizję z tą samą sesją, zakresem danych, szablonem i rewizją profilu, zgodną rewizją profilu podglądu oraz zakończonym dopasowaniem. Przekazuje zapisany wynik do zwykłego widoku rezultatu i bezpłatnego porównania szablonów, bez ponownego zapisu i zużycia kredytów AI. Stan nieukończony, przywrócony, nieaktualny lub dotyczący innych danych zachowuje pierwotny błąd i jawne akcje odzyskiwania. Zamknięcie wywiadu blokuje przyjęcie spóźnionej odpowiedzi.
+
+Po błędzie początkowego generowania `InterviewFlow.operation` odświeża zapisany stan sesji, aby istniejące oczekujące dopasowanie można było jawnie wznowić z bieżącą rewizją. Jeśli odczyt również zawiedzie, widoczny pozostaje pierwotny błąd generowania/dopasowania. Nie następuje automatyczne ponowienie płatnego AI. Wspólny klient HTTP oznacza nieprzejrzyste błędy transportu przez `code: network_error` zarówno dla JSON, jak i pobierania plików, dzięki czemu odzyskiwanie nie zależy od języka komunikatu. Komunikaty polskie i angielskie nie twierdzą już, że serwer się uruchamia.
+
+Implementacja: `frontend/src/utils/interviewFit.js`, linie 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–475 (`operation`); `frontend/src/services/api.js`, linie 1–405 (`ApiClient`, `isTransientNetworkError`). Testy: `frontend/src/utils/interviewFit.test.js`, linie 1–109; `frontend/src/services/api.test.js`, linie 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–649; `frontend/e2e/interview-fit.spec.js`, linie 1–162. Regresja przeglądarkowa zapisuje układ i zrywa odpowiedź; obejmuje PL/EN, cztery szerokości okna, klawiaturę, tekst powiększony do 200% i ograniczony ruch. Syntetyczne dane nie wywołują płatnego AI. Należy uruchomić istniejące skrypty testów jednostkowych/runtime, lint/build i zestaw Playwright interview-fit z katalogu `frontend`.
+
+To poprawka odzyskiwania we frontendzie; nie wymaga zmian endpointów API, schematu bazy, zależności ani konfiguracji. Nie diagnozuje przerw sieciowych na produkcji i nie odpytuje cyklicznie nadal trwającej operacji. Jeśli gotowy wynik nie jest dostępny podczas odczytu, użytkownik musi wczytać zapisany stan i jawnie wznowić pracę. [Dokumentacja Fetch w MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) wyjaśnia odrzucenie żądania przez przeglądarkę; nie rozstrzyga, czy zapis aplikacji został wykonany.
+
 ## Propozycje odpowiedzi podczas wywiadu
 
 Pomoc po kwalifikującym się żądaniu zawsze dostarcza użyteczną podpowiedź: sprawdzony szkic, czynności do wyboru albo wskazówki dopasowane do celu pytania. Krótki istniejący opis obowiązków również pozwala proponować hipotetyczne czynności, gdy brakuje wymaganych szczegółów. Gdy model zwróci wskazówkę lub weryfikacja odrzuci całą propozycję, `public_answer_help` wybiera lokalną pomoc PL/EN dotyczącą kroków, jakości, współpracy, decyzji, ograniczeń, problemów, nauki, zastosowania lub ogólnego zakresu pracy. Przykładowo pytanie o proces zachęca do opisania danych wejściowych, kontroli i dalszego kroku, z początkami zdań „Najpierw…, następnie…, na końcu…”. Są to wskazówki do pisania, a nie fakty o kandydacie ani tekst do automatycznego zastosowania. Zapisane wskazówki otrzymują nową treść przy odczycie bez zmiany dowodów i ponownej opłaty. Nieudane żądanie również pokazuje lokalną pomoc obok błędu i jawnego ponowienia. Dotychczasowe zasady dostępu do AI i ograniczenia pytań o dokładne fakty nadal obowiązują. Testy regresji obejmują dziewięć celów pytania w obu językach, stare zapisane wskazówki, całkowite/częściowe odrzucenie, zachowanie szkicu i ponowienie; dostawca jest symulowany, więc jakość rzeczywistych propozycji nie jest mierzona.
@@ -3609,7 +3629,7 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -3673,10 +3693,10 @@ Implementacja i pokrycie regresji:
 | `backend/app/services/interview_fit.py` | 1–237; `initialise_fit`, `fit_preview`: baza, limity, kontrola źródeł i publikacja wyniku |
 | `backend/app/schemas/interview_schema.py` | 105–123; `PreviewFitWrite`, `FitVerification`: żądanie układu i niezależna kontrola faktów |
 | `backend/app/api/routes/interviews.py` | 599–602; `fit_interview_preview`: uwierzytelniony `POST /ai/interviews/{session_id}/preview-fit` |
-| `frontend/src/utils/interviewFit.js` | 1–168; `prepareInterviewFit`, `completeInterviewFit`, `balanceInterviewPages`: mierzone odstępy/typografia i podział uporządkowanych rekordów |
+| `frontend/src/utils/interviewFit.js` | 1–186; `prepareInterviewFit`, `completeInterviewFit`, `balanceInterviewPages`: mierzone odstępy/typografia i podział uporządkowanych rekordów |
 | `backend/tests/test_interview_fit.py` | 1–220; syntetyczne testy własności, nieaktualnych zapisów, utraty faktów, limitów, przywracania i rozliczeń ponowień |
-| `frontend/src/utils/interviewFit.test.js` | 1–53; kontrakty pomiaru i koordynacji |
-| `frontend/e2e/interview-fit.spec.js` | 1–152; rzeczywista geometria szablonu, zmierzone wysokości pól i fokus w zapisanym edytorze, PL/EN, klawiatura, responsywność, przerwany zapis i przywracanie |
+| `frontend/src/utils/interviewFit.test.js` | 1–109; kontrakty pomiaru i koordynacji |
+| `frontend/e2e/interview-fit.spec.js` | 1–162; rzeczywista geometria szablonu, zmierzone wysokości pól i fokus w zapisanym edytorze, PL/EN, klawiatura, responsywność, przerwany zapis i przywracanie |
 
 Nowy serwis domenowy należy do `backend/app/services/`, jego schematy pozostają w obecnym module schematów, a koordynator przeglądarki należy do `frontend/src/utils/`. Syntetyczny wygenerowany fixture to `frontend/e2e/fixtures/interview-fit.json`; nie zawiera danych przesłanego kandydata. Uruchom obecne skrypty testów frontendu, testów runtime, lint i build; nowy przepływ przeglądarkowy sprawdza `npm run test:e2e -- e2e/interview-fit.spec.js --project=desktop-chromium`. Polecenia backendu i źródła zewnętrzne są w podlinkowanej instrukcji. Testy przeglądarkowe obejmują 390, 834, 1280 i 1920 px, powiększenie tekstu 200%, ograniczenie animacji i przyciski 44px. Ładowanie, błędy i fokus korzystają z obecnych wspólnych komponentów wywiadu; kontrolki aplikacji nie trafiają do PDF.
 
@@ -3875,7 +3895,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–464, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–475, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
@@ -4518,7 +4538,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
@@ -4537,7 +4557,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–732; zapis pytania z odpowiedzią, odtwarzanie starszych danych i regresje wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–625; plan pytań, stan wspólnego limitu, decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–649; plan pytań, stan wspólnego limitu, decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
 | `frontend/e2e/interview-sources.spec.js` | 1–108; wybór osobnego źródła, zatwierdzanie, wznowienie |
 | `frontend/e2e/interviews.spec.js` | 1–223; plan pytań, decyzje doprecyzowania, zapis odpowiedzi i pełne przepływy wywiadu |
 

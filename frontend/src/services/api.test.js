@@ -1,8 +1,21 @@
 import assert from "node:assert/strict";
 import { afterEach, mock, test } from "node:test";
-import { ApiClient } from "./api.js";
+import { ApiClient, isTransientNetworkError } from "./api.js";
 
 afterEach(() => mock.restoreAll());
+
+for (const method of ['httpRequest', 'httpRequestBlob']) {
+  test(`${method} preserves transport classification after translating the error without replaying POST`, async () => {
+    const fetchMock = mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+    await assert.rejects(new ApiClient()[method]('/test', 'POST', '{}', 'Request failed', { retries: 0 }), error => {
+      assert.equal(error.code, 'network_error');
+      assert.equal(isTransientNetworkError(error), true);
+      assert.equal(isTransientNetworkError({ code: error.code, message: 'Translated message' }), true);
+      return true;
+    });
+    assert.equal(fetchMock.mock.callCount(), 1);
+  });
+}
 
 test("ApiClient merges per-request headers over client defaults", async () => {
   const fetchMock = mock.method(globalThis, "fetch", async (_url, options) => {

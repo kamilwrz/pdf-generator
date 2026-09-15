@@ -1720,7 +1720,7 @@
     "errorBoundary.refreshTheViewOrReturnToThe": "Odśwież widok lub wróć do strony głównej. Twoje dane nie są wyświetlane w komunikacie błędu.",
     "accountApi.couldNotPrepareYourDataExport": "Nie udało się przygotować eksportu danych.",
     "accountApi.couldNotDeleteYourAccount": "Nie udało się usunąć konta.",
-    "api.couldNotConnectToTheServerWhile": "Nie udało się połączyć z serwerem (trwa uruchamianie). Spróbuj ponownie za chwilę.",
+    "api.couldNotConnectToTheServerWhile": "Nie udało się odebrać odpowiedzi serwera. Sprawdź połączenie z internetem.",
     "api.anErrorOccurredWhileCommunicatingWithThe": "Wystąpił błąd podczas komunikacji z serwerem.",
     "api.theTokenIsInvalidOrHasExpired": "Token jest nieprawidłowy lub wygasł",
     "api.requestTimedOutSTheServerOr": "Przekroczono czas oczekiwania ({{value0}} s). Serwer lub model AI nadal pracuje — spróbuj ponownie za chwilę.",

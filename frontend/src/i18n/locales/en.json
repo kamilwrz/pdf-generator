@@ -1696,7 +1696,7 @@
     "errorBoundary.refreshTheViewOrReturnToThe": "Refresh the view or return to the homepage. Your data is not displayed in the error message.",
     "accountApi.couldNotPrepareYourDataExport": "Could not prepare your data export.",
     "accountApi.couldNotDeleteYourAccount": "Could not delete your account.",
-    "api.couldNotConnectToTheServerWhile": "Could not connect to the server while it starts. Please try again shortly.",
+    "api.couldNotConnectToTheServerWhile": "Could not receive the server response. Check your internet connection.",
     "api.anErrorOccurredWhileCommunicatingWithThe": "An error occurred while communicating with the server.",
     "api.theTokenIsInvalidOrHasExpired": "The token is invalid or has expired",
     "api.requestTimedOutSTheServerOr": "Request timed out ({{value0}} s). The server or AI model may still be working. Please try again shortly.",

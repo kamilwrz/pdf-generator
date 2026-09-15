@@ -24,6 +24,30 @@ beforeEach(() => {
 });
 
 describe('interview workflow', () => {
+  it.each([false, true])('refreshes interrupted generation without retrying AI and preserves its error (read fails: %s)', async (readFails) => {
+    session = { ...session, phase: 'ready', question: null, profile_revision: 1, answers: [{}] };
+    let generationStarted = false;
+    interviewRequest.mockImplementation(async (path) => {
+      if (path === '/career-profile') return { revision: 1, facts: [fact] };
+      if (path.endsWith('/preview')) {
+        generationStarted = true;
+        session = { ...session, revision: 4, phase: 'preview',
+          preview: { pages: 2, profile_revision: 1, fit: { status: 'pending' } } };
+        throw new Error('Generation response lost');
+      }
+      if (generationStarted && readFails && path === '/ai/interviews/session') throw new Error('Recovery read failed');
+      return session;
+    });
+    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' }));
+    await user.click(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Generation response lost');
+    if (!readFails) expect(screen.getByRole('button', { name: 'Wznów dopasowanie CV' })).toBeEnabled();
+    expect(interviewRequest.mock.calls.filter(([path]) => path.endsWith('/preview'))).toHaveLength(1);
+    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/preview-fit'))).toBe(false);
+  });
+
   it('finishes a bounded round without claiming every record was discussed', async () => {
     session = { ...session, question: null, phase: 'review', discovery_round_complete: true, discovery_complete: false };
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);

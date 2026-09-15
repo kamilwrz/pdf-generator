@@ -75,6 +75,9 @@ function sleep(ms) {
 /** True for cold-start / proxy blips browsers report as "Failed to fetch". */
 export function isTransientNetworkError(error) {
     if (!error) return false;
+    // Recovery must survive translation and must not infer a cold start from
+    // opaque browser failures, which can also occur after a successful write.
+    if (error.code === 'network_error') return true;
     if (error.name === "AbortError") return true;
     if ([502, 503, 504].includes(error.status)) return true;
     const message = String(error.message || "").toLowerCase();
@@ -159,14 +162,14 @@ export class ApiClient {
                     ? isRetryableNetworkError(error)
                     : isTransientNetworkError(error);
                 if (!retryable || attempt === retries) {
-                    // Keep timeout wording; only map opaque fetch failures to cold-start copy.
+                    // Keep timeout wording and identify opaque transport errors independently of locale.
                     if (error?.name === "AbortError") {
                         throw error;
                     }
                     if (isTransientNetworkError(error) && !error.status) {
-                        throw new Error(
+                        throw Object.assign(new Error(
                             uiText("errors:api.couldNotConnectToTheServerWhile"),
-                        );
+                        ), { code: 'network_error' });
                     }
                     throw error;
                 }
@@ -287,9 +290,9 @@ export class ApiClient {
                         throw error;
                     }
                     if (isTransientNetworkError(error) && !error.status) {
-                        throw new Error(
+                        throw Object.assign(new Error(
                             uiText("errors:api.couldNotConnectToTheServerWhile"),
-                        );
+                        ), { code: 'network_error' });
                     }
                     throw error;
                 }

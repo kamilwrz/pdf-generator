@@ -71,6 +71,10 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     let fail = true;
     await page.route('**/api/ai/interviews**', async route => {
       if (route.request().url().endsWith('/credits')) { await route.fulfill({ json: { requests: [], credits_charged: 0 } }); return; }
+      if (route.request().url().endsWith('/preview-templates')) {
+        await route.fulfill({ json: { revision: session.revision, target_pages: 1, candidates: [], failed_template_ids: [] } });
+        return;
+      }
       if (route.request().method() === 'POST') {
         const body = route.request().postDataJSON();
         posts.push(body);
@@ -86,6 +90,10 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
               expect(body.elements.find(e => e.element_id === original.element_id)?.content).toEqual(original.content);
             }
             if (language === 'pl' && width === 1280) writeFileSync('../tmp/interview-fit-measured.json', JSON.stringify(body));
+            // Commit succeeds but its response never reaches the browser. The
+            // read-only recovery must reveal this result without a third POST.
+            await route.abort('failed');
+            return;
           } else if (body.action === 'restore') {
             session = { ...session, revision: session.revision + 1, spacing_px: spacing,
               preview: { ...structuredClone(baseline), fit: { status: 'restored', can_restore: false } } };
@@ -106,6 +114,8 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     const save = page.getByRole('button', { name: english ? 'Save as a new CV' : 'Zapisz jako nowe CV', exact: true });
     await expect(save).toBeVisible();
     await expect(save).toBeEnabled();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    expect(posts.filter(body => body.action === 'finish')).toHaveLength(2);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     const restore = page.getByRole('button', { name: english ? 'Restore version before fitting' : 'Przywróć wersję sprzed dopasowania' });
     expect((await restore.boundingBox()).height).toBeGreaterThanOrEqual(44);
