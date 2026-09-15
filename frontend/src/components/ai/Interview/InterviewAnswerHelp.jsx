@@ -187,6 +187,12 @@ function QuestionAnswerHelp({ session, answer, disabled = false, canAi = false, 
         </div>}
       </>}
       {error && <p role="alert" className={classes.error}>{uiText(error)}</p>}
+      {/* Local coaching remains available when generation fails; it never
+          reuses rejected provider text or inserts claims into the answer. */}
+      {!help && !pending && error && <div className={styles.guidance}>
+        <p className={styles.label}>{uiText('interview:answerHelp.guidanceLabel')}</p>
+        <p>{uiText('interview:answerHelp.fallbackHint')}</p>
+      </div>}
       <div className={classes.actions}>
         {error === 'interview:answerHelp.error' && <button type="button" disabled={actionDisabled || !canAi}
           onClick={() => void generate()}>{uiText('interview:answerHelp.retry')}</button>}

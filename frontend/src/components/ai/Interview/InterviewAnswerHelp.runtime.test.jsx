@@ -114,8 +114,11 @@ it('retains retry after failure without adding or accepting any answer text', as
   setup({ onGenerate, onUse });
   await userEvent.click(screen.getByRole('button', { name: key('generate') }));
   expect(await screen.findByRole('alert')).toHaveTextContent(key('error'));
+  expect(screen.getByText(key('fallbackHint'))).toBeVisible();
+  expect(screen.queryByRole('button', { name: key('useDraft') })).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: key('retry') }));
   await screen.findByText(draft.draft);
+  expect(screen.queryByText(key('fallbackHint'))).not.toBeInTheDocument();
   expect(onGenerate).toHaveBeenCalledTimes(2);
   expect(onUse).not.toHaveBeenCalled();
 });

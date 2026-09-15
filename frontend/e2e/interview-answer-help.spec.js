@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { installMockApi } from './support/mockApi.js';
+import messages from '../../backend/app/core/locales/messages.json' with { type: 'json' };
 
 const ID = '291a5c2a-a449-4cd4-bbc9-f11f119e5796';
 const QUESTION_ID = 'responsibilities-0';
@@ -57,7 +58,7 @@ async function openInterview(page, {
     based_on_draft: '',
     draft: mode === 'draft' ? suggestedDraft : '',
     options: mode === 'options' ? [{ id: 'task-1', text: selectedTask }, { id: 'task-2', text: uncheckedTask }] : [],
-    ...(mode === 'guidance' ? { guidance: 'Opisz jedną czynność, którą rzeczywiście pamiętasz z tej pracy.' } : {}),
+    ...(mode === 'guidance' ? { guidance: messages.interview_answer_help_guidance_approach[language] } : {}),
   };
   let session = { id: ID, evidence_scope: 'session', revision: 1, profile_revision: 1,
     evidence_profile: { revision: 1, facts: structuredClone(facts) }, mode: 'enrich', language: 'pl',
@@ -226,6 +227,8 @@ test('failed suggestion can be retried without clearing the answer or saving it'
   const suggest = page.getByRole('button', { name: copy.pl.suggest, exact: true });
   await suggest.click();
   await expect(page.getByRole('alert')).toContainText(copy.pl.error);
+  await expect(page.getByText('Podpowiedź do odpowiedzi', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Zbuduj odpowiedź wokół jednego przykładu/)).toBeVisible();
   await expect(flow.answer).toHaveValue(original);
   const retry = page.getByRole('button', { name: copy.pl.retry, exact: true });
   await expect(retry).toBeEnabled();
@@ -288,19 +291,29 @@ test('questions without explicit eligibility do not expose answer generation', a
   expectSourceIsolation(flow);
 });
 
-test('guidance stays readable without becoming applicable answer text', async ({ page }) => {
-  const flow = await openInterview(page, { mode: 'guidance' });
+for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920]) {
+test(`guidance stays readable without becoming applicable answer text ${language} ${width}`, async ({ page }) => {
+  const flow = await openInterview(page, { mode: 'guidance', language, width });
+  // Double text size exercises reflow with real local fallback copy, including
+  // compact panels; browser requests remain intercepted by the shared fixture.
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
   const original = 'Pamiętam, że pracowałam ze zgłoszeniami.';
   await flow.answer.fill(original);
-  await page.getByRole('button', { name: copy.pl.suggest, exact: true }).click();
-  await expect(page.getByText('Opisz jedną czynność, którą rzeczywiście pamiętasz z tej pracy.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: copy.pl.use, exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: copy.pl.tasks, exact: true })).toHaveCount(0);
+  const trigger = page.getByRole('button', { name: copy[language].suggest, exact: true });
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText(messages.interview_answer_help_guidance_approach[language], { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: copy[language].use, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: copy[language].tasks, exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  const heading = page.getByRole('heading', { name: language === 'pl' ? 'Propozycja odpowiedzi' : 'Answer suggestion', exact: true });
+  await expect(heading).toBeFocused();
   await expect(flow.answer).toHaveValue(original);
   expect(flow.saves()).toEqual([]);
   expect(flow.current().evidence_profile.facts).toEqual(flow.facts);
   expectSourceIsolation(flow);
 });
+}
 
 test('oversized suggestion preserves the full draft and displays a recoverable error', async ({ page }) => {
   const flow = await openInterview(page);

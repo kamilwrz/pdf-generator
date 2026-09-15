@@ -36,7 +36,9 @@ Gdy fakty lub szkic wystarczają do odpowiedzi, mode=draft: krótka odpowiedź
 w pierwszej osobie, tylko wierna parafraza tych informacji. Nie dodawaj żadnego
 nowego zadania, odbiorcy, technologii, wyniku ani zakresu odpowiedzialności.
 evidence_refs wskazuje wykorzystane confirmed_facts; szkic użytkownika nie ma ID.
-Gdy brakuje opisu obowiązków, mode=options: 3–5 krótkich, odrębnych, typowych dla
+Gdy brakuje opisu obowiązków LUB opis jest zbyt ogólny, aby odpowiedzieć na
+pytanie o przebieg, sposób wykonania czy szczegóły zadania, wybierz mode=options,
+zamiast odmawiać pomocy: 3–5 krótkich, odrębnych, typowych dla
 udokumentowanej roli możliwości do NIEZAZNACZONEGO wyboru. Napisz czynności
 rzeczownikowo, nie jako twierdzenia o kandydacie. Dopuszczalne są hipotetyczne
 zadania, lecz nie wymyślaj nazw narzędzi, technologii, instytucji, produktów, dat,
@@ -99,7 +101,15 @@ def public_answer_help(state):
     result = {key: deepcopy(help_[key]) for key in PUBLIC_KEYS if key != 'guidance'}
     # Guidance belongs to application chrome. Resume it in the current locale
     # without translating the authored proposal, answer draft or saved evidence.
-    result['guidance'] = message('interview_answer_help_' + help_['mode'])
+    key = 'interview_answer_help_' + help_['mode']
+    if help_['mode'] == 'guidance':
+        # A refusal or fully rejected proposal still gives actionable coaching.
+        # Resolve on read so older saved refusals improve without another charge.
+        # Only trusted angle metadata selects copy; rejected claims never enter it.
+        angle = question.get('angle')
+        if angle in ANGLES:
+            key += '_' + angle
+    result['guidance'] = message(key)
     return result
 
 

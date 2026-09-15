@@ -16,8 +16,44 @@
     "en": "These are possible activities, not confirmed information about you. Select only those that were part of your work and clarify your own contribution."
   },
   "interview_answer_help_guidance": {
-    "pl": "Nie ma wystarczającej podstawy do propozycji. Opisz jedno zadanie lub sytuację, którą pamiętasz. Możesz też wybrać Nie pamiętam albo Pomiń.",
-    "en": "There is not enough information for a suggestion. Describe one task or situation you remember. You can also choose I cannot remember or Skip."
+    "pl": "Zbuduj odpowiedź wokół jednego przykładu: czego dotyczyło zadanie, co należało do Ciebie i jak przebiegała praca. Zacznij od najlepiej zapamiętanej czynności; dopisz tylko szczegóły zgodne z Twoim doświadczeniem.",
+    "en": "Build your answer around one example: what the task involved, your part in it and how the work proceeded. Start with the activity you remember best; add only details that match your experience."
+  },
+  "interview_answer_help_guidance_overview": {
+    "pl": "Pomyśl o typowym dniu w tej roli. Wybierz dwie lub trzy czynności, które zajmowały Ci najwięcej czasu, i opisz, czego dotyczyły oraz gdzie kończył się Twój udział. Pomocne początki zdań: „Do moich zadań należało…” i „Najczęściej…”. Uzupełnij je wyłącznie własnymi doświadczeniami.",
+    "en": "Think about a typical day in this role. Choose two or three activities that took most of your time and describe what they involved and where your part ended. Useful sentence starters: “My tasks included…” and “Most often…”. Complete them only with your own experience."
+  },
+  "interview_answer_help_guidance_approach": {
+    "pl": "Rozłóż zadanie na kroki: co trafiało do Ciebie na początku, co należało sprawdzić lub wykonać i co działo się dalej. Przy weryfikacji pomyśl, jakie informacje porównywano i jak postępowano przy rozbieżnościach. Możesz zacząć: „Najpierw…, następnie…, na końcu…”. Wpisz tylko kroki, które rzeczywiście pamiętasz.",
+    "en": "Break the task into steps: what you received at the start, what needed checking or doing and what happened next. For verification work, think about which information was compared and how discrepancies were handled. You can start: “First…, then…, finally…”. Include only steps you actually remember."
+  },
+  "interview_answer_help_guidance_problem": {
+    "pl": "Przypomnij sobie sytuację, w której zadanie nie przebiegło zgodnie z oczekiwaniami. Opisz trudność, swój udział w jej rozwiązaniu i to, co wydarzyło się później, jeśli pamiętasz. Początek: „Trudność polegała na…”. Nie musisz podawać liczb ani przedstawiać sytuacji jako sukcesu.",
+    "en": "Recall a situation where a task did not go as expected. Describe the difficulty, your part in addressing it and what happened afterwards, if you remember. Start with: “The difficulty was…”. You do not need figures or a success story."
+  },
+  "interview_answer_help_guidance_decision": {
+    "pl": "Opisz, jakie możliwości brano pod uwagę i jakie informacje pomagały wybrać dalszy krok. Rozdziel swoją rolę od roli osoby podejmującej decyzję. Możesz zacząć: „Przy wyborze dalszego działania znaczenie miało…”. Jeśli tylko przygotowywano z Twojej strony informacje, opisz właśnie ten udział.",
+    "en": "Describe the alternatives considered and which information helped determine the next step. Separate your role from that of the decision-maker. You can start: “When choosing the next step, what mattered was…”. If your part was only to prepare information, describe that contribution."
+  },
+  "interview_answer_help_guidance_constraint": {
+    "pl": "Pomyśl, co utrudniało wykonanie zadania: termin, brak informacji, zależność od innych osób lub ograniczenia procesu. Wybierz tylko ograniczenie, które rzeczywiście występowało, i opisz swój sposób pracy w tej sytuacji. Początek: „Przy tym zadaniu trzeba było uwzględnić…”.",
+    "en": "Think about what made the task harder: a deadline, missing information, reliance on others or process limits. Choose only a constraint you actually encountered and describe how you worked within it. Start with: “This task required taking into account…”."
+  },
+  "interview_answer_help_guidance_quality": {
+    "pl": "Zastanów się, po czym można było poznać, że zadanie wykonano poprawnie. Jeśli pasuje to do Twojej pracy, przypomnij sobie sprawdzanie kompletności, porównanie ze źródłem lub konsultację wątpliwości. Opisz tylko rzeczywiste kontrole i swój udział, zaczynając od: „Poprawność sprawdzano przez…”.",
+    "en": "Think about how you could tell that the task was done correctly. If relevant to your work, recall completeness checks, comparison with a source or discussing uncertainties. Describe only checks that actually took place and your part in them, starting with: “Accuracy was checked by…”."
+  },
+  "interview_answer_help_guidance_collaboration": {
+    "pl": "Przypomnij sobie, od kogo otrzymywano informacje i komu przekazywano wynik pracy. Opisz, co przygotowywano z Twojej strony, co robiły inne osoby i jak wyjaśniano wątpliwości. Możesz zacząć: „Mój udział we współpracy polegał na…”. Nie przypisuj sobie zadań całego zespołu.",
+    "en": "Recall who supplied information and who received the work afterwards. Describe what you prepared, what others did and how questions were resolved. You can start: “My contribution to the collaboration was…”. Do not attribute the whole team's work to yourself."
+  },
+  "interview_answer_help_guidance_learning": {
+    "pl": "Wybierz jedną rzecz, której nauczyło Cię to doświadczenie. Opisz, co wcześniej sprawiało trudność, jak zdobywano wiedzę i gdzie udało się ją później wykorzystać, jeśli miało to miejsce. Możesz zacząć: „To doświadczenie pomogło mi zrozumieć…”. Nie musisz wskazywać kursu ani certyfikatu.",
+    "en": "Choose one thing this experience taught you. Describe what was difficult before, how you learnt and where you later used that knowledge, if applicable. You can start: “This experience helped me understand…”. You do not need to name a course or certificate."
+  },
+  "interview_answer_help_guidance_application": {
+    "pl": "Przypomnij sobie konkretne zadanie, przy którym wykorzystano daną umiejętność. Opisz cel, swoją czynność i sposób użycia umiejętności. Początek: „Ta umiejętność przydała mi się przy…”. Narzędzia i rezultat dopisz tylko wtedy, gdy rzeczywiście je pamiętasz.",
+    "en": "Recall a specific task where you used this skill. Describe the purpose, your action and how the skill was used. Start with: “This skill helped me with…”. Add tools and an outcome only if you actually remember them."
   },
   "not_found": {
     "pl": "Nie znaleziono",

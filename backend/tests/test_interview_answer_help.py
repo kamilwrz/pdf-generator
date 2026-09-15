@@ -9,6 +9,7 @@ from app.main import app
 from app.core.security import get_current_user
 from app.models.models import InterviewSession, AiCreditReservation, Pdf
 from app.services import interview_service as service
+from app.services.interview_answer_help import ANGLES
 from app.services.ai_assistant_service import AIServiceError
 from app.services.entitlements import set_user_plan
 from test_interviews import environment, create, confirm, version  # noqa: F401
@@ -178,6 +179,9 @@ def test_semantic_rejection_returns_safe_subset_or_guidance_without_regeneration
         assert help_['mode'] == expected
         assert not help_['draft']
         assert all(option['id'] not in rejected for option in help_['options'])
+        if expected == 'guidance':
+            assert 'Najpierw' in help_['guidance']
+            assert 'Nie ma wystarczającej podstawy' not in help_['guidance']
         assert provider.call_count == 2
 
 
@@ -324,6 +328,7 @@ def test_guidance_uses_local_text_without_an_empty_verification_charge(environme
         assert response.status_code == 200, response.text
         saved = response.json()
         assert saved['answer_help']['mode'] == 'guidance'
+        assert 'Najpierw' in saved['answer_help']['guidance']
         assert 'answer_help_attempt' not in saved
         assert 'fingerprint' not in saved['answer_help']
         assert help_request(client, saved).json() == saved
@@ -343,3 +348,35 @@ def test_resuming_in_another_locale_translates_guidance_without_touching_the_dra
         assert resumed['revision'] == saved['revision']
         provider.assert_called()
         assert provider.call_count == 2
+
+
+@pytest.mark.parametrize('angle', sorted(ANGLES))
+@pytest.mark.parametrize('language', ['pl', 'en'])
+def test_saved_refusals_become_local_coaching_without_ai_or_state_changes(environment, angle, language):
+    client, db, _, _ = environment
+    session = prepared(client, db, angle=angle)
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    state['answer_help'] = {
+        'id': 'legacy-refusal', 'question_id': session['question']['id'],
+        'profile_revision': session['profile_revision'], 'mode': 'guidance',
+        'draft': '', 'options': [], 'based_on_draft': '',
+        'guidance': 'OLD REFUSAL MUST NOT BE DISPLAYED',
+    }
+    row.state = state
+    db.commit()
+    with patch.object(service, '_gpt') as provider:
+        result = client.get(f"/ai/interviews/{session['id']}", headers={'Accept-Language': language}).json()
+        guidance = result['answer_help']['guidance']
+        assert len(guidance) > 100
+        assert 'OLD REFUSAL' not in guidance
+        assert 'Nie ma wystarczającej podstawy' not in guidance
+        assert 'not enough information' not in guidance
+        if angle == 'approach':
+            assert ('Najpierw' if language == 'pl' else 'First') in guidance
+        assert result['answer_help']['draft'] == ''
+        assert result['answer_help']['options'] == []
+        assert result['evidence_profile'] == session['evidence_profile']
+        assert result['answers'] == session['answers']
+        assert db.get(InterviewSession, session['id'], populate_existing=True).state == state
+        provider.assert_not_called()

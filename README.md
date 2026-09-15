@@ -2,6 +2,8 @@
 
 ## Answer suggestions during the interview
 
+Answer help always provides a usable hint after an eligible request: a checked draft, selectable activities, or coaching tailored to the question's angle. A brief existing duty description also qualifies for hypothetical activities when it lacks the requested detail. If the model returns guidance or verification rejects the entire proposal, `public_answer_help` selects local Polish/English coaching (steps, quality, collaboration, decisions, constraints, problems, learning, application or overview). For example, a process question prompts the candidate to describe the input, checks and next step, with “First…, then…, finally…” as sentence starters. These are writing prompts, not candidate facts or text that can be applied automatically. Saved guidance receives the new copy on read without changing evidence or charging again. A failed request also displays local writing help beside the error and explicit retry. Existing AI access and factual-question restrictions remain in force. Regression tests cover all nine angles in both languages, old saved guidance, complete/partial rejection, draft preservation and retry recovery; providers are mocked, so live suggestion quality is not measured.
+
 **Suggest an answer** is available for eligible questions about duties, tasks and responsibilities in the shared standalone and embedded interview. It uses the selected record's confirmed information and relevant saved answers, plus the current unsaved answer draft. For tailoring, the scope is the active partially evidenced requirement: its confirmed citations can span roles while preserving their original attribution. Other candidates' profiles, unrelated roles and a job advert cannot become evidence for the suggested answer.
 
 1. Generate either a grounded draft or possible activities for the documented role. Activities appear as unchecked checkboxes. Exact factual questions, language levels and clarification decisions do not expose this action.
@@ -18,17 +20,17 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 
 | File | Verified lines and symbols |
 | --- | --- |
-| `backend/app/services/interview_answer_help.py` | 1–244; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
+| `backend/app/services/interview_answer_help.py` | 1–254; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `AnswerHelpWrite, AnswerHelpProposal, AnswerHelpVerification, AnswerWrite` |
 | `backend/app/api/routes/interviews.py` | 1–656; `help_interview_answer, answer_interview` |
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
-| `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–203; `InterviewAnswerHelp` |
+| `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–453; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
-| `backend/tests/test_interview_answer_help.py` | 1–345; `pytest` |
-| `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–187; `Vitest` |
-| `frontend/e2e/interview-answer-help.spec.js` | 1–331; `Playwright` |
+| `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
+| `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
+| `frontend/e2e/interview-answer-help.spec.js` | 1–344; `Playwright` |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; `Playwright: preview and loading` |
 | `frontend/e2e/interviews.spec.js` | 1–223; `Playwright: standalone and embedded interview` |
 
@@ -3550,6 +3552,8 @@ Notable product facts:
 
 ## Propozycje odpowiedzi podczas wywiadu
 
+Pomoc po kwalifikującym się żądaniu zawsze dostarcza użyteczną podpowiedź: sprawdzony szkic, czynności do wyboru albo wskazówki dopasowane do celu pytania. Krótki istniejący opis obowiązków również pozwala proponować hipotetyczne czynności, gdy brakuje wymaganych szczegółów. Gdy model zwróci wskazówkę lub weryfikacja odrzuci całą propozycję, `public_answer_help` wybiera lokalną pomoc PL/EN dotyczącą kroków, jakości, współpracy, decyzji, ograniczeń, problemów, nauki, zastosowania lub ogólnego zakresu pracy. Przykładowo pytanie o proces zachęca do opisania danych wejściowych, kontroli i dalszego kroku, z początkami zdań „Najpierw…, następnie…, na końcu…”. Są to wskazówki do pisania, a nie fakty o kandydacie ani tekst do automatycznego zastosowania. Zapisane wskazówki otrzymują nową treść przy odczycie bez zmiany dowodów i ponownej opłaty. Nieudane żądanie również pokazuje lokalną pomoc obok błędu i jawnego ponowienia. Dotychczasowe zasady dostępu do AI i ograniczenia pytań o dokładne fakty nadal obowiązują. Testy regresji obejmują dziewięć celów pytania w obu językach, stare zapisane wskazówki, całkowite/częściowe odrzucenie, zachowanie szkicu i ponowienie; dostawca jest symulowany, więc jakość rzeczywistych propozycji nie jest mierzona.
+
 **Zaproponuj odpowiedź** jest dostępne przy kwalifikujących się pytaniach o obowiązki, zadania i zakres odpowiedzialności we wspólnym wywiadzie samodzielnym i osadzonym w asystencie. Korzysta z potwierdzonych informacji wybranego wpisu, powiązanych zapisanych odpowiedzi i bieżącego niezapisanego szkicu. Przy dopasowaniu zakresem jest bieżące częściowo poparte wymaganie: wskazane potwierdzone źródła mogą obejmować kilka ról, zachowując pierwotne przypisanie faktów. Profile innych kandydatów, niezwiązane role i treść oferty nie stają się dowodami dla proponowanej odpowiedzi.
 
 1. Wygeneruj szkic oparty na informacjach albo możliwe czynności dla udokumentowanej roli. Czynności mają domyślnie niezaznaczone pola wyboru. Pytania o dokładne fakty, poziomy języków i decyzje doprecyzowania nie pokazują tej akcji.
@@ -3566,17 +3570,17 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 
 | Plik | Zweryfikowane linie i symbole |
 | --- | --- |
-| `backend/app/services/interview_answer_help.py` | 1–244; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
+| `backend/app/services/interview_answer_help.py` | 1–254; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `AnswerHelpWrite, AnswerHelpProposal, AnswerHelpVerification, AnswerWrite` |
 | `backend/app/api/routes/interviews.py` | 1–656; `help_interview_answer, answer_interview` |
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
-| `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–203; `InterviewAnswerHelp` |
+| `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–453; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
-| `backend/tests/test_interview_answer_help.py` | 1–345; `pytest` |
-| `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–187; `Vitest` |
-| `frontend/e2e/interview-answer-help.spec.js` | 1–331; `Playwright` |
+| `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
+| `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
+| `frontend/e2e/interview-answer-help.spec.js` | 1–344; `Playwright` |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; `Playwright: preview and loading` |
 | `frontend/e2e/interviews.spec.js` | 1–223; `Playwright: standalone and embedded interview` |
 
