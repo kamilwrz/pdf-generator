@@ -1677,6 +1677,7 @@
     "templates.samples": "Miniatury pokazują przykładowy wygląd szablonów. Dopasowanie do jednej strony sprawdzono na Twojej treści CV.",
     "templates.apply": "Użyj tego szablonu — 1 strona",
     "templates.cancel": "Przerwij sprawdzanie",
+    "templates.waitBeforeSave": "Sprawdzamy, czy to CV zmieści się na jednej stronie w innym szablonie. Zapis będzie dostępny po zakończeniu lub wybraniu „Przerwij sprawdzanie”.",
     "templates.check": "Sprawdź inne szablony",
     "templates.retry": "Sprawdź ponownie",
     "templates.applied": "Zmieniono szablon. CV mieści się na jednej stronie; treść pozostała bez zmian.",

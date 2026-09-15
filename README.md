@@ -26,7 +26,7 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–453; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -62,7 +62,7 @@ Compatibility is deliberately limited to recognizable metadata loss; it does not
 
 ## Automatic CV fitting after the interview
 
-If the verified result still uses multiple pages, the result now automatically compares other entitled templates using exactly the same content, each template's S typography and compact spacing. An existing reopened preview has a **Check other templates** action. Only a measured, complete one-page candidate is offered. Flow textarea heights use `Math.ceil(measured line count × lineHeight)`, matching the canvas's zero-padding text boxes; the heuristic's extra 6px is not added to measured fields. A regression with 33 one-line records verifies that accumulated padding cannot incorrectly manufacture a second page. The labelled template selector shows a sample design, reports partial failures honestly and applies a layout only through **Use this template — 1 page**. Scanning, retrying and changing the template use no AI credits; the current CV stays available during comparison. Restore includes the previous template identity as well as its content and geometry.
+If the verified result still uses multiple pages, the result now automatically compares other entitled templates using exactly the same content, each template's S typography and compact spacing. An existing reopened preview has a **Check other templates** action. Only a measured, complete one-page candidate is offered. Flow textarea heights use `Math.ceil(measured line count × lineHeight)`, matching the canvas's zero-padding text boxes; the heuristic's extra 6px is not added to measured fields. A regression with 33 one-line records verifies that accumulated padding cannot incorrectly manufacture a second page. The labelled template selector shows a sample design, reports partial failures honestly and applies a layout only through **Use this template — 1 page**. Scanning, retrying and changing the template use no AI credits; the current CV stays available during comparison. Restore includes the previous template identity as well as its content and geometry. Saving waits for the API request and browser comparison to finish, fail, or be explicitly cancelled with **Stop checking**. Previously, saving navigated to the editor immediately and could discard the pending Sterling recommendation. A revision-bound callback and a guard for the queued automatic scan prevent that race; a status beside Save explains the wait. This applies to standalone and embedded interviews.
 
 The [complete alternate-template tutorial](docs/INTERVIEW_TEMPLATES.md#english) documents both authenticated endpoints (`POST /ai/interviews/{id}/preview-templates` and `POST /ai/interviews/{id}/preview-template`), versioned request/response examples, ownership/entitlement checks, photo and content preservation, errors, cancellation, storage and deployment. This extends the existing session JSON without a migration, dependency or environment variable. Template enumeration is stateless; explicit selection uses the existing atomic session revision check. The browser keeps failed or stale measurements out of the choice list.
 
@@ -70,8 +70,8 @@ Verified implementation and regression references:
 
 - `backend/app/services/interview_templates.py`, lines 1–168, `preview_templates` and `select_preview_template`; `backend/app/schemas/interview_schema.py`, lines 126–130, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, lines 605–614, the two authenticated route handlers.
 - `frontend/src/utils/interviewTemplateFit.js`, lines 1–212, `measureInterviewTemplateCandidate` and `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, lines 1–207, shared S typography registration and `applyTemplateSmallTypography`. The scan yields to the browser between candidates so progress and cancellation remain responsive with cached fonts.
-- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, lines 1–130, optional comparison, progress, cancellation, accessible selector and explicit choice; `InterviewTemplateOptions.module.css` supplies the token-based responsive sample layout.
-- `backend/tests/test_interview_templates.py`, lines 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, lines 1–208 (33-field height regression: lines 34–54; cached-font cancellation: lines 179–190); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, lines 1–78; `frontend/e2e/interview-templates.spec.js`, lines 1–109. The generated synthetic fixture is `frontend/e2e/fixtures/interview-templates.json`; browser selection covers Linden, Cadenza, Sterling and Meridian in both PL and EN.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, lines 1–141, optional comparison, progress, cancellation, accessible selector and explicit choice; `InterviewTemplateOptions.module.css` supplies the token-based responsive sample layout.
+- `backend/tests/test_interview_templates.py`, lines 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, lines 1–208 (33-field height regression: lines 34–54; cached-font cancellation: lines 179–190); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, lines 1–101; `frontend/e2e/interview-templates.spec.js`, lines 1–183. The generated synthetic fixtures are `frontend/e2e/fixtures/interview-templates.json` and `frontend/e2e/fixtures/interview-regent-sterling.json`. The latter covers the complete two-page Regent fitting flow followed by a one-page Sterling choice, including slow comparison, cancellation and failure; browser selection covers Linden, Cadenza, Sterling and Meridian in both PL and EN.
 
 Run the existing test/runtime/lint/build commands and `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium` from `frontend`; backend commands are in the tutorial. Coverage includes PL/EN at 390/834/1280/1920px, keyboard selection, 200% text zoom, reduced motion, failed selection retry and restore. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) explains actual-font measurement; [React effect cleanup](https://react.dev/reference/react/useEffect) explains ignoring late comparison results. Unsupported or unmeasurable layouts are excluded, so the feature makes no guarantee that every CV can fit one page.
 
@@ -292,7 +292,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–453, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–464, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
@@ -936,7 +936,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–453; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; apply, cancel, undo, focus, search, question-and-answer presentation |
@@ -3578,7 +3578,7 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–453; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -3614,7 +3614,7 @@ Zgodność celowo obejmuje rozpoznawalną utratę metadanych; nie odgaduje pierw
 
 ## Automatyczne dopasowanie CV po wywiadzie
 
-Jeżeli zweryfikowany wynik nadal zajmuje kilka stron, widok wyniku automatycznie porównuje inne szablony dostępne w planie z dokładnie tą samą treścią, typografią S każdego szablonu i małymi odstępami. Ponownie otwarty podgląd ma przycisk **Sprawdź inne szablony**. Proponowany jest wyłącznie zmierzony, kompletny wariant jednej strony. Wysokości pól tekstowych w przepływie wynikają z `Math.ceil(zmierzona liczba linii × lineHeight)`, zgodnie z polami tekstu bez wewnętrznego paddingu na kanwie; do zmierzonych pól nie dodaje się heurystycznego zapasu 6px. Regresja z 33 jednoliniowymi rekordami sprawdza, że suma takiego zapasu nie tworzy błędnie drugiej strony. Podpisana lista szablonów pokazuje przykładowy wygląd, jawnie podaje częściowe błędy i stosuje układ dopiero przez **Użyj tego szablonu — 1 strona**. Sprawdzanie, ponawianie i zmiana szablonu nie zużywają kredytów AI; obecne CV jest dostępne podczas porównania. Przywracanie obejmuje poprzednią tożsamość szablonu wraz z treścią i geometrią.
+Jeżeli zweryfikowany wynik nadal zajmuje kilka stron, widok wyniku automatycznie porównuje inne szablony dostępne w planie z dokładnie tą samą treścią, typografią S każdego szablonu i małymi odstępami. Ponownie otwarty podgląd ma przycisk **Sprawdź inne szablony**. Proponowany jest wyłącznie zmierzony, kompletny wariant jednej strony. Wysokości pól tekstowych w przepływie wynikają z `Math.ceil(zmierzona liczba linii × lineHeight)`, zgodnie z polami tekstu bez wewnętrznego paddingu na kanwie; do zmierzonych pól nie dodaje się heurystycznego zapasu 6px. Regresja z 33 jednoliniowymi rekordami sprawdza, że suma takiego zapasu nie tworzy błędnie drugiej strony. Podpisana lista szablonów pokazuje przykładowy wygląd, jawnie podaje częściowe błędy i stosuje układ dopiero przez **Użyj tego szablonu — 1 strona**. Sprawdzanie, ponawianie i zmiana szablonu nie zużywają kredytów AI; obecne CV jest dostępne podczas porównania. Przywracanie obejmuje poprzednią tożsamość szablonu wraz z treścią i geometrią. Zapis czeka na zakończenie żądania API i pomiaru przeglądarki, błąd albo jawne wybranie **Przerwij sprawdzanie**. Wcześniej zapis natychmiast przechodził do edytora i mógł odrzucić oczekującą propozycję Sterling. Callback powiązany z rewizją i blokada oczekującego automatycznego sprawdzenia zapobiegają temu wyścigowi; status obok zapisu wyjaśnia oczekiwanie. Dotyczy to wywiadu samodzielnego i osadzonego.
 
 Pełna [instrukcja alternatywnych szablonów](docs/INTERVIEW_TEMPLATES.md#polski) dokumentuje oba uwierzytelnione endpointy (`POST /ai/interviews/{id}/preview-templates` i `POST /ai/interviews/{id}/preview-template`), wersjonowane przykłady żądań/odpowiedzi, kontrolę własności/uprawnień, zachowanie zdjęć i treści, błędy, przerwanie, zapis i wdrożenie. Funkcja rozszerza istniejący JSON sesji bez migracji, zależności ani zmiennej środowiskowej. Porównanie nie przechowuje stanu; jawny wybór korzysta z obecnej atomowej kontroli rewizji sesji. Przeglądarka wyklucza z listy wyboru nieudane lub nieaktualne pomiary.
 
@@ -3622,8 +3622,8 @@ Zweryfikowane odwołania do implementacji i regresji:
 
 - `backend/app/services/interview_templates.py`, linie 1–168, `preview_templates` i `select_preview_template`; `backend/app/schemas/interview_schema.py`, linie 126–130, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, linie 605–614, dwa uwierzytelnione handlery tras.
 - `frontend/src/utils/interviewTemplateFit.js`, linie 1–212, `measureInterviewTemplateCandidate` i `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, linie 1–207, wspólna rejestracja typografii S i `applyTemplateSmallTypography`. Porównanie oddaje przeglądarce sterowanie między wariantami, aby postęp i przerwanie pozostawały responsywne również przy czcionkach w pamięci podręcznej.
-- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, linie 1–130, opcjonalne porównanie, postęp, przerwanie, dostępna lista i jawny wybór; `InterviewTemplateOptions.module.css` zapewnia responsywny układ próbki oparty na tokenach.
-- `backend/tests/test_interview_templates.py`, linie 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, linie 1–208 (regresja wysokości 33 pól: linie 34–54; przerwanie przy czcionkach z pamięci podręcznej: linie 179–190); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, linie 1–78; `frontend/e2e/interview-templates.spec.js`, linie 1–109. Wygenerowane syntetyczne dane testowe to `frontend/e2e/fixtures/interview-templates.json`; wybór w przeglądarce obejmuje Linden, Cadenzę, Sterling i Meridian w wersjach PL i EN.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, linie 1–141, opcjonalne porównanie, postęp, przerwanie, dostępna lista i jawny wybór; `InterviewTemplateOptions.module.css` zapewnia responsywny układ próbki oparty na tokenach.
+- `backend/tests/test_interview_templates.py`, linie 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, linie 1–208 (regresja wysokości 33 pól: linie 34–54; przerwanie przy czcionkach z pamięci podręcznej: linie 179–190); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, linie 1–101; `frontend/e2e/interview-templates.spec.js`, linie 1–183. Wygenerowane syntetyczne dane testowe to `frontend/e2e/fixtures/interview-templates.json` oraz `frontend/e2e/fixtures/interview-regent-sterling.json`. Drugi plik obejmuje pełny przepływ dopasowania dwustronicowego Regent i wyboru jednostronicowego Sterling, w tym wolne porównanie, przerwanie i błąd; wybór w przeglądarce obejmuje Linden, Cadenzę, Sterling i Meridian w wersjach PL i EN.
 
 W `frontend` uruchom obecne polecenia testów/runtime/lint/build i `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium`; polecenia backendu są w instrukcji. Pokrycie obejmuje PL/EN przy 390/834/1280/1920px, wybór klawiaturą, powiększenie tekstu 200%, ograniczenie animacji, ponowienie nieudanego wyboru i przywracanie. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) wyjaśnia pomiar rzeczywistych czcionek, a [czyszczenie efektów React](https://react.dev/reference/react/useEffect) odrzucanie spóźnionych wyników porównania. Układy nieobsługiwane lub niemożliwe do zmierzenia są wykluczane, więc funkcja nie gwarantuje zmieszczenia każdego CV na jednej stronie.
 
@@ -3844,7 +3844,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–453, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–464, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
@@ -4482,7 +4482,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–453; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–464; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |

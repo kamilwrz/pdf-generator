@@ -1653,6 +1653,7 @@
     "templates.samples": "Thumbnails show sample template designs. The one-page fit was checked using your CV content.",
     "templates.apply": "Use this template — 1 page",
     "templates.cancel": "Stop checking",
+    "templates.waitBeforeSave": "We are checking whether this CV fits on one page in another template. Saving will be available when the check finishes or you select “Stop checking”.",
     "templates.check": "Check other templates",
     "templates.retry": "Check again",
     "templates.applied": "Template changed. Your CV fits on one page; its content is unchanged.",

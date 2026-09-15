@@ -10,11 +10,11 @@ import styles from './InterviewTemplateOptions.module.css';
 
 /**
  * Offers only measured one-page layouts of the current verified interview text.
- * Scanning is free and leaves the current preview usable. Revision-keyed mounts
+ * Scanning is free and leaves the current preview readable. Revision-keyed mounts
  * discard stale measurements; cancellation/unmount prevent late publication.
  * Only the explicit apply action asks the parent to persist a replacement.
  */
-export default function InterviewTemplateOptions({ session, entitlements, disabled, autoCheck = false, onAutoStart, onSelect }) {
+export default function InterviewTemplateOptions({ session, entitlements, disabled, autoCheck = false, onAutoStart, onCheckingChange, onSelect }) {
   useTranslation();
   const [result, setResult] = useState({ status: 'idle', candidates: [], failedTemplateIds: [] });
   const [progress, setProgress] = useState(null);
@@ -26,12 +26,19 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; sequence.current += 1; };
-  }, []);
+    return () => {
+      mounted.current = false;
+      sequence.current += 1;
+      onCheckingChange?.(session.revision, false);
+    };
+  }, [onCheckingChange, session.revision]);
 
   const scan = useCallback(async (automatic = false) => {
     if (disabled || scanning.current) return;
     scanning.current = true;
+    // Saving navigates away and unmounts this comparison. Hold that action
+    // until the recommendation is visible, or the user explicitly cancels.
+    onCheckingChange?.(session.revision, true);
     const token = ++sequence.current;
     const isCurrent = () => mounted.current && token === sequence.current;
     setResult({ status: 'loading', candidates: [], failedTemplateIds: [] });
@@ -51,10 +58,13 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
     } catch {
       if (isCurrent()) setResult({ status: 'error', candidates: [], failedTemplateIds: [] });
     } finally {
-      if (isCurrent()) scanning.current = false;
+      if (isCurrent()) {
+        scanning.current = false;
+        onCheckingChange?.(session.revision, false);
+      }
       if (isCurrent() && !automatic) heading.current?.focus();
     }
-  }, [disabled, session]);
+  }, [disabled, session, onCheckingChange]);
 
   useEffect(() => {
     // A completed generation may request one automatic scan. Ordinary reads
@@ -81,6 +91,7 @@ export default function InterviewTemplateOptions({ session, entitlements, disabl
   const cancel = () => {
     sequence.current += 1;
     scanning.current = false;
+    onCheckingChange?.(session.revision, false);
     setResult({ status: 'idle', candidates: [], failedTemplateIds: [] });
     heading.current?.focus();
   };

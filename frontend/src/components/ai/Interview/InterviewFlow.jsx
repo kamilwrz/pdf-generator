@@ -53,6 +53,12 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const [factEditing, setFactEditing] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [autoTemplateRevision, setAutoTemplateRevision] = useState(null);
+  const [scanningTemplateRevision, setScanningTemplateRevision] = useState(null);
+  // A late cleanup for a previous preview cannot release a newer scan's save
+  // guard. The callback stays stable so child effects do not restart on render.
+  const handleTemplateChecking = useCallback((revision, checking) => {
+    setScanningTemplateRevision(current => checking ? revision : current === revision ? null : current);
+  }, []);
   const lock = useRef(false);
   const alive = useRef(true);
   const createKey = useRef(crypto.randomUUID());
@@ -269,6 +275,8 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const reviewDestination = session?.question || !session?.answers.length ? 'conversation' : 'prepare';
   const reviewing = session?.phase === 'intake' || reviewOpen;
   const fitPending = session?.preview?.fit?.status === 'pending';
+  const templateCheckPending = session?.revision != null
+    && (autoTemplateRevision === session.revision || scanningTemplateRevision === session.revision);
   const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : fitPending && panel === 'preview' ? 'prepare' : panel;
   const waiting = busy || initialLoading;
   const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review', 'preview-template', 'answer-help'].includes(pendingOperation);
@@ -431,6 +439,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             key={`templates-${session.id}-${session.revision}`} session={session} entitlements={entitlements}
             disabled={busy || factEditing || sourceChanged || hasPending || session.preview.profile_revision !== profile.revision}
             autoCheck={autoTemplateRevision === session.revision} onAutoStart={() => setAutoTemplateRevision(null)}
+            onCheckingChange={handleTemplateChecking}
             onSelect={candidate => run(() => operation('preview-template', {
               template_id: candidate.template_id, elements: candidate.elements, spacing_px: candidate.spacing_px,
             }), 'preview-template')} />}
@@ -440,8 +449,10 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
               await operation('preview-review', { path, value });
               if (alive.current) { setPanel('preview'); setNotice(messageRef('interview:interviewPreview.reviewSaved')); heading.current?.focus(); }
             }, 'preview-review')} />
-          <div className={classes.resultActions}><p>{uiText("interview:interviewFlow.saveASeparateDocumentTheSourceCv")}</p><div className={classes.actions}>
-            <button className={classes.primary} disabled={busy || factEditing || hasPending || sourceChanged || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(() => operation('document'))}>{uiText("interview:interviewFlow.saveAsANewCv")}</button>
+          <div className={classes.resultActions}><p>{uiText("interview:interviewFlow.saveASeparateDocumentTheSourceCv")}</p>
+          {templateCheckPending && <p id={`template-check-${session.id}`} role="status">{uiText('interview:templates.waitBeforeSave')}</p>}
+          <div className={classes.actions}>
+            <button className={classes.primary} aria-describedby={templateCheckPending ? `template-check-${session.id}` : undefined} disabled={busy || factEditing || hasPending || sourceChanged || templateCheckPending || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(() => operation('document'))}>{uiText("interview:interviewFlow.saveAsANewCv")}</button>
             {session.phase !== 'completed' && <button type="button" disabled={busy || factEditing} onClick={() => goTo('prepare')}>{uiText("interview:interviewFlow.changeTemplateOrRefresh")}</button>}
           </div></div>
         </>}

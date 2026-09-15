@@ -7,6 +7,80 @@ const fixture = { ...storedFixture.response, cv_data: storedFixture.cv_data,
   candidates: storedFixture.response.candidates.filter(candidate => candidate.template_id !== 'regent') };
 const ID = 'b71056d4-534b-4c15-a8c7-ce5b65be56ae';
 const spacing = { stack: 4, record: 10, section: 21, after_rule: 8 };
+const regentSterling = JSON.parse(readFileSync(new URL('./fixtures/interview-regent-sterling.json', import.meta.url), 'utf8'));
+
+for (const [outcome, width] of [['complete', 390], ['complete', 834], ['complete', 1280], ['complete', 1920], ['cancel', 1280], ['failure', 1280]]) {
+  test(`generation waits for the Regent to Sterling comparison before saving: ${outcome} ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMockApi(page);
+    await page.addInitScript(() => localStorage.setItem('token', 'local-playwright-token'));
+    let session = { id: ID, revision: 3, profile_revision: 1, evidence_scope: 'session',
+      evidence_profile: { revision: 1, facts: [] }, mode: 'enrich', phase: 'review', language: 'pl',
+      template_id: 'regent', question: null, answers: [], confirmed: true, proposed_facts: [],
+      requirements: [], question_limit: 10, planned_question_count: 10,
+      source_cv_data: regentSterling.preview.cv_data, spacing_px: spacing };
+    let releaseScan;
+    const scanGate = new Promise(resolve => { releaseScan = resolve; });
+    const calls = [];
+    await page.route('**/api/ai/interviews**', async route => {
+      const action = route.request().url().split('/').at(-1);
+      if (action === 'credits') return route.fulfill({ json: { requests: [], credits_charged: 0 } });
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON();
+        calls.push(action);
+        if (action === 'preview') session = { ...session, revision: 4, phase: 'preview',
+          preview: { ...structuredClone(regentSterling.preview), changes: [], remaining_gaps: [],
+            profile_revision: 1, fit: { status: 'pending', allow_shorten: false, original_pages: 2 } } };
+        else if (action === 'preview-fit') {
+          expect(body.action).toBe('finish');
+          session = { ...session, revision: 5, preview: { ...session.preview, elements: body.elements,
+            pages: Math.max(...body.elements.map(el => el.page || 1)), fit: { status: 'complete', original_pages: 2 } } };
+          expect(session.preview.pages).toBe(2);
+        } else if (action === 'preview-templates') {
+          await scanGate;
+          if (outcome === 'failure') return route.fulfill({ status: 503, json: { detail: 'Unavailable comparison' } });
+          return route.fulfill({ json: { revision: session.revision, profile_revision: 1, evidence_scope: 'session',
+            target_pages: 1, candidates: [regentSterling.candidate] } });
+        } else if (action === 'preview-template') {
+          expect(body.template_id).toBe('sterling');
+          expect(Math.max(...body.elements.map(el => el.page || 1))).toBe(1);
+          session = { ...session, revision: 6, template_id: body.template_id, spacing_px: body.spacing_px,
+            preview: { ...session.preview, elements: body.elements, pages: 1 } };
+        } else throw new Error(`Unexpected operation: ${action}`);
+      }
+      await route.fulfill({ json: session });
+    });
+    await page.goto(`/app/interview/${ID}`);
+    if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await page.getByRole('button', { name: 'Przejdź do przygotowania CV' }).click();
+    await page.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
+    const cancel = page.getByRole('button', { name: 'Przerwij sprawdzanie' });
+    const save = page.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true });
+    try {
+      await expect(cancel).toBeVisible();
+      await expect(save).toBeDisabled();
+      await expect(save).toHaveAccessibleDescription(/Sprawdzamy, czy to CV/);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      if (outcome === 'complete') await page.screenshot({ path: `../tmp/interview-comparison-wait-${width}.png`, fullPage: true });
+      expect(calls).toEqual(['preview', 'preview-fit', 'preview-templates']);
+      if (outcome === 'cancel') await cancel.click();
+    } finally {
+      releaseScan();
+    }
+    if (outcome === 'complete') {
+      await expect(page.getByRole('option', { name: 'Sterling' })).toBeAttached();
+      await page.getByRole('button', { name: /Użyj tego szablonu/ }).click();
+      await expect(page.getByText('Zmieniono szablon. CV mieści się na jednej stronie; treść pozostała bez zmian.')).toBeVisible();
+    } else if (outcome === 'failure') {
+      await expect(page.getByRole('alert')).toBeVisible();
+    } else {
+      await expect(page.getByRole('button', { name: 'Sprawdź inne szablony', exact: true })).toBeVisible();
+    }
+    await expect(save).toBeEnabled();
+    expect(calls).not.toContain('document');
+  });
+}
 
 for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920]) {
   test(`offers measured alternate templates and saves an explicit choice ${language} ${width}`, async ({ page }) => {

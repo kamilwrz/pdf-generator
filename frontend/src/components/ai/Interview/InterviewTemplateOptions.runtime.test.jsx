@@ -76,3 +76,26 @@ it('rejects mismatched revisions without measuring or offering stale layouts', a
   await screen.findByRole('alert');
   expect(measureInterviewTemplateCandidates).not.toHaveBeenCalled();
 });
+
+it('holds saving through measurement and releases it on completion, cancellation and unmount', async () => {
+  const onCheckingChange = vi.fn();
+  let finishMeasurement;
+  measureInterviewTemplateCandidates.mockImplementationOnce(() => new Promise(resolve => { finishMeasurement = resolve; }));
+  const view = setup({ onCheckingChange });
+  await userEvent.click(screen.getByRole('button', { name: 'Sprawdź inne szablony' }));
+  await waitFor(() => expect(finishMeasurement).toBeTypeOf('function'));
+  expect(onCheckingChange).toHaveBeenLastCalledWith(4, true);
+  finishMeasurement({ candidates: [candidate], failedTemplateIds: [], cancelled: false });
+  await screen.findByText('Ta treść mieści się na jednej stronie w 1 innym szablonie.');
+  expect(onCheckingChange).toHaveBeenLastCalledWith(4, false);
+  interviewRequest.mockImplementationOnce(() => new Promise(() => {}));
+  await userEvent.click(screen.getByRole('button', { name: 'Sprawdź ponownie' }));
+  expect(onCheckingChange).toHaveBeenLastCalledWith(4, true);
+  await userEvent.click(screen.getByRole('button', { name: 'Przerwij sprawdzanie' }));
+  expect(onCheckingChange).toHaveBeenLastCalledWith(4, false);
+  interviewRequest.mockImplementationOnce(() => new Promise(() => {}));
+  await userEvent.click(screen.getByRole('button', { name: 'Sprawdź inne szablony' }));
+  expect(onCheckingChange).toHaveBeenLastCalledWith(4, true);
+  view.unmount();
+  expect(onCheckingChange).toHaveBeenLastCalledWith(4, false);
+});
