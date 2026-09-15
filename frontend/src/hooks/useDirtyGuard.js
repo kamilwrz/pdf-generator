@@ -6,13 +6,15 @@ import { t as uiText } from "../i18n/index.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
 
-export function useDirtyGuard({ signature, isGuest, flushGuestDraft, hasUnpersistedDocument = false }) {
+export function useDirtyGuard({ signature, isGuest, isDemoContent = false, flushGuestDraft, hasUnpersistedDocument = false }) {
   const signatureRef = useRef(signature);
   signatureRef.current = signature;
   const [baselineSignature, setBaselineSignature] = useState(signature);
   // A restored/new account document still needs its first server save, even
   // when its initial content equals the local comparison baseline.
-  const dirty = hasUnpersistedDocument || signature !== baselineSignature;
+  // Product-owned samples never require saving, including after demo edits.
+  // One gate covers route exits, replacement, and browser unload warnings.
+  const dirty = !isDemoContent && (hasUnpersistedDocument || signature !== baselineSignature);
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
   const guestRef = useRef(isGuest);

@@ -637,6 +637,7 @@ export function EditorController() {
   const dirtyGuard = useDirtyGuard({
     signature: documentSignature,
     isGuest,
+    isDemoContent,
     flushGuestDraft,
     hasUnpersistedDocument: !isGuest && !isDemoContent && pdfId == null && hasPersistedDocumentContent(persistedSnapshot),
   });
