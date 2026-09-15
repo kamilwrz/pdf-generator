@@ -98,10 +98,13 @@ async function measure(elements) {
   if (resolved.some(el => flowText(el) && textKey(el.content) && !el.resolvedLines?.length)) return null;
   return resolved.map(el => {
     const { resolvedLines, ...rest } = el;
-    // Use the browser's exact wraps after loading the actual font files.
-    // Overlay and masthead heights belong to their template transactions.
+    // Measured line boxes already include the full content height: the canvas
+    // has no padding/border. The heuristic's +6 allowance would persist empty
+    // slack in every field (magnified at edit zoom) and inflate page counts.
+    // Round up fractional line heights, as in template comparison; overlay
+    // and masthead heights still belong to their template transactions.
     return flowText(el) && resolvedLines?.length
-      ? { ...rest, height: resolvedLines.length * Number(el.lineHeight) + 6, preserveInitialLayout: true }
+      ? { ...rest, height: Math.ceil(resolvedLines.length * Number(el.lineHeight)), preserveInitialLayout: true }
       : rest;
   });
 }

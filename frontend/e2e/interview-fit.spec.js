@@ -1,10 +1,54 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { installMockApi } from './support/mockApi.js';
+import { installMockApi, SAVED_DOCUMENT } from './support/mockApi.js';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/interview-fit.json', import.meta.url), 'utf8'));
 const ID = 'a71056d4-534b-4c15-a8c7-ce5b65be56ae';
 const spacing = { stack: 4, record: 10, section: 21, after_rule: 8 };
+
+for (const width of [390, 834, 1280, 1920]) {
+  test(`fitted textarea heights survive saved editor focus without empty slack ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.addInitScript(() => localStorage.setItem('token', 'local-playwright-token'));
+    await installMockApi(page);
+    await page.goto('/');
+    const result = await page.evaluate(async (data) => {
+      const { prepareInterviewFit } = await import('/src/utils/interviewFit.js');
+      const { resolveBrowserTextLayouts } = await import('/src/utils/browserTextLayout.js');
+      const fitted = await prepareInterviewFit({ template_id: 'linden', spacing_px: {},
+        preview: { ...data, fit: { allow_shorten: false } } });
+      const measured = await resolveBrowserTextLayouts(fitted.elements);
+      return { ...fitted, fields: measured.filter(el => el.category === 'textarea'
+        && !el.fixedToPage && !['masthead', 'masthead-anchor', 'record-overlay', 'section-chrome', 'sidebar-chrome'].includes(el.flowRole))
+        .map(el => ({ id: el.element_id, page: el.page, height: el.height,
+          expected: Math.ceil(el.resolvedLines.length * el.lineHeight), content: el.content })) };
+    }, fixture);
+    expect(result.fields.length).toBeGreaterThan(10);
+    for (const field of result.fields) expect(field.height, field.id).toBe(field.expected);
+
+    // Reopen the exact fitted geometry through the saved-document route. Focus
+    // must not be needed to repair an inflated box or create a document edit.
+    const savedDocument = { ...SAVED_DOCUMENT, template_id: 'linden', cv_data: fixture.cv_data,
+      pages: Math.max(...result.elements.map(el => el.page || 1)), spacing_px: result.spacing_px };
+    await installMockApi(page, { savedDocument, savedElements: result.elements.map(el => ({ ...el, extra_properties: el })) });
+    await page.goto('/app/documents/41');
+    const field = result.fields.find(el => el.page === 1 && el.content === 'Specjalistka');
+    const node = page.locator(`[id="${field.id}"]`);
+    await expect(node).toBeVisible({ timeout: 25_000 });
+    await expect(node).toHaveCSS('height', `${field.expected}px`);
+    await node.click();
+    await expect(node).toHaveAttribute('contenteditable', 'true');
+    await expect(node).toHaveCSS('height', `${field.expected}px`);
+    await page.keyboard.press('Tab');
+    await expect(node).toHaveCSS('height', `${field.expected}px`);
+    expect(await page.evaluate(() => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    })).toBe(false);
+  });
+}
 
 for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920]) {
   test(`fits before revealing the result and restores the baseline ${language} ${width}`, async ({ page }) => {
