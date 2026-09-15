@@ -53,6 +53,7 @@ describe('interview workflow', () => {
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' });
     expect(screen.queryByRole('button', { name: 'Następne pytanie', exact: true })).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByText('Chcę odpowiedzieć na więcej pytań'));
     expect(screen.getByRole('button', { name: /Pogłęb wywiad/ })).toBeEnabled();
   });
 
@@ -125,7 +126,7 @@ describe('interview workflow', () => {
     session.question.follow_up_to = 'earlier-question';
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     const input = await screen.findByLabelText('Twoja odpowiedź');
-    expect(input).toHaveAccessibleDescription(/Możesz odpowiadać własnymi słowami/);
+    expect(input).toHaveAccessibleDescription(/Odpowiedz własnymi słowami/);
     expect(screen.getByText(/Dopytanie do wcześniejszej odpowiedzi/)).toHaveTextContent('możesz je pominąć');
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   });
@@ -161,7 +162,9 @@ describe('interview workflow', () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     await user.click(await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' }));
-    expect(screen.getByText(/Każdy z trzech etapów korzysta z kredytów AI/)).toHaveTextContent('Oryginalne odpowiedzi pozostaną bez zmian');
+    expect(screen.getByText(/Te etapy oraz ewentualne skracanie tekstu zużywają kredyty AI/)).toBeVisible();
+    await user.click(screen.getByText('Jak przygotowujemy CV'));
+    expect(screen.getByText(/Każdy z tych trzech etapów zużywa kredyty AI/)).toHaveTextContent('Twoje odpowiedzi pozostaną bez zmian');
     expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/preview'))).toBe(false);
   });
 
@@ -292,7 +295,8 @@ it('offers clarification before exposing the filtered preview and supports expli
     expect(screen.getByRole('heading', { name: 'Czy proponowany opis jest w pełni zgodny z Twoim doświadczeniem?' })).toBeVisible();
     expect(screen.getByText('Co wymaga sprawdzenia')).toBeVisible();
     expect(screen.getByText('Pełny opis zaproponowany przez AI · jeszcze niepotwierdzony')).toBeVisible();
-    expect(screen.getByLabelText('Pełny poprawiony opis')).toHaveAccessibleDescription(/nie tylko odpowiedź na pytanie/);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Popraw opis' }));
+    expect(screen.getByLabelText('Pełny poprawiony opis')).toHaveAccessibleDescription(/Zastąpi całą propozycję/);
   });
 
 
@@ -379,7 +383,7 @@ describe('clarification corrections', () => {
     session.phase = 'clarification';
     session.question = { ...session.question, clarification: true, suggested_text: 'Research SoF i SoW.', target_fact_ids: ['task'] };
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    expect(await screen.findByText(/cały opis jest poprawny/)).toBeVisible();
+    expect(await screen.findByText('Research SoF i SoW.')).toBeVisible();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Tak — zatwierdź ten opis' }));
     await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'answered', answer: 'Research SoF i SoW.' })));
   });
@@ -389,6 +393,7 @@ describe('clarification corrections', () => {
     session.phase = 'clarification';
     session.question = { ...session.question, clarification: true, suggested_text: 'Research SoF i SoW.', target_fact_ids: ['task'] };
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await user.click(await screen.findByRole('button', { name: 'Popraw opis' }));
     const correction = await screen.findByLabelText('Pełny poprawiony opis');
     const confirmation = screen.getByRole('button', { name: 'Tak — zatwierdź ten opis' });
     const save = screen.getByRole('button', { name: 'Zapisz pełny poprawiony opis' });
@@ -397,6 +402,7 @@ describe('clarification corrections', () => {
     await user.type(correction, 'Research SoF w czterech scenariuszach testowych.');
     expect(confirmation).toBeDisabled();
     expect(save).toBeEnabled();
+    await user.click(screen.getByText('Jeśli żadna z tych odpowiedzi nie pasuje'));
     expect(screen.getByRole('button', { name: 'Zakończ doprecyzowanie bez zapisywania propozycji' })).toBeDisabled();
     expect(screen.getByText(/Usuń wpisany poprawiony opis/)).toBeVisible();
     await user.click(save);
@@ -492,7 +498,7 @@ for (const scope of ['profile', 'session']) {
       expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toBeDisabled();
       await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy' }));
       await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ facts: [...cvFacts, { ...note, text: 'Poprawiona notatka' }] })));
-      expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toBeEnabled();
+      expect(screen.queryByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).not.toBeInTheDocument();
       expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/next') || path.endsWith('/preview'))).toBe(false);
     });
   }

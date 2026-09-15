@@ -11,6 +11,13 @@ async function openPreparation(page) {
   else await page.getByRole('combobox', { name: 'Etapy', exact: true }).selectOption('prepare');
 }
 
+/** Source maintenance is available in information review at either host width. */
+async function openInformation(page) {
+  const button = page.getByRole('button', { name: '01 Twoje informacje', exact: true });
+  if (await button.isVisible()) await button.click();
+  else await page.getByRole('combobox', { name: 'Etapy', exact: true }).selectOption('facts');
+}
+
 async function installInterviewApi(page, recovered = false) {
   const entitlements = structuredClone(PRO_ENTITLEMENTS);
   const base = await installMockApi(page, { entitlements });
@@ -135,14 +142,23 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByText('W którym projekcie używałaś Pythona?', { exact: true })).toBeVisible();
     await expect(page.getByText('Portal CV w Pythonie', { exact: true })).toBeVisible();
     await expect(page.getByText(/Doprecyzowanie 1 z 1/)).toBeVisible();
+    await expect(page.getByLabel('Pełny poprawiony opis', { exact: true })).toBeHidden();
     await page.getByRole('button', { name: 'Tak — zatwierdź ten opis', exact: true }).focus();
     await page.keyboard.press('Tab');
+    const correctDescription = page.getByRole('button', { name: 'Popraw opis', exact: true });
+    await expect(correctDescription).toBeFocused();
+    await expect(correctDescription).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Enter');
+    await expect(correctDescription).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByLabel('Pełny poprawiony opis', { exact: true })).toBeFocused();
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-clarification-${width}.png`, fullPage: true });
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 100% !important; }' });
     if (width === 834 || width === 1920) {
+      const alternatives = page.locator('summary').filter({ hasText: 'Jeśli żadna z tych odpowiedzi nie pasuje' });
+      await alternatives.focus();
+      await page.keyboard.press('Enter');
       await page.getByRole('button', { name: 'Zakończ doprecyzowanie bez zapisywania propozycji' }).click();
     } else {
       if (width === 390) {
@@ -198,6 +214,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await openPreparation(flow);
     await expect(flow.getByLabel('Szablon nowego CV')).toHaveValue('sterling');
     await expect(flow.getByLabel('Szablon nowego CV')).toBeDisabled();
+    await expect(flow.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toHaveCount(0);
+    await openInformation(flow);
     await flow.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' }).click();
     await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await openPreparation(flow);

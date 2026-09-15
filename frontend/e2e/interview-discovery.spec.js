@@ -88,7 +88,7 @@ for (const width of [390, 1280]) {
     await signIn(page);
     await page.goto('/cvstudio/Kamil');
     await expect(page.getByRole('heading', { name: 'Jak chcesz zacząć?' })).toBeVisible();
-    const entry = page.getByRole('link', { name: 'Utwórz CV z pomocą wywiadu · Pro' });
+    const entry = page.getByRole('link', { name: 'Wywiad Rozpocznij wywiad', exact: true });
     await expect(entry).toBeVisible();
     await expect(entry).toHaveAttribute('href', '/app/interview');
     await page.screenshot({ path: `../tmp/interview-discovery-start-${width}.png`, fullPage: true });

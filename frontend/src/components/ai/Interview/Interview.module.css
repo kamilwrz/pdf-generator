@@ -8,15 +8,17 @@
 .flow button, .flow a { font: 600 .875rem/1.4 var(--font-ui); }
 .flow button, .link { display: inline-flex; align-items: center; justify-content: center; min-height: var(--control-height); padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); background: var(--color-paper); color: var(--interview-ink); border-radius: var(--radius-control); cursor: pointer; text-decoration: none; }
 .flow button:hover, .link:hover { background: var(--color-surface); }
+.flow button:active:not(:disabled), .link:active { background: var(--color-canvas); }
 .flow button:disabled { opacity: .55; cursor: not-allowed; }
 .flow button.primary { color: var(--color-paper); background: var(--interview-ink); border-color: var(--interview-ink); }
 .flow button.primary:hover { background: var(--color-accent); }
+.flow button.primary:active:not(:disabled) { background: var(--interview-ink); }
 .flow :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .flow fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .flow legend { font-weight: 700; margin-bottom: var(--space-2); }
 .actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-block: var(--space-4); }
 .step { font: 600 .75rem/1.25 var(--font-ui); letter-spacing: .06em; margin-block: var(--space-4); color: var(--color-muted); }
-.question { border-block: 1px solid var(--color-border); padding-block: var(--space-6); }
+.question { border-block: 1px solid var(--color-border); padding-block: var(--space-4); }
 .hint { color: var(--color-muted); }
 .error { color: var(--color-danger); border-left: 2px solid var(--color-danger); padding: var(--space-4); }
 .flow .danger { color: var(--color-danger); }
@@ -42,9 +44,9 @@
 .stages button { justify-content: flex-start; gap: var(--space-3); text-align: left; }
 .stages button > span { flex-shrink: 0; white-space: nowrap; font: .75rem var(--font-mono); color: var(--color-muted); }
 .stages button[aria-current] { border-bottom: 2px solid var(--color-accent); background: var(--color-canvas); }
-.interview .question { padding: var(--space-6); background: var(--color-canvas); border: 1px solid var(--color-border); }
+.interview .question { background: var(--color-paper); }
 .interview .question h3 { font-size: 1.5rem; line-height: 1.25; max-width: 56ch; }
-.interview .clarificationQuestion { display: grid; gap: var(--space-6); }
+.interview .clarificationQuestion { display: grid; gap: var(--space-4); }
 .clarificationQuestion > header > :last-child { margin-bottom: 0; }
 .decisionLabel, .clarificationPrompt > span { display: block; margin: 0 0 var(--space-2); color: var(--color-muted); font: 600 .75rem/1.25 var(--font-ui); letter-spacing: .06em; text-transform: uppercase; }
 .clarificationPrompt { max-width: 72ch; padding: var(--space-4); background: var(--color-paper); border-left: 2px solid var(--color-accent); }
@@ -54,25 +56,20 @@
 .proposal figcaption span { display: block; margin-top: var(--space-1); color: var(--color-muted); font-size: .875rem; font-weight: 400; }
 .proposal blockquote { margin: var(--space-3) 0 0; white-space: pre-wrap; }
 .clarificationQuestion .proposal { margin: 0; }
-.clarificationDecision { margin: 0; }
-.clarificationDecision legend { margin-bottom: var(--space-3); }
-.decisionOptions { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); border-block: 1px solid var(--color-border); }
-.decisionOption { min-width: 0; padding: var(--space-4); }
-.decisionOption + .decisionOption { border-left: 1px solid var(--color-border); }
-.decisionOption h4, .alternativeAnswers h4 { margin: 0 0 var(--space-2); font: 700 1rem/1.4 var(--font-ui); }
-.decisionOption p, .alternativeAnswers p { color: var(--color-muted); }
-.decisionOption > button { width: 100%; }
-.decisionOption label { margin-top: var(--space-4); }
+.alternativeAnswers p { color: var(--color-muted); }
 .alternativeAnswers { padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
 .alternativeAnswers .actions { margin-bottom: 0; }
-.nextStep { padding: var(--space-6); margin-top: var(--space-6); background: var(--color-canvas); border-left: 2px solid var(--color-accent); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); }
+.nextStep { padding-block: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border); display: grid; gap: var(--space-4); }
 .nextStep p { color: var(--color-muted); margin: 0; }
-.interview .preparation { max-width: 72ch; padding: var(--space-6); background: var(--color-canvas); border: 1px solid var(--color-border); margin-inline: auto; }
+.nextStep .actions { margin: 0; }
+.optionalNotes { margin-block: var(--space-4); }
+.moreQuestions { border-top: 1px solid var(--color-border); }
+.moreQuestions p { margin-bottom: var(--space-4); }
+.interview .preparation { max-width: 72ch; padding-block: var(--space-4); background: var(--color-paper); border-block: 1px solid var(--color-border); margin-inline: auto; }
 .interview .preparation legend { padding-inline: var(--space-2); }
 .resultActions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-4); }
 .resultActions > p { color: var(--color-muted); font-size: .875rem; margin: 0; max-width: 40ch; }
 .resultActions .actions { margin: 0; }
-@container interview (max-width: 720px) { .stages { grid-template-columns: repeat(2, minmax(0,1fr)); } .interview .question, .interview .preparation, .nextStep { padding: var(--space-4); } .decisionOptions { grid-template-columns: minmax(0, 1fr); } .decisionOption + .decisionOption { border-left: 0; border-top: 1px solid var(--color-border); } }
 @media (max-width: 600px) { .interview { padding: var(--space-4); } }
 @container interview (max-width: 480px) {
   .utility { gap: var(--space-2); margin-bottom: var(--space-4); padding-bottom: var(--space-2); }
@@ -84,19 +81,9 @@
 .scopeChoice { display: flex !important; align-items: center; gap: var(--space-3); min-height: var(--control-height); }
 .scopeChoice input { width: var(--space-4); height: var(--space-4); min-height: 0; padding: 0; flex-shrink: 0; }
 
-/* Receipts use the same compact structure in the assistant and account routes. */
-.credits { border-block: 1px solid var(--color-border); padding-block: var(--space-3); margin-bottom: var(--space-4); font-size: .875rem; }
-.creditSummary { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
-.creditSummary p, .credits > .hint { margin-bottom: var(--space-2); }
-.creditLatest { flex-basis: 100%; }
-.creditHistory summary { cursor: pointer; min-height: var(--control-height); display: list-item; align-content: center; font-weight: 600; }
-.creditHistory > ol { max-height: 24rem; overflow-y: auto; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-6); margin: 0; }
-.creditHistory > ol > li { padding-block: var(--space-3); border-top: 1px solid var(--color-border); }
-.creditHistory time { color: var(--color-muted); }
-.creditHistory ul { padding-left: var(--space-4); }
 
 .flow .compactStages { display: none; margin-top: var(--space-2); }
 .flow summary { min-height: var(--control-height); align-content: center; cursor: pointer; }
-.interview .question, .interview .preparation { padding: var(--space-4) 0; border-inline: 0; background: var(--color-paper); }
+.interview > [role='status']:empty { margin: 0; }
 .flow button, .flow a { font-size: 1rem; }
 @container interview (max-width: 720px) { .stages { display: none; } .flow .compactStages { display: grid; } }

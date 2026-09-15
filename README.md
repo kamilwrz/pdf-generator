@@ -1,12 +1,38 @@
 # English
 
+## Interview flow and focused decisions
+
+The standalone `/app/interview` and `/app/interview/:sessionId` routes and the editor assistant share `InterviewFlow`. Its four stages are Information, Conversation, Prepare CV and Result. The current task determines the primary action:
+
+1. Select an existing CV, import or bound career profile. Optional notes start collapsed when empty; opening, clearing or hiding them keeps the draft editable. Selecting another source restores its separate note draft. The profile opt-in and language remain explicit.
+2. Review source information and continue to the conversation. Source fields stay read-only; notes keep Apply/Cancel and explicit persistence through stage navigation. Routine source refresh is available here. A changed editor CV exposes refresh immediately, while unsaved drafts still block it.
+3. Request the next question, then save an answer. Saving is free and never requests the next paid question automatically. Between questions, Next question is primary and early CV preparation is secondary. At a round boundary, preparation becomes primary; an optional disclosure offers up to five more questions when eligible. Answer meanings and limits are unchanged.
+4. Choose a template and prepare the CV. A short visible notice explains paid generation, editing, verification and possible shortening, plus free layout work. “How we prepare your CV” contains the full process and limits. No disclosure or stage change starts AI.
+5. If a factual clarification is required, read the complete visible proposal and either confirm it or open Correct description. The latter focuses the full-replacement field. Closing it or pressing Escape preserves the draft and returns focus; confirmation and alternative answers remain disabled until the draft is saved or cleared. Other answer meanings are available under their own disclosure.
+6. Review the result and save a separate CV. Existing source protection, factual verification, layout fitting, free template comparison and preview editing remain in force.
+
+The credit receipt wraps latest charge, interview total and available account balance into a compact summary. During work or a failed receipt refresh it retains the last settled charge with an explicit status. Empty history has no disclosure; saving guidance remains visible. Loading headings name the operation directly, for example “Saving your answer”. Neither progress nor timing is simulated.
+
+### Implementation and verification
+
+The affected states include intake with and without optional notes, source review and unsaved changes, ordinary and assisted answers, round completion, factual clarification, preparation, result, pending operations, errors/retries and saved responses. Components reuse `DESIGN.md` tokens, native disclosures and the existing desktop stage buttons/compact selector. Focus, 44px targets, disabled actions, 200% reflow and reduced motion apply to both hosts. All controls stay outside the document and PDF tree.
+
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–509, function `InterviewFlow`, coordinates drafts, explicit operations and stage transitions; `goTo` persists changed information before leaving and retains it on failure.
+- `frontend/src/components/ai/Interview/Interview.module.css` owns the interview working layout. `InterviewCredits.jsx`, lines 13–70, and the adjacent `InterviewCredits.module.css` own the shared receipt; the CSS Module is the only new production file.
+- `frontend/src/i18n/locales/pl.json` and `en.json` are the source dictionaries. Generated workspace dictionaries come from `scripts/generate-locale-bundles.mjs`; edit source dictionaries only.
+- `InterviewFlowNavigation.runtime.test.jsx`, lines 1–201, covers primary actions, explicit paid boundaries and draft protection. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` and `InterviewLoading.runtime.test.jsx` cover confirmation, billing and operation feedback. `frontend/e2e/interview-simple-flow.spec.js`, lines 1–166, covers keyboard clarification, retained drafts and PL/EN at 390, 834, 1280 and 1920px, including enlarged text.
+
+From `frontend`, run `npm test`, `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js`, `npm run test:e2e -- interview-simple-flow.spec.js interview-workspace.spec.js interviews.spec.js interview-sources.spec.js interview-answer-help.spec.js interview-prerequisites.spec.js interview-discovery.spec.js --project=desktop-chromium --workers=2`, `npm run lint -- --quiet`, and `npm run build`. Browser tests intercept API calls and use synthetic candidates. They verify behaviour and layout; reduced cognitive effort has not been measured with users. This change adds no API, database schema, dependency, environment variable or deployment step.
+
+References: [W3C multi-page forms](https://www.w3.org/WAI/tutorials/forms/multi-page/) explains clear stages and progress; [GOV.UK question pages](https://design-system.service.gov.uk/patterns/question-pages/) explains keeping a form focused on one task.
+
 ## Recovering a lost interview response
 
 The final layout can be saved even when the browser receives a network error. During an explicitly started fit, `completeInterviewFit` now reads `GET /ai/interviews/{id}` once after a failed final `finish` response. It accepts only the immediately following revision with the same session, evidence scope, template and profile revision, a matching preview profile revision and completed fitting. It returns that stored result through the normal result view and free template comparison, without repeating the write or spending AI credits. Unfinished, restored, stale or unrelated snapshots retain the original error and explicit recovery actions. Closing the workflow prevents late recovery from being adopted.
 
 If initial generation fails, `InterviewFlow.operation` refreshes saved session state so an existing pending fit can be resumed explicitly with the current revision. If that read also fails, the original generation/fitting error remains visible. This performs no automatic paid retry. The shared HTTP client marks opaque transport failures with `code: network_error` in both JSON and download requests, so recovery works independently of translated wording. Its Polish and English messages no longer assert that the server is starting.
 
-Implementation: `frontend/src/utils/interviewFit.js`, lines 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–475 (`operation`); `frontend/src/services/api.js`, lines 1–405 (`ApiClient`, `isTransientNetworkError`). Tests: `frontend/src/utils/interviewFit.test.js`, lines 1–109; `frontend/src/services/api.test.js`, lines 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, lines 1–649; `frontend/e2e/interview-fit.spec.js`, lines 1–162. The browser regression commits the layout and then aborts the response, covering PL/EN, four viewport widths, keyboard use, 200% text zoom and reduced motion. Synthetic fixtures never call paid AI. Run the existing unit/runtime/lint/build scripts and the interview-fit Playwright suite from `frontend`.
+Implementation: `frontend/src/utils/interviewFit.js`, lines 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–509 (`operation`); `frontend/src/services/api.js`, lines 1–405 (`ApiClient`, `isTransientNetworkError`). Tests: `frontend/src/utils/interviewFit.test.js`, lines 1–109; `frontend/src/services/api.test.js`, lines 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, lines 1–655; `frontend/e2e/interview-fit.spec.js`, lines 1–162. The browser regression commits the layout and then aborts the response, covering PL/EN, four viewport widths, keyboard use, 200% text zoom and reduced motion. Synthetic fixtures never call paid AI. Run the existing unit/runtime/lint/build scripts and the interview-fit Playwright suite from `frontend`.
 
 This is a frontend recovery fix; no API endpoint, database schema, dependency or configuration changes are required. It does not diagnose production network interruptions or poll a still-running operation. If no completed result is available at recovery time, the user must load saved state and explicitly resume. [MDN Fetch documentation](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) explains browser network rejection; it does not establish whether an application write was committed.
 
@@ -36,7 +62,7 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–504; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -302,7 +328,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–475, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–509, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
@@ -951,7 +977,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–504; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; apply, cancel, undo, focus, search, question-and-answer presentation |
@@ -970,7 +996,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–732; state, answer prompt persistence, legacy restoration, grounding, billing, source preservation and PDF regressions |
 | `backend/tests/test_alembic_interviews.py` | 1–26; additive migration regression |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–649; question plans, answer-ceiling state, clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–652; question plans, answer-ceiling state, clarification decisions, direct answer-save feedback, save-before-next, recovery, focus and source changes |
 | `frontend/e2e/interview-sources.spec.js` | 1–108; isolated source selection, confirmation, resumption |
 | `frontend/e2e/interviews.spec.js` | 1–223; create, question plan, clarification decisions, immediate answer persistence, resume, profile and assistant flows |
 
@@ -3593,13 +3619,39 @@ Notable product facts:
 
 # Polski
 
+## Przebieg wywiadu i czytelne decyzje
+
+Samodzielne strony `/app/interview` i `/app/interview/:sessionId` oraz asystent edytora korzystają ze wspólnego `InterviewFlow`. Jego cztery etapy to Twoje informacje, Rozmowa, Przygotuj CV i Wynik. Bieżące zadanie określa główną akcję:
+
+1. Wybierz istniejące CV, import lub profil zawodowy z powiązanym źródłem. Puste opcjonalne notatki są zwinięte; otwieranie, czyszczenie i ukrywanie pola zachowuje możliwość edycji. Zmiana źródła przywraca jego osobny szkic notatki. Dołączenie profilu i język pozostają jawnymi wyborami.
+2. Sprawdź informacje źródłowe i przejdź do rozmowy. Dane CV pozostają tylko do odczytu; notatki zachowują Zastosuj/Anuluj i zapis przy przejściu między etapami. Tutaj dostępne jest zwykłe odświeżenie źródła. Zmienione CV edytora pokazuje odświeżenie od razu, ale niezapisane szkice nadal je blokują.
+3. Poproś o następne pytanie, a potem zapisz odpowiedź. Zapis jest bezpłatny i nigdy sam nie wywołuje kolejnego płatnego pytania. Między pytaniami główną akcją jest Następne pytanie, a wcześniejsze przygotowanie CV jest akcją drugorzędną. Po zakończeniu rundy główną akcją staje się przygotowanie CV; opcjonalna sekcja pozwala dodać do pięciu pytań, jeśli jest to dostępne. Znaczenie odpowiedzi i limity pozostają bez zmian.
+4. Wybierz szablon i przygotuj CV. Krótki widoczny komunikat wyjaśnia płatne generowanie, redakcję, weryfikację i ewentualne skracanie oraz bezpłatne zmiany układu. Sekcja „Jak przygotowujemy CV” zawiera pełny opis procesu i limitów. Rozwijanie sekcji ani zmiana etapu nie uruchamia AI.
+5. Jeśli potrzebne jest doprecyzowanie faktów, przeczytaj pełną widoczną propozycję i zatwierdź ją albo wybierz Popraw opis. Druga opcja przenosi fokus do pola pełnego zastępczego opisu. Zamknięcie pola lub Escape zachowuje szkic i przywraca fokus; zatwierdzenie propozycji i alternatywne odpowiedzi pozostają zablokowane do zapisania lub wyczyszczenia szkicu. Pozostałe znaczenia odpowiedzi są w osobnej rozwijanej sekcji.
+6. Sprawdź wynik i zapisz osobne CV. Nadal obowiązują ochrona źródła, weryfikacja faktów, dopasowanie układu, bezpłatne porównanie szablonów i edycja podglądu.
+
+Rozliczenie kredytów mieści ostatni koszt, sumę wywiadu i dostępne saldo konta w krótkim, zawijanym podsumowaniu. Podczas operacji lub błędu odświeżenia zachowuje ostatni rozliczony koszt z jawnym statusem. Pusta historia nie ma rozwijanej sekcji; informacja o bezpłatnym zapisie pozostaje widoczna. Nagłówki oczekiwania nazywają operację wprost, np. „Zapisujemy odpowiedź”. Postęp i czas nie są symulowane.
+
+### Implementacja i weryfikacja
+
+Zakres obejmuje rozpoczęcie z opcjonalną notatką i bez niej, przegląd źródła i niezapisane zmiany, zwykłe i wspomagane odpowiedzi, koniec rundy, doprecyzowanie faktów, przygotowanie, wynik, trwające operacje, błędy i ponowienia oraz zapisane odpowiedzi. Komponenty wykorzystują tokeny `DESIGN.md`, natywne rozwijane sekcje i dotychczasowe przyciski etapów oraz selektor w wąskim widoku. Fokus, cele 44px, blokady akcji, układ przy powiększeniu 200% i ograniczony ruch dotyczą obu miejsc uruchamiania. Kontrolki pozostają poza drzewem dokumentu i PDF.
+
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–509, funkcja `InterviewFlow`, koordynuje szkice, jawne operacje i przejścia; `goTo` zapisuje zmienione informacje przed opuszczeniem etapu i zachowuje je po błędzie.
+- `frontend/src/components/ai/Interview/Interview.module.css` odpowiada za układ wywiadu. `InterviewCredits.jsx`, linie 13–70, i sąsiedni `InterviewCredits.module.css` odpowiadają za wspólne rozliczenie; moduł CSS jest jedynym nowym plikiem produkcyjnym.
+- `frontend/src/i18n/locales/pl.json` i `en.json` są słownikami źródłowymi. Słowniki robocze generuje `scripts/generate-locale-bundles.mjs`; edytuj wyłącznie słowniki źródłowe.
+- `InterviewFlowNavigation.runtime.test.jsx`, linie 1–201, sprawdza główne akcje, jawne granice płatnych operacji i ochronę szkiców. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` i `InterviewLoading.runtime.test.jsx` sprawdzają zatwierdzanie, rozliczenia i komunikaty operacji. `frontend/e2e/interview-simple-flow.spec.js`, linie 1–166, obejmuje doprecyzowanie klawiaturą, zachowanie szkiców oraz PL/EN przy 390, 834, 1280 i 1920px, w tym powiększony tekst.
+
+W katalogu `frontend` uruchom `npm test`, `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js`, `npm run test:e2e -- interview-simple-flow.spec.js interview-workspace.spec.js interviews.spec.js interview-sources.spec.js interview-answer-help.spec.js interview-prerequisites.spec.js interview-discovery.spec.js --project=desktop-chromium --workers=2`, `npm run lint -- --quiet` oraz `npm run build`. Testy przeglądarkowe przechwytują API i używają syntetycznych danych kandydatów. Sprawdzają zachowanie i układ; zmniejszenie wysiłku poznawczego nie zostało zmierzone z użytkownikami. Zmiana nie dodaje API, schematu bazy, zależności, zmiennej środowiskowej ani kroku wdrożenia.
+
+Źródła: [W3C: formularze wieloetapowe](https://www.w3.org/WAI/tutorials/forms/multi-page/) wyjaśnia czytelne etapy i postęp; [GOV.UK: strony pytań](https://design-system.service.gov.uk/patterns/question-pages/) opisuje skupienie formularza na jednym zadaniu.
+
 ## Odzyskiwanie wywiadu po utracie odpowiedzi
 
 Końcowy układ może zostać zapisany, mimo że przeglądarka otrzyma błąd sieci. Podczas jawnie uruchomionego dopasowania `completeInterviewFit` odczytuje teraz jednokrotnie `GET /ai/interviews/{id}` po nieudanej odpowiedzi końcowego `finish`. Akceptuje wyłącznie bezpośrednio następującą rewizję z tą samą sesją, zakresem danych, szablonem i rewizją profilu, zgodną rewizją profilu podglądu oraz zakończonym dopasowaniem. Przekazuje zapisany wynik do zwykłego widoku rezultatu i bezpłatnego porównania szablonów, bez ponownego zapisu i zużycia kredytów AI. Stan nieukończony, przywrócony, nieaktualny lub dotyczący innych danych zachowuje pierwotny błąd i jawne akcje odzyskiwania. Zamknięcie wywiadu blokuje przyjęcie spóźnionej odpowiedzi.
 
 Po błędzie początkowego generowania `InterviewFlow.operation` odświeża zapisany stan sesji, aby istniejące oczekujące dopasowanie można było jawnie wznowić z bieżącą rewizją. Jeśli odczyt również zawiedzie, widoczny pozostaje pierwotny błąd generowania/dopasowania. Nie następuje automatyczne ponowienie płatnego AI. Wspólny klient HTTP oznacza nieprzejrzyste błędy transportu przez `code: network_error` zarówno dla JSON, jak i pobierania plików, dzięki czemu odzyskiwanie nie zależy od języka komunikatu. Komunikaty polskie i angielskie nie twierdzą już, że serwer się uruchamia.
 
-Implementacja: `frontend/src/utils/interviewFit.js`, linie 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–475 (`operation`); `frontend/src/services/api.js`, linie 1–405 (`ApiClient`, `isTransientNetworkError`). Testy: `frontend/src/utils/interviewFit.test.js`, linie 1–109; `frontend/src/services/api.test.js`, linie 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–649; `frontend/e2e/interview-fit.spec.js`, linie 1–162. Regresja przeglądarkowa zapisuje układ i zrywa odpowiedź; obejmuje PL/EN, cztery szerokości okna, klawiaturę, tekst powiększony do 200% i ograniczony ruch. Syntetyczne dane nie wywołują płatnego AI. Należy uruchomić istniejące skrypty testów jednostkowych/runtime, lint/build i zestaw Playwright interview-fit z katalogu `frontend`.
+Implementacja: `frontend/src/utils/interviewFit.js`, linie 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–509 (`operation`); `frontend/src/services/api.js`, linie 1–405 (`ApiClient`, `isTransientNetworkError`). Testy: `frontend/src/utils/interviewFit.test.js`, linie 1–109; `frontend/src/services/api.test.js`, linie 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–655; `frontend/e2e/interview-fit.spec.js`, linie 1–162. Regresja przeglądarkowa zapisuje układ i zrywa odpowiedź; obejmuje PL/EN, cztery szerokości okna, klawiaturę, tekst powiększony do 200% i ograniczony ruch. Syntetyczne dane nie wywołują płatnego AI. Należy uruchomić istniejące skrypty testów jednostkowych/runtime, lint/build i zestaw Playwright interview-fit z katalogu `frontend`.
 
 To poprawka odzyskiwania we frontendzie; nie wymaga zmian endpointów API, schematu bazy, zależności ani konfiguracji. Nie diagnozuje przerw sieciowych na produkcji i nie odpytuje cyklicznie nadal trwającej operacji. Jeśli gotowy wynik nie jest dostępny podczas odczytu, użytkownik musi wczytać zapisany stan i jawnie wznowić pracę. [Dokumentacja Fetch w MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) wyjaśnia odrzucenie żądania przez przeglądarkę; nie rozstrzyga, czy zapis aplikacji został wykonany.
 
@@ -3629,7 +3681,7 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–504; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -3895,7 +3947,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–475, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–509, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
@@ -4538,7 +4590,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–475; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–504; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–116; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
@@ -4557,7 +4609,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPresentation.js` | 1–13; factLabel, interviewFields |
 | `backend/tests/test_interviews.py` | 1–732; zapis pytania z odpowiedzią, odtwarzanie starszych danych i regresje wywiadu |
 | `backend/tests/test_alembic_interviews.py` | 1–26; testy zachowania wywiadu |
-| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–649; plan pytań, stan wspólnego limitu, decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
+| `frontend/src/components/ai/Interview/Interview.runtime.test.jsx` | 1–652; plan pytań, stan wspólnego limitu, decyzje doprecyzowania, komunikat zapisu i zachowanie wywiadu |
 | `frontend/e2e/interview-sources.spec.js` | 1–108; wybór osobnego źródła, zatwierdzanie, wznowienie |
 | `frontend/e2e/interviews.spec.js` | 1–223; plan pytań, decyzje doprecyzowania, zapis odpowiedzi i pełne przepływy wywiadu |
 

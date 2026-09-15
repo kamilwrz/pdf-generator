@@ -31,11 +31,13 @@ it('refreshes after failed work, retains earlier charges and never presents unkn
   await screen.findByText(/Ostatnie zapytanie AI/);
   rerender(<InterviewCredits {...props} busy />);
   expect(screen.getByText(/Koszt bieżącego zapytania/)).toBeVisible();
+  expect(screen.getByText('Ostatnie zapytanie AI — Pytanie wywiadu: 7 kredytów')).toBeVisible();
   expect(screen.queryByText('93 kredyty')).not.toBeInTheDocument();
   interviewRequest.mockRejectedValueOnce(new Error('offline'));
   rerender(<InterviewCredits {...props} balanceError="offline" />);
   await screen.findByText(/Nie udało się odświeżyć kosztów/);
   expect(screen.getByText(/Zużycie w tym wywiadzie:/).parentElement).toHaveTextContent('7 kredytów');
+  expect(screen.getByText('Ostatnie zapytanie AI — Pytanie wywiadu: 7 kredytów')).toBeVisible();
   expect(screen.getByText('brak aktualnych danych')).toBeVisible();
   interviewRequest.mockResolvedValue({ credits_charged: 18, requests: [{ ...receipt.requests[0], id: 'preview', operation: 'preview', credits_charged: 11, stages: [{ operation: 'editorial', credits_charged: 11, status: 'failed' }] }, ...receipt.requests] });
   await userEvent.setup().click(screen.getByRole('button', { name: 'Odśwież rozliczenia' }));
@@ -57,4 +59,35 @@ it('does not duplicate recovered charges and labels pending settlement explicitl
   rerender(<InterviewCredits {...props} sessionId="other" />);
   await screen.findByText(/Ostatnie zapytanie AI.*rozliczenie w toku/);
   expect(screen.getByText(/Zużycie w tym wywiadzie:/).parentElement).toHaveTextContent('0 kredytów');
+});
+
+it('keeps free-save guidance visible without an empty history disclosure', async () => {
+  interviewRequest.mockResolvedValue({ credits_charged: 0, requests: [] });
+  const { container } = render(<InterviewCredits {...props} />);
+  await waitFor(() => expect(screen.getByText(/Zużycie w tym wywiadzie:/).parentElement).toHaveTextContent('0 kredytów'));
+  expect(screen.getByText(/Zapis odpowiedzi, informacji i doprecyzowań: 0/)).toBeVisible();
+  expect(container.querySelector('details')).toBeNull();
+  await setUiLanguage('en');
+  expect(screen.getByText('Saving answers, information and clarifications: 0 credits.')).toBeVisible();
+  expect(container.querySelector('details')).toBeNull();
+});
+
+it('keeps pending and failed metered stages in history and retries only its read', async () => {
+  const onRefreshBalance = vi.fn();
+  interviewRequest.mockResolvedValue({ credits_charged: 7, requests: [{
+    ...receipt.requests[0], operation: 'preview', pending: true,
+    stages: [
+      { operation: 'preview', credits_charged: 7, status: 'failed' },
+      { operation: 'editorial', credits_charged: 0, status: 'pending' },
+    ],
+  }] });
+  render(<InterviewCredits {...props} onRefreshBalance={onRefreshBalance} />);
+  await screen.findByText(/Ostatnie zapytanie AI.*rozliczenie w toku/);
+  await userEvent.setup().click(screen.getByText('Historia zapytań AI (1)'));
+  expect(screen.getByText(/7 kredytów.*etap nie powiódł się/)).toBeVisible();
+  expect(screen.getByText(/Redakcja.*rozliczenie w toku/)).toBeVisible();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Odśwież rozliczenia' }));
+  await waitFor(() => expect(interviewRequest).toHaveBeenCalledTimes(2));
+  expect(onRefreshBalance).toHaveBeenCalledOnce();
+  expect(interviewRequest.mock.calls.every(([path, method]) => path.endsWith('/credits') && (!method || method === 'GET'))).toBe(true);
 });
