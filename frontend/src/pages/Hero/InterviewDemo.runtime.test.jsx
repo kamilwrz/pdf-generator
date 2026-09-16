@@ -38,7 +38,7 @@ it('does not advance offscreen or with reduced motion and cleans up timers', () 
   rerender(<InterviewDemo />);
   expect(screen.queryByRole('button', { name: 'Wstrzymaj pokaz' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /Propozycja/ }));
-  expect(screen.getByText('Propozycja do sprawdzenia')).toBeVisible();
+  expect(screen.getByText('Tak może brzmieć Twój opis')).toBeVisible();
   unmount();
   expect(vi.getTimerCount()).toBe(0);
 });

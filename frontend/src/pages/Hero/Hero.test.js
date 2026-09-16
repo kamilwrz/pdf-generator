@@ -29,9 +29,8 @@ describe("landing product positioning", () => {
   it("uses canonical plan limits and distinguishes the illustrative AI example", () => {
     assert.match(source, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(source, /PRO_PLAN_HIGHLIGHTS\.map/);
-    assert.match(demo, /Przykład rozmowy i jej efektu/);
-    assert.match(demo, /Opis opiera się na podanej odpowiedzi/);
-    assert.match(demo, /Umiejętności w propozycji pochodzą z odpowiedzi, nie z samego ogłoszenia/);
+    assert.match(demo, /Przykładowa rozmowa/);
+    assert.match(demo, /sprawdź, czy opis zgadza się z Twoim doświadczeniem/);
     assert.match(source, /Import nie kopiuje wyglądu oryginału/);
     assert.doesNotMatch(source, /href="#"/);
   });

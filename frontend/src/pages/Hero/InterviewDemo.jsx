@@ -25,23 +25,17 @@ export default function InterviewDemo({ tailoring = false }) {
     exampleSourceLabel: uiText('public:hero.tailorDemo.exampleSourceLabel'),
     exampleSource: uiText('public:hero.tailorDemo.exampleSource'),
     exampleQuestion: uiText('public:hero.tailorDemo.exampleQuestion'),
-    demoQuestionHint: uiText('public:hero.tailorDemo.demoQuestionHint'),
     exampleAnswer: uiText('public:hero.tailorDemo.exampleAnswer'),
-    demoAnswerHint: uiText('public:hero.tailorDemo.demoAnswerHint'),
     exampleResult: uiText('public:hero.tailorDemo.exampleResult'),
     demoReviewHint: uiText('public:hero.tailorDemo.demoReviewHint'),
-    exampleNote: uiText('public:hero.tailorDemo.exampleNote'),
   } : {
     interviewExampleLabel: uiText('public:hero.interviewExampleLabel'),
     exampleSourceLabel: uiText('public:hero.exampleSourceLabel'),
     exampleSource: uiText('public:hero.exampleSource'),
     exampleQuestion: uiText('public:hero.exampleQuestion'),
-    demoQuestionHint: uiText('public:hero.demoQuestionHint'),
     exampleAnswer: uiText('public:hero.exampleAnswer'),
-    demoAnswerHint: uiText('public:hero.demoAnswerHint'),
     exampleResult: uiText('public:hero.exampleResult'),
     demoReviewHint: uiText('public:hero.demoReviewHint'),
-    exampleNote: uiText('public:hero.exampleNote'),
   };
 
   useEffect(() => {
@@ -74,7 +68,6 @@ export default function InterviewDemo({ tailoring = false }) {
         <div className={classes.scene} data-active={step === 0} aria-hidden={step !== 0}>
           <span className={classes.label}>{uiText('public:hero.exampleQuestionLabel')}</span>
           <p className={classes.question}>{copy.exampleQuestion}</p>
-          <p className={classes.context}>{copy.demoQuestionHint}</p>
           <div className={classes.inputHint}>{uiText('public:hero.demoAnswerPlaceholder')}<span aria-hidden="true">│</span></div>
         </div>
         <div className={classes.scene} data-active={step === 1} aria-hidden={step !== 1}>
@@ -87,7 +80,6 @@ export default function InterviewDemo({ tailoring = false }) {
               ))}
             </p>
           </div>
-          <p className={classes.context}>{copy.demoAnswerHint}</p>
         </div>
         <div className={classes.scene} data-active={step === 2} aria-hidden={step !== 2}>
           <span className={classes.label}>{uiText('public:hero.demoResultLabel')}</span>
@@ -102,7 +94,6 @@ export default function InterviewDemo({ tailoring = false }) {
           else setPaused((value) => !value);
         }}>{step === 2 ? uiText('public:hero.demoReplay') : paused ? uiText('public:hero.demoPlay') : uiText('public:hero.demoPause')}</button>}
       </div>
-      <p className={classes.note}>{copy.exampleNote}</p>
     </figure>
   );
 }

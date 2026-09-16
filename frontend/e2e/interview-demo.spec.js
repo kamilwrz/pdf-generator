@@ -17,7 +17,7 @@ test('interview demo supports keyboard, reduced motion and responsive reading', 
       await expect(button).toHaveAttribute('aria-pressed', 'true');
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await expect(demo.getByText('Propozycja do sprawdzenia')).toBeVisible();
+    await expect(demo.getByText('Tak może brzmieć Twój opis')).toBeVisible();
     if (width === 390 || width === 1280) await page.locator('#wywiad').screenshot({ path: `test-results/interview-demo-${width}.png` });
   }
   await page.screenshot({ path: 'test-results/interview-demo.png', fullPage: true });
@@ -29,10 +29,10 @@ test('English shell includes the example and plays through to a reviewable resul
   await page.goto('/');
   const demo = page.locator('#wywiad figure');
   await demo.scrollIntoViewIfNeeded();
-  await expect(demo.getByText('Interview simulation · sample data')).toBeVisible();
+  await expect(demo.getByText('Example conversation')).toBeVisible();
   await expect(demo.getByRole('button', { name: 'Answer', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 8000 });
   await expect(demo.getByRole('button', { name: 'Proposal', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 10000 });
-  await expect(demo.getByText('Proposal to review')).toBeVisible();
+  await expect(demo.getByText('How your description could read')).toBeVisible();
   await demo.getByRole('button', { name: 'Play again' }).click();
   await expect(demo.getByRole('button', { name: 'Question', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
