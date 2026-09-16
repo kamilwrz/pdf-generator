@@ -63,7 +63,7 @@ export function structuralToolbarLayoutSize(zoom = 1, offsetScreenPx = 10) {
  * @returns {object} Screen-space button, icon, label, menu and surface metrics.
  */
 export function structuralToolbarScreenLayoutSize(zoom, offsetScreenPx = 10) {
-  const scale = Math.max(1, canvasControlScale(zoom));
+  const scale = canvasControlScale(zoom);
   return {
     buttonSize: 36 * scale,
     iconSize: 16 * scale,
@@ -95,9 +95,15 @@ export function compactInlineToolbarLayoutSize(zoom = 1) {
     .map(([key, value]) => [key, value / safeZoom]));
 }
 
-/** Shared growth relative to 140% zoom; invalid input falls back to 100%. */
+/**
+ * Shared screen-space growth; invalid input falls back to 100%.
+ * Below 140%, shrink chrome with the document (about 28px at 100%) while
+ * retaining 24px pointer targets. Above it, preserve the gentler edit-zoom
+ * growth. Both branches meet at 36px so animated zoom remains continuous.
+ */
 export function canvasControlScale(zoom = 1) {
   const safeZoom = Number.isFinite(Number(zoom)) && Number(zoom) > 0.05 ? Number(zoom) : 1;
+  if (safeZoom < 1.4) return Math.max(2 / 3, (safeZoom / 1.4) ** 0.75);
   return (2 + safeZoom / 1.4) / 3;
 }
 
@@ -110,8 +116,8 @@ export function canvasControlScale(zoom = 1) {
  * @returns {object} Screen-space metrics, without changing document geometry.
  */
 export function compactInlineToolbarScreenLayoutSize(zoom = 1) {
-  // Zooming out must not reduce compact controls below their 36px hit target.
-  const scale = Math.max(1, canvasControlScale(zoom));
+  // Share the same 24px minimum and zoom curve with structural controls.
+  const scale = canvasControlScale(zoom);
   return {
     buttonSize: 36 * scale,
     iconSize: 16 * scale,

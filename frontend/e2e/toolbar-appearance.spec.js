@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { installMockApi, login, SAVED_ELEMENTS } from "./support/mockApi.js";
 
+const controlSize = (percent) => 36 * (percent < 140
+  ? Math.max(2 / 3, (percent / 140) ** 0.75) : (2 + percent / 140) / 3);
+
 const extraElements = [
   { element_id: "contacts-anchor", category: "text", content: "", left: 0, top: 0,
     width: 0, height: 0, flowRole: "masthead-anchor", contactBandId: "contacts",
@@ -57,14 +60,12 @@ for (const kind of ["contacts", "skills", "languages", "settings"]) {
     }
     await expect(page.locator(selector).first()).toBeVisible();
     await page.mouse.move(1, 1);
-    const baseline = 36;
-    const expected = (zoom) => baseline * (kind === "settings"
-      ? (2 + zoom / 140) / 3 : Math.max(1, (2 + zoom / 140) / 3));
-    let previous = kind === "settings" ? 280 : 140;
+    const expected = controlSize;
+    let previous = kind === "settings" ? 280 : 100;
     await expect.poll(async () => (await page.locator(selector).first().boundingBox()).height)
       .toBeCloseTo(expected(previous), 0);
 
-    for (const target of kind === "settings" ? [140, 280, 160] : [280, 140, 200]) {
+    for (const target of kind === "settings" ? [100, 50, 140, 280, 160] : [50, 100, 280, 140, 200]) {
       const samples = await page.evaluate(async ({ target, selector }) => {
         const canvas = document.querySelector("[data-page-canvas]");
         const current = Math.round(Number(canvas.style.transform.match(/scale\(([^)]+)\)/)[1]) * 100);
@@ -188,9 +189,9 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(hoverAppearance.background).toBe("rgba(0, 0, 0, 0)");
     expect(hoverAppearance.pointerEvents).toBe("none");
     const sectionToolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
-    await checkControl(sectionToolbar.getByRole("button").first(), 36);
+    await checkControl(sectionToolbar.getByRole("button").first(), controlSize(100));
     const skillsStyle = sectionToolbar.getByRole("button", { name: "Styl umiejętności: w linii" });
-    await checkControl(skillsStyle, 36);
+    await checkControl(skillsStyle, controlSize(100));
     await expect(skillsStyle).toHaveText("");
     await expect(skillsStyle).toHaveAttribute("data-tooltip", "Styl umiejętności: w linii");
     const disabledMove = sectionToolbar.locator("button:disabled").first();
@@ -201,14 +202,14 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(sectionToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await page.locator("#skills-tools-title").hover();
     const recordToolbar = page.locator('[data-canvas-toolbar-key="record:skills-tools-title"]');
-    await checkControl(recordToolbar.getByRole("button").first(), 36);
+    await checkControl(recordToolbar.getByRole("button").first(), controlSize(100));
     await expectToolbarAboveText(recordToolbar, page.locator("#skills-tools-title"));
     await expect(recordToolbar.getByRole("button", { name: "AI dla wybranego zakresu" })).toBeVisible();
     await reachToolbarFromText(page, "skills-technologies-title", "record:skills-technologies-title");
     await reachToolbarFromText(page, "skills-heading", "heading:skills-heading");
     await hoverVisibleText(page, page.locator("#contact-email"));
     const deleteContact = page.getByRole("button", { name: /Usuń kontakt:/ });
-    await checkControl(deleteContact, 36, true);
+    await checkControl(deleteContact, controlSize(100), true);
     const [contactBox, deleteSurfaceBox] = await Promise.all([
       visibleTextBox(page.locator("#contact-email")),
       deleteContact.locator("..").boundingBox(),
@@ -216,9 +217,9 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(deleteSurfaceBox.x + deleteSurfaceBox.width / 2).toBeCloseTo(contactBox.x + contactBox.width / 2, 0);
     expect(deleteSurfaceBox.y + deleteSurfaceBox.height / 2).toBeCloseTo(contactBox.y + contactBox.height / 2, 0);
     await hoverVisibleText(page, page.locator("#contact-email"));
-    await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), 36);
+    await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), controlSize(100));
     await page.locator("#language-item").hover();
-    await checkControl(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button').first(), 36);
+    await checkControl(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button').first(), controlSize(100));
     await expect(page.locator('[data-canvas-toolbar-key="grid-entry:language-item"] button')).toHaveCount(2);
 
     const body = page.locator("#skills-tools-body");
@@ -230,7 +231,7 @@ for (const width of [390, 834, 1280, 1920]) {
     const add = toolbar.getByRole("button", { name: /Dodaj umiejętność do kategorii/ });
     await expect(add).toBeFocused();
     await expect(toolbar.getByRole("button")).toHaveCount(1);
-    await checkControl(add, 36);
+    await checkControl(add, controlSize(100));
     await add.press("Enter");
     const input = toolbar.getByRole("textbox", { name: "Dodaj umiejętność" });
     await expect(input).toBeFocused();
@@ -285,7 +286,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
   // authored hover target underneath it and legitimately claim the toolbar.
   await page.mouse.move(1, 1);
 
-  let previousHeight = 36;
+  let previousHeight = controlSize(100);
   for (const targetZoom of [280, 140, 100, 50, 200, 300, 160]) {
     // Native clicks avoid pointer movement away from the pinned toolbar. Sample
     // every animation frame: final-state checks miss transient rescaling.
@@ -319,7 +320,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
     }, targetZoom);
     expect(samples.length).toBeGreaterThan(2);
     for (const sample of samples) {
-      const finalHeight = 36 * Math.max(1, (2 + targetZoom / 140) / 3);
+      const finalHeight = controlSize(targetZoom);
       expect(sample.height).toBeGreaterThanOrEqual(Math.min(previousHeight, finalHeight) - 0.1);
       expect(sample.height).toBeLessThanOrEqual(Math.max(previousHeight, finalHeight) + 0.1);
       expect(sample.surfaceHeight).toBeCloseTo(sample.height, 1);
@@ -331,7 +332,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
       expect(sample.menuWeight).toBe("400");
       previousHeight = sample.height;
     }
-    expect(samples.at(-1).height).toBeCloseTo(36 * Math.max(1, (2 + targetZoom / 140) / 3), 1);
+    expect(samples.at(-1).height).toBeCloseTo(controlSize(targetZoom), 1);
     if ([140, 280].includes(targetZoom)) {
       await page.screenshot({ path: testInfo.outputPath(`toolbar-${targetZoom}.png`) });
     }
@@ -398,7 +399,8 @@ for (const width of [390, 640]) {
     await expect(page.getByRole("button", { name: "Powiększ", exact: true })).toBeVisible();
     await page.evaluate(() => {
       const zoomIn = document.querySelector('[aria-label="Powiększ"]');
-      for (let step = 0; step < 14; step += 1) zoomIn.click();
+      // The editor starts at 100%; reach the asserted 280% in 10-point steps.
+      for (let step = 0; step < 18; step += 1) zoomIn.click();
     });
     await page.locator("#skills-tools-title").evaluate((node) => node.scrollIntoView({ block: "center" }));
     await page.locator("#skills-tools-title").dispatchEvent("pointerenter");

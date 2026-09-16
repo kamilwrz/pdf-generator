@@ -20,7 +20,7 @@ test("structural targets, text and icons grow with zoom without double scaling",
       assert.ok(Math.abs(local[key] * zoom - value) < 0.00001, key);
     }
     assert.ok(screen.fontSize >= 12);
-    assert.ok(screen.buttonSize >= 36);
+    assert.ok(screen.buttonSize >= 24);
     assert.equal(screen.offset, 0);
     assert.equal(screen.borderWidth, 0);
     if (previous) {
@@ -42,7 +42,7 @@ test("invalid structural zoom and offsets fall back to usable geometry", () => {
 });
 
 test("shares the language-sized compact inline toolbar with Skills", () => {
-  assert.deepEqual(compactInlineToolbarLayoutSize(1), {
+  assert.deepEqual(compactInlineToolbarScreenLayoutSize(1.4), {
     buttonSize: 36,
     iconSize: 16,
     gap: 0,
@@ -53,8 +53,8 @@ test("shares the language-sized compact inline toolbar with Skills", () => {
     borderWidth: 0,
   });
   assert.deepEqual(recordPlusLayoutSize(1), {
-    buttonSize: 36,
-    iconSize: 16,
+    buttonSize: 36 * (1 / 1.4) ** 0.75,
+    iconSize: 16 * (1 / 1.4) ** 0.75,
     gap: 0,
     offset: 8,
   });
@@ -66,14 +66,14 @@ test("shares the language-sized compact inline toolbar with Skills", () => {
   });
 });
 
-test("compact controls share toolbar growth and never fall below 36px", () => {
+test("compact controls share toolbar growth and shrink with zoom to a 24px minimum", () => {
   for (const zoom of [0.5, 1, 1.4, 2, 2.8, 3]) {
     const local = compactInlineToolbarLayoutSize(zoom);
     const screen = compactInlineToolbarScreenLayoutSize(zoom);
     for (const [key, value] of Object.entries(screen)) {
       assert.ok(Math.abs(local[key] * zoom - value) < 0.00001, key);
     }
-    assert.ok(screen.buttonSize >= 36);
+    assert.ok(screen.buttonSize >= 24);
     assert.ok(screen.fontSize >= 12);
     assert.equal(screen.borderWidth, 0);
     assert.equal(screen.offset, 8);
@@ -107,4 +107,15 @@ test("uses outside gutters in a two-page spread", () => {
 test("preserves the lane gutter in single-page view", () => {
   assert.equal(resolveStructuralToolbarSide("left", null), "left");
   assert.equal(resolveStructuralToolbarSide("right", undefined), "right");
+});
+
+test("overview controls shrink below 140% and retain accessible targets", () => {
+  for (const metrics of [structuralToolbarScreenLayoutSize, compactInlineToolbarScreenLayoutSize]) {
+    assert.equal(metrics(0.5).buttonSize, 24);
+    assert.ok(Math.abs(metrics(1).buttonSize - 28) < 0.1);
+    for (const zoom of [0.9, 1, 1.2, 1.4]) {
+      assert.ok(metrics(zoom).buttonSize > metrics(zoom - 0.1).buttonSize);
+      assert.ok(metrics(zoom).iconSize > metrics(zoom - 0.1).iconSize);
+    }
+  }
 });
