@@ -37,6 +37,7 @@ export default function DialogShell({
     bodyClassName,
     variant = "modal",
     surface = "standard",
+    opaqueBackdrop = false,
     role = "dialog",
     initialFocusSelector,
     restoreFocusSelector,
@@ -153,7 +154,7 @@ export default function DialogShell({
 
     return createPortal(
         <div
-            className={`${classes.backdrop}${isFullscreen ? ` ${classes.backdropFullscreen}` : ""}${isDecision ? ` ${classes.backdropDecision}` : ""}`}
+            className={`${classes.backdrop}${isFullscreen ? ` ${classes.backdropFullscreen}` : ""}${isDecision ? ` ${classes.backdropDecision}` : ""}${opaqueBackdrop ? ` ${classes.backdropOpaque}` : ""}`}
             onClick={onClose}
         >
             <div

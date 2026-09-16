@@ -1,5 +1,4 @@
 import { useMessageState, messageRef, messageOf } from '../../i18n/messageState.js';
-import { getUiLocale } from '../../i18n/index.js';
 import { t as uiText } from "../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
 /** Account-owned career facts and resumable sessions remain usable without Pro. */
@@ -13,9 +12,9 @@ import { interviewRequest } from '../../services/interviews';
 import classes from '../../components/ai/Interview/Interview.module.css';
 import layout from './CareerProfilePage.module.css';
 import site from '../../components/common/SiteLayout/SiteLayout.module.css';
-
-const modes = { get create() { return uiText("editor:topbar.creatingCv"); }, get enrich() { return uiText("public:careerProfilePage.cvEnrichment"); }, get tailor() { return uiText("public:careerProfilePage.jobTailoring"); } };
-const phases = { get intake() { return uiText("public:careerProfilePage.startingInformation"); }, get ready() { return uiText("public:careerProfilePage.readyForTheNextQuestion"); }, question: 'Pytanie', get review() { return uiText("interview:cvContent.summary"); }, clarification: 'Doprecyzowanie', get preview() { return uiText("public:careerProfilePage.cvPreview"); }, get completed() { return uiText("public:careerProfilePage.cvSaved"); } };
+import DialogShell from '../../components/common/DialogShell/DialogShell';
+import SavedConversationDetails from './SavedConversationDetails';
+import { conversationTitle } from '../../utils/interviewHistory';
 
 export default function CareerProfilePage() {
   useTranslation();
@@ -26,6 +25,7 @@ export default function CareerProfilePage() {
   const [facts, setFacts] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [nextOffset, setNextOffset] = useState(null);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [error, setError] = useMessageState('');
   const [status, setStatus] = useMessageState('');
   const [busy, setBusy] = useState(false);
@@ -37,6 +37,7 @@ export default function CareerProfilePage() {
   const profileViewButton = useRef(null);
   const confirmationTrigger = useRef(null);
   const confirmationHeading = useRef(null);
+  const sessionsHeading = useRef(null);
   const restoreAfterDeletion = useRef(false);
   useEffect(() => { if (confirmDelete) confirmationHeading.current?.focus(); }, [confirmDelete]);
   useEffect(() => {
@@ -45,9 +46,9 @@ export default function CareerProfilePage() {
     if (busy || confirmDelete || !restoreAfterDeletion.current) return;
     restoreAfterDeletion.current = false;
     const trigger = confirmationTrigger.current;
-    const target = trigger?.isConnected && !trigger.disabled ? trigger : profileViewButton.current;
+    const target = trigger?.isConnected && !trigger.disabled ? trigger : view === 'sessions' ? sessionsHeading.current : profileViewButton.current;
     target?.focus();
-  }, [busy, confirmDelete]);
+  }, [busy, confirmDelete, view]);
   function restoreDeletionFocus() {
     restoreAfterDeletion.current = true;
   }
@@ -60,12 +61,12 @@ export default function CareerProfilePage() {
       setNoteConflict(true); setError(messageRef("public:careerProfilePage.noteConflict")); return;
     }
     setProfile(p); setFacts(notes ? [...p.facts.filter((fact) => !isCareerNote(fact)), ...notes] : p.facts);
-    setSessions(s.items); setNextOffset(s.next_offset); setNoteConflict(false);
+    setSessions(s.items); setNextOffset(s.next_offset); setSessionsLoaded(true); setSessionPage(0); setNoteConflict(false);
   }, [facts, profile, noteConflict]);
   useEffect(() => {
     let active = true;
     Promise.all([interviewRequest('/career-profile'), interviewRequest('/ai/interviews')])
-      .then(([p, s]) => { if (active) { setProfile(p); setFacts(p.facts); setSessions(s.items); setNextOffset(s.next_offset); } })
+      .then(([p, s]) => { if (active) { setProfile(p); setFacts(p.facts); setSessions(s.items); setNextOffset(s.next_offset); setSessionsLoaded(true); } })
       .catch((err) => { if (active) setError(messageOf(err)); });
     return () => { active = false; };
   }, []);
@@ -117,6 +118,27 @@ export default function CareerProfilePage() {
   });
   const name = visibleFacts.find((f) => f.path === '/name')?.text;
   const title = visibleFacts.find((f) => f.path === '/title')?.text;
+  const deletingSession = sessions.find((session) => session.id === confirmDelete);
+  function closeSessionDeletion() {
+    if (lock.current) return;
+    setConfirmDelete(null); setError(''); restoreDeletionFocus();
+  }
+  async function deleteSession() {
+    const selected = deletingSession;
+    if (!selected) return;
+    await run(async () => {
+      await interviewRequest(`/ai/interviews/${selected.id}`, 'DELETE');
+      const remaining = sessions.filter((session) => session.id !== selected.id);
+      setSessions(remaining);
+      // Removing an item shifts the server's offset page. Keep the current
+      // visible page when possible, and do not skip the next older conversation.
+      setNextOffset((offset) => offset === null ? null : Math.max(0, offset - 1));
+      setSessionPage((page) => Math.min(page, Math.max(0, Math.ceil(remaining.length / 6) - 1)));
+      setConfirmDelete(null);
+      setStatus(messageRef('public:careerProfilePage.conversationDeleted', { title: conversationTitle(selected) }));
+      restoreDeletionFocus();
+    });
+  }
   return <SiteLayout workspace compact title={uiText("public:siteLayout.careerProfile")} intro={uiText("public:careerProfilePage.yourWholeCareerOrganisedAndReadyFor")} heroActions={hasSource && <Link className={site.primary} to="/app/interview">{uiText("public:careerProfilePage.createACvThroughAnInterview")}</Link>} heroAside={<><span className={site.eyebrow}>{uiText("public:careerProfilePage.yourExperienceYourVoice")}</span><strong className={site.noteTitle}>{name || uiText("public:careerProfilePage.startWithYourStory")}</strong><p>{title || uiText("public:careerProfilePage.rolesProjectsAndSkillsFormAShared")}</p></>}>
     <div className={`${classes.flow} ${layout.profile}`} aria-busy={busy}>
       <nav className={layout.views} aria-label={uiText("public:careerProfilePage.profileViews")}><button ref={profileViewButton} disabled={busy || editing} aria-current={view === 'profile' ? 'page' : undefined} onClick={() => setView('profile')}>{uiText("public:careerProfilePage.myInformation")}</button><button disabled={busy || editing} aria-current={view === 'sessions' ? 'page' : undefined} onClick={() => setView('sessions')}>{uiText("public:careerProfilePage.savedInterviews")} <span>{sessions.length}</span></button></nav>
@@ -143,17 +165,35 @@ export default function CareerProfilePage() {
         {hasSource && <button className={classes.primary} disabled={busy || editing || noteConflict || !dirty || facts.some((fact) => !fact.text.trim())} onClick={() => run(async () => { const p = await interviewRequest('/career-profile', 'PUT', { revision: profile.revision, facts }); setProfile(p); setFacts(p.facts); setStatus(messageRef("public:careerProfilePage.profileSaved")); })}>{uiText("public:careerProfilePage.saveProfile")}</button>}
         <details className={layout.management}><summary>{uiText('public:careerProfilePage.manageProfile')}</summary><button ref={deleteButton} className={classes.danger} disabled={busy || editing || (!facts.length && !binding)} onClick={(event) => { confirmationTrigger.current = event.currentTarget; setConfirmDelete('profile'); }}>{uiText("public:careerProfilePage.clearProfile")}</button></details>
       </div></div>}</> : !error && <p className={layout.loading}>{uiText("public:careerProfilePage.loadingProfile")}</p>)}
-      {confirmDelete && <section className={classes.question} aria-label={uiText("public:careerProfilePage.confirmDeletion")}><h2 ref={confirmationHeading} tabIndex={-1}>{confirmDelete === 'profile' ? uiText("public:careerProfilePage.deleteAllProfileInformation") : uiText("public:careerProfilePage.deleteSavedInterview")}</h2><p>{uiText("public:careerProfilePage.previouslySavedCvsWillRemainAvailable")} {confirmDelete === 'profile' ? uiText("public:careerProfilePage.newGenerationWillNotUseDeletedFacts") : uiText("public:careerProfilePage.informationSavedOnlyInThisInterviewWill")}</p><div className={classes.actions}><button className={classes.danger} disabled={busy} onClick={() => run(async () => {
+      {confirmDelete === 'profile' && <section className={classes.question} aria-label={uiText("public:careerProfilePage.confirmDeletion")}><h2 ref={confirmationHeading} tabIndex={-1}>{uiText("public:careerProfilePage.deleteAllProfileInformation")}</h2><p>{uiText("public:careerProfilePage.previouslySavedCvsWillRemainAvailable")} {uiText("public:careerProfilePage.newGenerationWillNotUseDeletedFacts")}</p><div className={classes.actions}><button className={classes.danger} disabled={busy} onClick={() => run(async () => {
         if (confirmDelete === 'profile') { const p = await interviewRequest(`/career-profile?revision=${profile.revision}`, 'DELETE'); setProfile({ ...p, sources: profile.sources }); setFacts([]); setNoteConflict(false); }
-        else { await interviewRequest(`/ai/interviews/${confirmDelete}`, 'DELETE'); setSessions((current) => current.filter((s) => s.id !== confirmDelete)); setSessionPage(0); }
         setConfirmDelete(null); setStatus(messageRef("public:careerProfilePage.dataDeleted")); restoreDeletionFocus();
       })}>{uiText("public:careerProfilePage.confirmDeletion2")}</button><button disabled={busy} onClick={() => { setConfirmDelete(null); restoreDeletionFocus(); }}>{uiText("ai:aiAssistant.cancel")}</button></div></section>}
-      {view === 'sessions' && <section className={layout.sessions}><h2>{uiText("public:careerProfilePage.savedInterviews")}</h2><p className={classes.hint}>{uiText("public:careerProfilePage.returnToAnInterviewOrOpenA")}</p>
-      {!sessions.length && <p>{uiText("public:careerProfilePage.youHaveNoSavedInterviewsYet")}</p>}
-      <ul className={classes.requirements}>{sessions.slice(sessionPage * 6, (sessionPage + 1) * 6).map((session) => <li key={session.id}><strong>{modes[session.mode]}</strong><p>{phases[session.phase]} · {new Date(session.updated_at).toLocaleDateString(getUiLocale())}</p><div className={classes.actions}><Link className={classes.link} to={`/app/interview/${session.id}`}>{uiText("public:careerProfilePage.resumeInterview")}</Link>{session.document_id && <Link className={classes.link} to={`/app/documents/${session.document_id}`}>{uiText("public:careerProfilePage.openCv")}</Link>}<button className={classes.danger} disabled={busy} onClick={(event) => { confirmationTrigger.current = event.currentTarget; setConfirmDelete(session.id); }}>{uiText("public:careerProfilePage.deleteInterview")}</button></div></li>)}</ul>
+      {view === 'sessions' && <section className={layout.sessions}><h2 ref={sessionsHeading} tabIndex={-1}>{uiText("public:careerProfilePage.savedInterviews")}</h2><p className={classes.hint}>{uiText("public:careerProfilePage.conversationHistoryHint")}</p>
+      {!sessionsLoaded && !error && <p role="status">{uiText('public:careerProfilePage.loadingConversations')}</p>}
+      {sessionsLoaded && !sessions.length && <p>{uiText("public:careerProfilePage.youHaveNoSavedInterviewsYet")}</p>}
+      <ul className={layout.sessionList}>{sessions.slice(sessionPage * 6, (sessionPage + 1) * 6).map((session) => <li key={session.id} aria-labelledby={`conversation-${session.id}`}>
+        <SavedConversationDetails session={session} titleId={`conversation-${session.id}`} />
+        <div className={`${classes.actions} ${layout.sessionActions}`}>
+          <Link className={classes.link} aria-describedby={`conversation-${session.id}`} to={`/app/interview/${session.id}`}>{uiText("public:careerProfilePage.resumeInterview")}</Link>
+          {session.document_id && <Link className={classes.link} aria-describedby={`conversation-${session.id}`} to={`/app/documents/${session.document_id}`}>{uiText("public:careerProfilePage.openCv")}</Link>}
+          <button className={classes.danger} aria-describedby={`conversation-${session.id}`} disabled={busy} onClick={(event) => { confirmationTrigger.current = event.currentTarget; setError(''); setConfirmDelete(session.id); }}>{uiText("public:careerProfilePage.deleteInterview")}</button>
+        </div>
+      </li>)}</ul>
       {sessions.length > 6 && <nav className={classes.actions} aria-label={uiText("public:careerProfilePage.interviewPages")}><button disabled={busy || sessionPage === 0} onClick={() => setSessionPage((n) => n - 1)}>{uiText("public:careerProfilePage.previousInterviews")}</button><span>{sessionPage + 1} / {Math.ceil(sessions.length / 6)}</span><button disabled={busy || (sessionPage + 1) * 6 >= sessions.length} onClick={() => setSessionPage((n) => n + 1)}>{uiText("public:careerProfilePage.nextInterviews")}</button></nav>}
       {nextOffset !== null && <button disabled={busy} onClick={() => run(async () => { const page = await interviewRequest(`/ai/interviews?offset=${nextOffset}`); setSessions((s) => [...s, ...page.items]); setNextOffset(page.next_offset); })}>{uiText("public:careerProfilePage.showOlderInterviews")}</button>}
       </section>}
+      <DialogShell open={Boolean(deletingSession)} onClose={closeSessionDeletion} title={uiText('public:careerProfilePage.deleteSavedInterview')} variant="decision" initialFocusSelector="[data-cancel-conversation]" bodyClassName={classes.flow} footer={<div className={`${classes.flow} ${layout.deleteControls}`}><div className={classes.actions}>
+        <button data-cancel-conversation disabled={busy} onClick={closeSessionDeletion}>{uiText('ai:aiAssistant.cancel')}</button>
+        <button className={classes.danger} disabled={busy} onClick={deleteSession}>{uiText('public:careerProfilePage.deleteConversationPermanently')}</button>
+      </div></div>}>
+        {deletingSession && <>
+          <SavedConversationDetails session={deletingSession} compact />
+          <p className={layout.deleteExplanation}>{uiText('public:careerProfilePage.deleteConversationWarning')}</p>
+          {error && <p className={classes.error} role="alert">{error}</p>}
+          <p role="status">{busy ? uiText('public:careerProfilePage.deletingConversation') : ''}</p>
+        </>}
+      </DialogShell>
     </div>
   </SiteLayout>;
 }

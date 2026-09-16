@@ -227,3 +227,10 @@
 @media print {
     .backdrop { display: none; }
 }
+
+/* Import covers the underlying workspace from the first frame, including
+   history, pending and error states; only the dialog keeps its entry motion. */
+.backdropOpaque {
+    background: var(--color-paper);
+    animation: none;
+}

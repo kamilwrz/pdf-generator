@@ -398,6 +398,7 @@ export default function AiCvPanel() {
     return (
         <DialogShell
             open={isAiPanel}
+            opaqueBackdrop
             onClose={handleClose}
             width={onStep2 ? 1400 : 960}
             bodyClassName={classes.dialogBody}

@@ -34,6 +34,7 @@ from app.services.interview_editorial import (
 )
 from app.services import interview_service as service
 from app.services.interview_credits import interview_credit_usage
+from app.services.interview_history import interview_summaries
 from app.services.interview_fit import initialise_fit, fit_preview
 from app.services.interview_templates import preview_templates, select_preview_template
 from app.services.interview_answer_help import generate_answer_help, confirmed_answer_assistance
@@ -228,8 +229,8 @@ def create_interview(request: InterviewCreate, http_request: Request,
 @router.get("/ai/interviews")
 def list_interviews(offset: int = Query(default=0, ge=0), user=Depends(get_current_user), db=Depends(get_db)):
     """List a bounded page of summaries without downloading complete histories."""
-    rows = db.query(InterviewSession).filter_by(owner_id=user.id).order_by(InterviewSession.updated_at.desc()).offset(offset).limit(51).all()
-    return {"items": [{"id": row.id, "mode": row.state["mode"], "phase": row.state["phase"], "updated_at": row.updated_at.isoformat(), "document_id": row.state.get("document_id")} for row in rows[:50]], "next_offset": offset + 50 if len(rows) > 50 else None}
+    rows = db.query(InterviewSession).filter_by(owner_id=user.id).order_by(InterviewSession.updated_at.desc(), InterviewSession.created_at.desc(), InterviewSession.id.desc()).offset(offset).limit(51).all()
+    return {"items": interview_summaries(db, user.id, rows[:50]), "next_offset": offset + 50 if len(rows) > 50 else None}
 
 
 @router.get("/ai/interviews/{session_id}")
