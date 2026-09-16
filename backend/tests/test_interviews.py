@@ -364,6 +364,46 @@ def test_definitive_provider_failure_preserves_work_and_allows_retry(environment
         assert provider.call_count == 1
 
 
+@pytest.mark.parametrize('include_profile', [False, True])
+def test_resumed_tailoring_exposes_source_conflict_and_recovers(environment, include_profile):
+    client, db, user, _ = environment
+    source = Pdf(owner_id=user.id, title='Source', cv_data={'name': 'Anna Nowak', 'title': 'Developer'}, template_id='linden', revision=1)
+    db.add(source); db.commit()
+    session = confirm(client, create(client, mode='tailor', source_document_id=source.id,
+                                    cv_data={}, job_description='Python developer', include_profile=include_profile))
+    row = db.get(InterviewSession, session['id'])
+    state = deepcopy(row.state)
+    state['answers'] = [{'question': {'id': 'saved', 'topic': 'projects'}, 'answer': 'Raport w Pythonie', 'status': 'answered'}]
+    service.update_session(db, row, row.revision, state)
+    unchanged = client.get(f"/ai/interviews/{session['id']}").json()
+    assert unchanged['source_changed'] is False
+    source.cv_data = {**source.cv_data, 'title': 'Senior Developer'}
+    source.revision = 2
+    db.commit()
+    with patch.object(service, '_gpt') as provider:
+        resumed = client.get(f"/ai/interviews/{session['id']}").json()
+        assert resumed['source_changed'] is True
+        assert resumed['revision'] == unchanged['revision']
+        assert resumed['answers'] == state['answers']
+        blocked = client.post(f"/ai/interviews/{session['id']}/next", json=version(resumed, 1))
+        assert blocked.status_code == 409
+        refreshed = client.post(f"/ai/interviews/{session['id']}/source", json=version(resumed, 1))
+        assert refreshed.status_code == 200, refreshed.text
+        provider.assert_not_called()
+    reviewed = confirm(client, refreshed.json(), 1)
+    current = client.get(f"/ai/interviews/{session['id']}").json()
+    assert current['source_changed'] is False
+    assert current['source_revision'] == 2
+    assert current['answers'] == state['answers']
+    with patch.object(service, '_gpt', side_effect=[
+        ({'requirements': [{'text': 'Python', 'status': 'unknown', 'evidence_refs': []}]}, {'cost_pln_estimate': .01}),
+        ({'questions': [], 'requirements': []}, {'cost_pln_estimate': .01}),
+    ]):
+        continued = client.post(f"/ai/interviews/{session['id']}/next", json=version(reviewed, 2))
+    assert continued.status_code == 200, continued.text
+    assert continued.json()['question'] is not None
+
+
 def test_source_refresh_preserves_answers_and_requires_review(environment):
     client, db, user, _ = environment
     source = Pdf(owner_id=user.id, title='Source', cv_data={'name': 'Anna Nowak', 'title': 'Developer'}, template_id='linden', revision=1)

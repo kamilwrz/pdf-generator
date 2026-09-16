@@ -1382,6 +1382,7 @@
     "interviewFlow.reviewYourCvInformation": "Sprawdź informacje do CV",
     "interviewFlow.letSClarifyTheDetails": "Doprecyzujmy szczegóły",
     "interviewFlow.jobSpecificInterview": "Wywiad pod ofertę",
+    "interviewFlow.savedSourceChanged": "Źródłowe CV zmieniło się od zapisania wywiadu. Wczytaj aktualne CV i sprawdź informacje, aby kontynuować. Zapisane odpowiedzi zostaną zachowane.",
     "interviewFlow.loadSavedState": "Wczytaj zapisany stan",
     "interviewFlow.prepareCv": "Przygotuj CV",
     "interviewFlow.aiInterviewsRequireProYouCanStill": "Wywiad AI wymaga Pro. Możesz nadal przeglądać i poprawiać zapisane informacje.",

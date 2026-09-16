@@ -51,6 +51,8 @@ beforeEach(() => {
     if (path.endsWith('/credits')) return { credits_charged: 0, requests: [] };
     if (method !== 'POST') return session;
     if (path.endsWith('/next')) session = { ...session, revision: session.revision + 1, phase: 'question', question };
+    if (path.endsWith('/source')) session = { ...session, revision: session.revision + 1,
+      source_changed: false, phase: 'intake', confirmed: false, question: null };
     if (path.endsWith('/answers')) {
       if (failAnswer) throw new Error('Nie udało się zapisać odpowiedzi.');
       session = { ...session, revision: session.revision + 1, phase: 'ready', question: null,
@@ -59,7 +61,7 @@ beforeEach(() => {
     if (path.endsWith('/confirm')) {
       if (failConfirm) throw new Error('Nie udało się zapisać informacji.');
       profile = { revision: profile.revision + 1, facts: body.facts };
-      session = { ...session, revision: session.revision + 1, confirmed: true, proposed_facts: [] };
+      session = { ...session, revision: session.revision + 1, phase: session.phase === 'intake' ? 'ready' : session.phase, confirmed: true, proposed_facts: [] };
       return { session, profile };
     }
     if (path.endsWith('/preview-templates')) return { revision: session.revision, candidates: [alternative] };
@@ -97,6 +99,36 @@ async function renderTemplateResult() {
 }
 
 describe('interview task navigation', () => {
+  it('recovers a resumed tailoring interview through source review without losing answers or calling AI', async () => {
+    const savedAnswers = [{ question, answer: 'Raport sprzedaży', status: 'answered' }];
+    session = { ...session, mode: 'tailor', source_changed: true, answers: savedAnswers };
+    renderInterview();
+    expect(await screen.findByText(/Źródłowe CV zmieniło się od zapisania wywiadu/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Następne pytanie' })).toBeDisabled();
+    const refreshSource = screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' });
+    refreshSource.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(writes()).toEqual(['source']));
+    expect(session.answers).toEqual(savedAnswers);
+    expect(screen.queryByText(/Źródłowe CV zmieniło się od zapisania wywiadu/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Rozmowa/ }));
+    await waitFor(() => expect(writes()).toEqual(['source', 'confirm']));
+    await userEvent.click(screen.getByRole('button', { name: 'Następne pytanie' }));
+    await waitFor(() => expect(writes()).toEqual(['source', 'confirm', 'next']));
+    expect(session.answers).toEqual(savedAnswers);
+    expect(await screen.findByText(question.text)).toBeVisible();
+  });
+
+  it('protects an unsaved answer from source refresh after resuming', async () => {
+    session = { ...session, source_changed: true, phase: 'question', question };
+    renderInterview();
+    const field = await screen.findByRole('textbox', { name: /Twoja odpowiedź/ });
+    await userEvent.type(field, 'Jeszcze nie zapisałam tej odpowiedzi');
+    expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toBeDisabled();
+    expect(field).toHaveValue('Jeszcze nie zapisałam tej odpowiedzi');
+    expect(writes()).toEqual([]);
+  });
+
   it('applies the selected alternative before saving with its new revision and measured geometry', async () => {
     const selector = await renderTemplateResult();
     await userEvent.selectOptions(selector, alternative.template_id);

@@ -1267,6 +1267,7 @@
     "interviewFlow.reviewYourCvInformation": "Review your CV information",
     "interviewFlow.letSClarifyTheDetails": "Let's clarify the details",
     "interviewFlow.jobSpecificInterview": "Job-specific interview",
+    "interviewFlow.savedSourceChanged": "The source CV has changed since the interview was saved. Load the current CV and review its information to continue. Your saved answers will be kept.",
     "interviewFlow.loadSavedState": "Load saved state",
     "interviewFlow.prepareCv": "Prepare CV",
     "interviewFlow.aiInterviewsRequireProYouCanStill": "AI interviews require Pro. You can still view and edit saved information.",

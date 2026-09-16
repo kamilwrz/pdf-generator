@@ -28,7 +28,7 @@ import classes from './Interview.module.css';
 
 const languageLabels = { get pl() { return uiText("ai:aiAssistant.polish"); }, get en() { return uiText("ai:aiAssistant.english"); }, get de() { return uiText("ai:aiAssistant.german"); }, get fr() { return uiText("ai:aiAssistant.french"); }, get es() { return uiText("ai:aiAssistant.spanish"); }, get uk() { return uiText("ai:aiAssistant.ukrainian"); }, get it() { return uiText("ai:aiAssistant.italian"); }, get nl() { return uiText("ai:aiAssistant.dutch"); } };
 
-export default function InterviewFlow({ sessionId, initialSource = null, currentSource = null, mode = 'create', onClose, sourceChanged = false, onSourceRefreshed, onCreditsChanged }) {
+export default function InterviewFlow({ sessionId, initialSource = null, currentSource = null, mode = 'create', onClose, sourceChanged: editorSourceChanged = false, onSourceRefreshed, onCreditsChanged }) {
   useTranslation();
   const navigate = useNavigate();
   const { entitlements, refresh, loading: balanceLoading, error: balanceError } = useEntitlements();
@@ -80,6 +80,9 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const correctionTrigger = useRef(null);
   const focusContext = useRef('');
   const canAi = entitlements?.ai_assistant === true;
+  // Standalone resumes use the server's saved-document revision check; embedded
+  // interviews also include unsaved editor changes. Neither refreshes silently.
+  const sourceChanged = editorSourceChanged || Boolean(session?.source_changed);
 
   const adopt = useCallback((next, currentProfile) => {
     currentProfile = interviewEvidence(currentProfile, next);
@@ -356,7 +359,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     {session && !legacy && <InterviewStages active={activePanel} onSelect={goTo}
       disabled={key => busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && (!session.preview || needsFactSave || fitPending)) || (session.phase === 'completed' && key !== 'preview')} />}
     {!canAi && entitlements && <p>{uiText("interview:interviewFlow.aiInterviewsRequireProYouCanStill")} <Link to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</Link></p>}
-    {sourceChanged && <p className={classes.error}>{uiText("interview:interviewFlow.theCvInTheEditorHasChanged")}</p>}
+    {sourceChanged && <p className={classes.error} role="status">{uiText(editorSourceChanged ? "interview:interviewFlow.theCvInTheEditorHasChanged" : "interview:interviewFlow.savedSourceChanged")}</p>}
     {session && !legacy && (sourceChanged || (reviewing && session.source_document_id)) && <button disabled={busy || factEditing || hasLocalFactChanges || session.phase === 'completed' || Boolean(answer.trim())} type="button" onClick={() => run(async () => { await operation('source', currentSource || {}); onSourceRefreshed?.(); setReviewOpen(true); })}>{uiText("interview:interviewFlow.loadCurrentCvIntoTheInterview")}</button>}
     {session && !legacy && reviewing && <div className={classes.actions}>
       {onClose ? <button type="button" disabled={busy || factEditing || hasLocalFactChanges} onClick={onClose}>{uiText("interview:interviewFlow.returnToSourceEditor")}</button>

@@ -44,6 +44,8 @@ async function workspaceApi(page, phase = 'preview') {
       }
       if (action === 'answers' && failAnswer) { await route.fulfill({ status: 503, json: { detail: 'Nie udało się zapisać odpowiedzi. Spróbuj ponownie.' } }); return; }
       if (action === 'next') session = { ...session, phase: 'question', question: { id: 'q1', text: 'Jak usprawniłaś raportowanie?', reason: 'Pokażemy Twój wkład w proces.' } };
+      if (action === 'source') session = { ...session, source_changed: false, phase: 'intake', confirmed: false };
+      if (action === 'confirm') session = { ...session, phase: 'ready', confirmed: true };
       if (action === 'answers') session = { ...session, phase: 'review', question: null, answers: [route.request().postDataJSON()] };
       if (action === 'preview') session = { ...session, phase: 'preview', preview };
       session = { ...session, revision: session.revision + 1 };
@@ -52,6 +54,8 @@ async function workspaceApi(page, phase = 'preview') {
   });
   return {
     calls,
+    changeSource() { session = { ...session, mode: 'tailor', source_document_id: 30, source_changed: true,
+      answers: [{ question: { id: 'previous', text: 'Poprzednie pytanie' }, answer: 'Zapisana odpowiedź', status: 'answered' }] }; },
     completeDiscovery() { session = { ...session, phase: 'review', question: null, discovery_complete: true, question_limit: 14, planned_question_count: 14 }; },
     hold(action) { let release; holds.set(action, new Promise((resolve) => { release = resolve; })); return () => { holds.delete(action); release(); }; },
     failAnswer() { failAnswer = true; },
@@ -59,6 +63,33 @@ async function workspaceApi(page, phase = 'preview') {
 }
 
 for (const width of [390, 834, 1280, 1920]) {
+  test(`resumed source conflict offers keyboard recovery at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const api = await workspaceApi(page, 'ready');
+    api.changeSource();
+    await page.goto(`/app/interview/${ID}`);
+    if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await expect(page.getByText(/Źródłowe CV zmieniło się od zapisania wywiadu/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Następne pytanie', exact: true })).toBeDisabled();
+    expect(api.calls).toEqual([]);
+    const refresh = page.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu', exact: true });
+    await refresh.focus();
+    await expect(refresh).toBeFocused();
+    expect(await refresh.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: `../tmp/interview-source-recovery-${width}.png`, fullPage: true });
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: 'Wróć do rozmowy', exact: true })).toBeVisible();
+    expect(api.calls).toEqual(['source']);
+    await page.getByRole('button', { name: 'Wróć do rozmowy', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Następne pytanie', exact: true })).toBeEnabled();
+    expect(api.calls).toEqual(['source', 'confirm']);
+    await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
+    await expect(page.getByText('Jak usprawniłaś raportowanie?', { exact: true })).toBeVisible();
+    expect(api.calls).toEqual(['source', 'confirm', 'next']);
+  });
+
   test(`completed discovery keeps preparation reachable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });

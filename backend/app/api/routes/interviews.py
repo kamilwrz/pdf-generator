@@ -245,7 +245,13 @@ def get_interview(session_id: str, user=Depends(get_current_user), db=Depends(ge
     if state != row.state:
         service.update_session(db, row, row.revision, state)
         row = service.owned_session(db, user.id, session_id)
-    return service.session_payload(row)
+    # A resumed standalone interview has no live editor to report source edits.
+    # Expose the same revision mismatch that blocks paid operations so the UI
+    # can offer explicit source refresh before the user requests another question.
+    source_id = row.state.get("source_document_id")
+    source = db.query(Pdf).filter_by(id=source_id, owner_id=user.id).first() if source_id else None
+    source_changed = bool(source_id and (not source or source.revision != row.state.get("source_revision")))
+    return {**service.session_payload(row), "source_changed": source_changed}
 
 
 @router.delete("/ai/interviews/{session_id}")

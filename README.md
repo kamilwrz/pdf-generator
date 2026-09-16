@@ -1,5 +1,17 @@
 # English
 
+## Resuming an interview after the source CV changes
+
+A saved interview now checks its source document when reopened. Previously, the next-question request could fail with a source-revision conflict while the recovery button only reloaded the interview, leaving the user in the same blocked state.
+
+1. Reopen the interview. The authenticated `GET /ai/interviews/{session_id}` returns the existing session payload plus `source_changed: true` when its owned source document is missing or its saved revision differs; otherwise it returns `false`. This read does not refresh the source or call AI. Ownership checks and the existing 404 response remain unchanged.
+2. For an edited source, choose **Load current CV into the interview** and review the refreshed information. The existing `POST /ai/interviews/{session_id}/source` preserves saved answers and notes and invalidates the old preview and tailoring analysis. Open answer/fact drafts still block source replacement; a deleted source or changed candidate retains the existing rejection and requires a new interview.
+3. Return to the conversation, confirming the reviewed information, then explicitly request the next question. Reloading and source refresh do not call AI; the next question and any required offer reanalysis use normal credits. If the CV changes after the page loads, use **Load saved state** after the conflict to reveal source recovery.
+
+The shared `InterviewFlow` combines the server flag with unsaved editor changes, so standalone and embedded interviews use the same recovery controls and disabled states. The translated status uses the existing error styling and keyboard-operable button; it never enters the CV or PDF. [WAI status messages](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) explains the non-interrupting announcement.
+
+Implementation: `backend/app/api/routes/interviews.py`, lines 233–255 (`get_interview`), and `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 83–85 and 362–363 (`InterviewFlow`). Regression tests: `backend/tests/test_interviews.py`, lines 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` covers recovery and draft retention; `frontend/e2e/interview-workspace.spec.js` covers keyboard recovery at 390, 834, 1280 and 1920px, 200% text scaling and reduced motion. Tests use synthetic records and mocked AI. Deploy backend and frontend together through the existing pipeline; no migration, dependency or configuration change is needed.
+
 ## Language of a CV created through the interview
 
 When starting an interview from the editor assistant, the initial **New CV language** uses a manually selected CV language for the current document when available; otherwise it uses the current interface language, matching the standalone interview. Automatic language detection during an earlier analysis does not override this default. A manual choice survives template changes within the same document but does not carry over to another document. An English interface therefore starts a new interview in English when no document language has been selected. The language selector remains editable before starting, and its submitted value controls the new CV independently of the source CV or answer language. This also applies to the job-tailoring entry point.
@@ -3729,6 +3741,18 @@ Notable product facts:
 ---
 
 # Polski
+
+## Wznawianie wywiadu po zmianie źródłowego CV
+
+Zapisany wywiad sprawdza teraz dokument źródłowy podczas ponownego otwarcia. Wcześniej żądanie następnego pytania mogło kończyć się konfliktem wersji źródła, a przycisk odzyskiwania wczytywał tylko wywiad, pozostawiając użytkownika w tej samej blokadzie.
+
+1. Otwórz ponownie wywiad. Uwierzytelniony `GET /ai/interviews/{session_id}` zwraca dotychczasowe dane sesji oraz `source_changed: true`, gdy należący do użytkownika dokument źródłowy nie istnieje albo jego zapisana wersja jest inna; w przeciwnym razie zwraca `false`. Odczyt nie odświeża źródła ani nie wywołuje AI. Kontrola właściciela i dotychczasowa odpowiedź 404 pozostają bez zmian.
+2. Po edycji źródła wybierz **Wczytaj aktualne CV do wywiadu** i sprawdź odświeżone informacje. Istniejący `POST /ai/interviews/{session_id}/source` zachowuje zapisane odpowiedzi i notatki oraz unieważnia stary podgląd i analizę dopasowania. Otwarte szkice odpowiedzi/informacji nadal blokują zastąpienie źródła; usunięte źródło lub zmiana osoby zachowują dotychczasową odmowę i wymagają nowego wywiadu.
+3. Wróć do rozmowy, zatwierdzając sprawdzone informacje, a następnie jawnie poproś o kolejne pytanie. Ponowne wczytanie i odświeżenie źródła nie wywołują AI; następne pytanie i ewentualna ponowna analiza oferty korzystają ze zwykłych kredytów. Jeśli CV zmieni się już po otwarciu strony, po konflikcie użyj **Wczytaj zapisany stan**, aby wyświetlić odzyskiwanie źródła.
+
+Wspólny `InterviewFlow` łączy flagę serwera z niezapisanymi zmianami edytora, więc wywiad samodzielny i osadzony mają te same kontrolki odzyskiwania oraz stany zablokowania. Przetłumaczony komunikat używa istniejącego stylu błędu i przycisku obsługiwanego klawiaturą; nie trafia do CV ani PDF. [Komunikaty stanu WAI](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) wyjaśniają ogłaszanie stanu bez przerywania pracy.
+
+Implementacja: `backend/app/api/routes/interviews.py`, linie 233–255 (`get_interview`), oraz `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 83–85 i 362–363 (`InterviewFlow`). Testy regresji: `backend/tests/test_interviews.py`, linie 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` sprawdza odzyskiwanie i zachowanie szkiców; `frontend/e2e/interview-workspace.spec.js` sprawdza odzyskiwanie klawiaturą przy 390, 834, 1280 i 1920px, powiększeniu tekstu 200% i ograniczonym ruchu. Testy używają danych syntetycznych i symulowanego AI. Wdróż backend i frontend razem istniejącym procesem; nie potrzeba migracji, zależności ani zmiany konfiguracji.
 
 ## Język CV tworzonego przez wywiad
 
