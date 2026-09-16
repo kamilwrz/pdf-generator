@@ -362,6 +362,23 @@ class InterviewSession(Base):
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
+class TailoringFlow(Base):
+    """Owned intake draft joining import, checkout and one existing interview.
+
+    Source and interview IDs live in bounded state rather than cascade relations:
+    deleting an original must not delete an independently generated document.
+    Every dereference is checked against the authenticated owner.
+    """
+
+    __tablename__ = "tailoring_flows"
+    id = Column(String(36), primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    revision = Column(Integer, nullable=False, default=1)
+    state = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 class BioCvDraft(Base):
     """One resumable, private CV-profile draft per user."""
 

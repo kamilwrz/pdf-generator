@@ -133,6 +133,7 @@ export default function Hero() {
                     </div>
                     <p className={classes.accountNote}>{uiText("public:hero.startWithoutAnAccountFreeRegistrationIs")}</p>
                     <a className={classes.interviewJump} href="#wywiad">{uiText("public:hero.interviewJump")} <ArrowIcon /></a>
+                    <Link className={classes.interviewJump} to="/app/tailor">{uiText('tailoring:title')} <ArrowIcon /></Link>
                     <ul className={classes.heroTrust} aria-label={uiText("public:hero.startWith")}>
                         <li>{uiText("public:hero.freeEditor")}</li>
                         <li>{uiText("public:hero.pdfWithoutAWatermark")}</li>

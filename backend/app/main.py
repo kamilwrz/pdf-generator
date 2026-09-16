@@ -27,7 +27,7 @@ from fastapi.exceptions import RequestValidationError
 from app.core.localisation import LocalisedMessage, UiLanguageMiddleware, resolve_language, ui_language
 
 from app.api.routes import account, auth, pdf, images, ai, events, billing, templates
-from app.api.routes import ai_assistant, interviews
+from app.api.routes import ai_assistant, interviews, tailoring
 from app.core.config import (
     IMAGES_UPLOAD_DIR,
     PDF_UPLOAD_DIR,
@@ -404,6 +404,7 @@ app.include_router(billing.router)
 app.include_router(templates.router)
 app.include_router(account.router)
 app.include_router(interviews.router)
+app.include_router(tailoring.router)
 
 if DIST_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="frontend_assets")

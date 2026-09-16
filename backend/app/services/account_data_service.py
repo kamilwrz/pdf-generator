@@ -20,6 +20,7 @@ from app.models.models import (
     BioCvDraft,
     CareerProfile,
     InterviewSession,
+    TailoringFlow,
     CvImportSnapshot,
     EmailVerificationToken,
     Image,
@@ -199,6 +200,10 @@ def build_account_export(db: Session, *, user: User) -> dict:
             _fields(row, ("revision", "facts", "source_binding", "updated_at"))
             for row in db.query(CareerProfile).filter_by(owner_id=user_id).all()
         ],
+        "tailoring_flows": [
+            _fields(row, ("id", "revision", "state", "created_at", "updated_at"))
+            for row in db.query(TailoringFlow).filter_by(owner_id=user_id).all()
+        ],
         "interviews": [
             _fields(row, ("id", "revision", "state", "created_at", "updated_at"))
             for row in db.query(InterviewSession).filter_by(owner_id=user_id).all()
@@ -261,6 +266,7 @@ def delete_account_data(db: Session, *, user_id: int) -> None:
     # removed only after all owned documents have been deleted.
     db.query(BioCvDraft).filter(BioCvDraft.owner_id == user.id).delete(synchronize_session=False)
     db.query(InterviewSession).filter_by(owner_id=user.id).delete(synchronize_session=False)
+    db.query(TailoringFlow).filter_by(owner_id=user.id).delete(synchronize_session=False)
     db.query(CareerProfile).filter_by(owner_id=user.id).delete(synchronize_session=False)
     db.query(CvImportSnapshot).filter(CvImportSnapshot.owner_id == user.id).delete(
         synchronize_session=False

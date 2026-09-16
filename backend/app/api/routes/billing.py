@@ -7,6 +7,8 @@ import secrets
 import hashlib
 import hmac
 import logging
+from uuid import UUID
+from urllib.parse import urlencode
 
 from datetime import datetime, timezone
 
@@ -26,7 +28,7 @@ from app.core.config import (
 )
 from app.core.security import resolve_user_from_payload, verify_token
 from app.dependencies import get_db
-from app.models.models import Payment, User
+from app.models.models import Payment, User, TailoringFlow
 from app.services.billing_service import fulfill_pro_payment
 from app.services.stripe_service import construct_webhook_event, create_checkout_session
 from app.services.entitlements import (
@@ -46,6 +48,7 @@ class SelectPlanRequest(BaseModel):
     """Requested plan slug: free | pro (legacy standard/premium remap to pro)."""
 
     plan_slug: str
+    tailoring_flow_id: UUID | None = None
 
 
 @router.get("/plans")
@@ -78,6 +81,13 @@ async def select_plan(
     plan_slug = normalize_plan_slug(request.plan_slug)
     if plan_slug not in SELECTABLE_PLANS:
         raise HTTPException(status_code=400, detail=localised_message('unknown_plan'))
+    return_query = ""
+    if request.tailoring_flow_id:
+        flow = db.query(TailoringFlow).filter_by(id=str(request.tailoring_flow_id), owner_id=user.id).first()
+        if flow is None:
+            raise HTTPException(404, detail=localised_message('tailoring_not_found'))
+        # The caller supplies an owned ID, never an arbitrary redirect URL.
+        return_query = urlencode({"returnTo": f"/app/tailor/{flow.id}"})
     if plan_slug != "free" and not ALLOW_UNPAID_PLAN_SELECTION:
         if not STRIPE_SECRET_KEY or not STRIPE_PRICE_PRO:
             raise HTTPException(
@@ -98,8 +108,8 @@ async def select_plan(
             user_id=user.id,
             email=user.email,
             price_id=STRIPE_PRICE_PRO,
-            success_url=f"{FRONTEND_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{FRONTEND_URL}/billing/cancel",
+            success_url=f"{FRONTEND_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}" + (f"&{return_query}" if return_query else ""),
+            cancel_url=f"{FRONTEND_URL}/billing/cancel" + (f"?{return_query}" if return_query else ""),
             idempotency_key=f"pro-{user.id}-{idempotency_key}",
         )
         session_id = str(getattr(checkout, "id", "") or checkout.get("id"))

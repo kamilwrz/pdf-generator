@@ -29,7 +29,7 @@ import classes from './Interview.module.css';
 
 const languageLabels = { get pl() { return uiText("ai:aiAssistant.polish"); }, get en() { return uiText("ai:aiAssistant.english"); }, get de() { return uiText("ai:aiAssistant.german"); }, get fr() { return uiText("ai:aiAssistant.french"); }, get es() { return uiText("ai:aiAssistant.spanish"); }, get uk() { return uiText("ai:aiAssistant.ukrainian"); }, get it() { return uiText("ai:aiAssistant.italian"); }, get nl() { return uiText("ai:aiAssistant.dutch"); } };
 
-export default function InterviewFlow({ sessionId, initialSource = null, currentSource = null, mode = 'create', onClose, sourceChanged: editorSourceChanged = false, onSourceRefreshed, onCreditsChanged }) {
+export default function InterviewFlow({ sessionId, initialSource = null, currentSource = null, mode = 'create', onClose, sourceChanged: editorSourceChanged = false, onSourceRefreshed, onCreditsChanged, guided = false, onGuidedStage, onDocumentSaved }) {
   useTranslation();
   const navigate = useNavigate();
   const { entitlements, refresh, loading: balanceLoading, error: balanceError } = useEntitlements();
@@ -227,7 +227,11 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       }
     }
     if (!alive.current) return;
-    if (result.document_id && action === 'document') { navigate(`/app/documents/${result.document_id}`); return; }
+    if (result.document_id && action === 'document') {
+      if (onDocumentSaved) onDocumentSaved(result.document_id);
+      else navigate(`/app/documents/${result.document_id}`);
+      return;
+    }
     if (!result.profile) setPendingOperation('sync');
     const next = result.session || result;
     const currentProfile = result.profile || (next.evidence_scope !== 'profile' ? interviewEvidence(null, next) : await interviewRequest('/career-profile'));
@@ -328,6 +332,11 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     ? TEMPLATES.find(item => item.id === templateChoice?.candidate.template_id) : null;
   const activePanel = reviewing ? 'facts' : session?.phase === 'clarification' ? 'conversation' : fitPending && panel === 'preview' ? 'prepare' : panel;
   const waiting = busy || initialLoading;
+  // The guided host owns its single progress rail; ordinary interview hosts
+  // retain their four-stage navigation and existing review safeguards.
+  useEffect(() => {
+    onGuidedStage?.(activePanel === 'preview' ? 'review' : 'questions');
+  }, [activePanel, onGuidedStage]);
   const inlineWaiting = busy && !initialLoading && ['answers', 'next', 'confirm', 'sync', 'preview-review', 'preview-template', 'answer-help'].includes(pendingOperation);
   // Clarifications have their own bounded queue; discovery answers must not
   // make the first clarification appear as question nine of a new interview.
@@ -350,14 +359,14 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const canExtend = !session?.discovery_complete && session?.question_limit < 50
     && (session?.phase === 'review' || session?.phase === 'preview');
   return <section className={`${classes.flow} ${classes.interview}`} aria-label={uiText("interview:interviewFlow.careerInterview")}>
-    <div className={classes.utility}><Link aria-disabled={waiting} onClick={(event) => { if (waiting) event.preventDefault(); }} className={classes.link} to="/app/career-profile">{uiText("ai:task.profileHistory")}</Link><Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer" aria-label={uiText("interview:interviewFlow.interviewHelpNewTab")}>{uiText("ai:task.help")}</Link>{onClose && <button type="button" disabled={waiting} onClick={onClose}>{uiText("interview:interviewFlow.backToAssistant")}</button>}</div>
+    <div className={classes.utility}>{!guided && <Link aria-disabled={waiting} onClick={(event) => { if (waiting) event.preventDefault(); }} className={classes.link} to="/app/career-profile">{uiText("ai:task.profileHistory")}</Link>}<Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer" aria-label={uiText("interview:interviewFlow.interviewHelpNewTab")}>{uiText("ai:task.help")}</Link>{onClose && <button type="button" disabled={waiting} onClick={onClose}>{uiText("interview:interviewFlow.backToAssistant")}</button>}</div>
     <h2 ref={heading} tabIndex={-1} className={classes.taskTitle}>{activePanel === 'prepare' ? uiText("interview:interviewFlow.prepareYourVersionOfTheCv") : reviewing ? uiText("interview:interviewFlow.reviewYourCvInformation") : session?.phase === 'clarification' ? uiText("interview:interviewFlow.letSClarifyTheDetails") : session?.phase === 'preview' ? uiText("interview:interviewFlow.yourNewCvVersion") : mode === 'tailor' || session?.mode === 'tailor' ? uiText("interview:interviewFlow.jobSpecificInterview") : uiText("interview:interviewFlow.careerInterview")}</h2>
     {error && <div className={classes.error} role="alert"><p>{error}</p><button disabled={busy} type="button" onClick={() => run(load)}>{uiText("interview:interviewFlow.loadSavedState")}</button></div>}
     <p role="status" aria-live="polite">{!waiting ? notice : ''}</p>
     {session && <InterviewCredits showBalance={!onClose} sessionId={session.id} revision={session.revision} busy={waiting} entitlements={entitlements} balanceLoading={balanceLoading} balanceError={balanceError} onRefreshBalance={() => { refresh(); onCreditsChanged?.(); }} />}
     {waiting && <InterviewLoading compact={inlineWaiting} operation={initialLoading ? 'load' : pendingOperation} facts={session || !isolated ? profile?.facts.length : undefined} answers={session?.answers.length} language={languageLabels[session?.language || language]} template={TEMPLATES.find((item) => item.id === template)?.name} />}
     <div hidden={waiting && !inlineWaiting} aria-busy={waiting}>
-    {session && !legacy && <InterviewStages active={activePanel} onSelect={goTo}
+    {session && !legacy && !guided && <InterviewStages active={activePanel} onSelect={goTo}
       disabled={key => busy || factEditing || (Boolean(session.question) && key !== 'conversation') || (session.phase === 'clarification' && key !== 'conversation') || (key === 'preview' && (!session.preview || needsFactSave || fitPending)) || (session.phase === 'completed' && key !== 'preview')} />}
     {!canAi && entitlements && <p>{uiText("interview:interviewFlow.aiInterviewsRequireProYouCanStill")} <Link to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</Link></p>}
     {sourceChanged && <p className={classes.error} role="status">{uiText(editorSourceChanged ? "interview:interviewFlow.theCvInTheEditorHasChanged" : "interview:interviewFlow.savedSourceChanged")}</p>}
@@ -498,6 +507,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         </>}
         {activePanel === 'prepare' && session.phase !== 'completed' && session.phase !== 'clarification' && <fieldset disabled={busy} className={classes.preparation}>
           <legend>{uiText("interview:interviewFlow.prepareCv")}</legend>
+          {guided && <button type="button" disabled={busy || factEditing} onClick={() => goTo('conversation')}>{uiText("interview:interviewFlow.backToInterview")}</button>}
           <p className={classes.hint}>{uiText('interview:interviewFlow.preparationSummary')}</p>
           <details><summary>{uiText('interview:interviewFlow.preparationDetails')}</summary>
             <p className={classes.hint}>{uiText("interview:interviewFlow.aiWillDraftTheContentEditIts")}</p>
@@ -505,7 +515,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
           </details>
           {fitPending && <p role="status">{uiText('interview:fit.pending')}</p>}
           {hasPending && <p>{uiText("interview:interviewFlow.confirmOrRemoveNewInformationBeforeGenerating")}</p>}
-          <label>{uiText("interview:interviewFlow.newCvTemplate")}<select value={template} onChange={(e) => setTemplate(e.target.value)} disabled={session.mode === 'tailor' && Boolean(session.template_id)}><option value="">{uiText("interview:interviewFlow.chooseATemplate")}</option>{TEMPLATES.filter((t) => isTemplateAllowed(t, entitlements)).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+          {!guided && <label>{uiText("interview:interviewFlow.newCvTemplate")}<select value={template} onChange={(e) => setTemplate(e.target.value)} disabled={session.mode === 'tailor' && Boolean(session.template_id)}><option value="">{uiText("interview:interviewFlow.chooseATemplate")}</option>{TEMPLATES.filter((t) => isTemplateAllowed(t, entitlements)).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>}
           {(session.mode !== 'tailor' || !session.template_id) && <details><summary>{uiText("interview:interviewFlow.browseTemplates")}</summary><TemplateCarousel templates={TEMPLATES} entitlements={entitlements} selectedId={template} visibleCount={1} fillingId={busy ? template : null} onSelect={(selected) => setTemplate(selected.id)} actionLabel={uiText("interview:interviewFlow.chooseATemplate")} /></details>}
           <p className={classes.hint}>{uiText("interview:interviewFlow.contentWillBeLaidOutAgainIn")}</p>
           <button className={classes.primary} disabled={!canAi || !template || hasPending || sourceChanged} onClick={() => run(() => operation('preview', { template_id: template }))}>{fitPending ? uiText('interview:fit.resume') : session.preview ? uiText("interview:interviewFlow.refreshPreview") : uiText("interview:interviewFlow.prepareCvFromConfirmedInformation")}</button>
@@ -537,7 +547,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
           <div className={classes.actions}>
             <button className={classes.primary} aria-describedby={[
               templateCheckPending && `template-check-${session.id}`, selectedAlternative && `template-choice-${session.id}`,
-            ].filter(Boolean).join(' ') || undefined} disabled={busy || factEditing || hasPending || sourceChanged || templateCheckPending || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(saveDocument, 'document')}>{uiText("interview:interviewFlow.saveAsANewCv")}</button>
+            ].filter(Boolean).join(' ') || undefined} disabled={busy || factEditing || hasPending || sourceChanged || templateCheckPending || session.preview.profile_revision !== profile.revision || session.phase === 'completed'} onClick={() => run(saveDocument, 'document')}>{uiText(guided ? 'tailoring:saveResult' : "interview:interviewFlow.saveAsANewCv")}</button>
             {session.phase !== 'completed' && <button type="button" disabled={busy || factEditing} onClick={() => goTo('prepare')}>{uiText("interview:interviewFlow.changeTemplateOrRefresh")}</button>}
           </div></div>
         </>}

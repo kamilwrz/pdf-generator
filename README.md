@@ -1,5 +1,32 @@
 # English
 
+## Guided CV tailoring to a job advert
+
+The implemented `/app/tailor` route guides a signed-in user through **Your CV → Job advert → Questions → Review CV → Download**. It is linked from the homepage, workspace navigation and document library. Manual creation remains available. Guests see the price and account entry before uploading personal information.
+
+1. Upload a PDF (up to 10 MB, within the existing import allowance), or select an owned CV/successful import. Review the extracted information.
+2. Paste the required job description or select the link option. The selected option alone becomes interview input; both drafts survive switching. Choose Polish or English for the result.
+3. Free users can save intake before buying Pro (PLN 59 for 30 days, no automatic renewal). Start is checked on the server. Continuing confirms the displayed source and creates an isolated interview with the Linden template; it does not include the account career profile. The explicit next-question action starts the existing paid analysis/question pipeline. Import extraction retains its separate existing allowance.
+4. Answer questions, prepare and review the CV through the shared interview component. Generation, verification and any shortening retain the existing credit accounting and factual-review boundaries. Saving answers and reopening the task do not spend AI credits.
+5. Save a separate document and download its PDF directly. Opening the editor is optional. A browser download handoff is reported without claiming that the file was saved successfully on the device.
+
+`Workspace` serializes autosaves with revision checks and guards unsaved navigation. The backend owns source checks, the interview ID and the resulting document ID. An uncertain start is recovered with a read; retries reuse the same interview. Checkout success/cancellation retains an allow-listed owned task URL. Stripe's webhook remains responsible for Pro activation.
+
+Implementation and verified source ranges:
+
+- `frontend/src/pages/Site/TailoringPage.jsx`, lines 23–253 (`TailoringPage`, `FlowList`, `Workspace`); styles: `TailoringPage.module.css`, lines 1–29.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 32–559 (`InterviewFlow`): optional guided stage/document callbacks; ordinary interviews retain their navigation.
+- `frontend/src/pages/Billing/CheckoutResult.jsx`, lines 14–57 (`CheckoutResult`), and `frontend/src/utils/siteRoutes.js`, lines 23–33 (`safeReturnTo`): safe return to the saved task.
+- `backend/app/api/routes/tailoring.py`, lines 23–209: intake contracts, owned reads, revision-based writes, start and draft deletion.
+- `backend/app/api/routes/billing.py`, lines 47–146 (`SelectPlanRequest`, `select_plan`): optional owned `tailoring_flow_id`.
+- `backend/app/models/models.py`, lines 365–379 (`TailoringFlow`); migration `backend/alembic/versions/20260916_0019_tailoring_flows.py`, lines 1–31.
+- `backend/app/services/account_data_service.py`, lines 51–315 (`build_account_export`, `delete_account_data`): drafts participate in account export and erasure.
+- Tests: `backend/tests/test_tailoring.py`, lines 1–125; `frontend/e2e/tailoring.spec.js` (full responsive flow, failed autosave/download, Free checkout and return states).
+
+See [the complete English and Polish implementation guide](docs/GUIDED_TAILORING.md) for the table schema, all new API contracts, data flow, deployment, rollback and focused test commands. No dependencies or environment variables were added. Apply Alembic revision `20260916_0019` before serving the new frontend; the existing database bootstrap also applies migrations. The UI uses shared Swiss tokens, labelled native controls, step focus, an `aria-current` progress list and wrapping compact layouts. The route and controls stay outside document/PDF rendering.
+
+Browser coverage uses synthetic APIs and PDF bytes; it does not validate live AI output, real Stripe payments or exported PDF typography. No conversion-rate improvement is established by these implementation tests.
+
 ## Job-title edit entry preserves the masthead
 
 Clicking an empty job-position field, typing a short title and clearing it preserves the authored name, contact, frame and body positions in Vellum, Aurelia and Cadenza. `reflowTextareaHeight` handles masthead fields before the generic body-record packer: fields without an `identityLayout` descriptor update only their own height and retain at least one editable line. The existing name fitter still owns name wrapping, and descriptor-driven headers retain their dedicated layout. This prevents a title measurement from incorrectly treating the preceding name as a body-record sibling. It does not repair coordinates already damaged and saved by an earlier version.
@@ -21,7 +48,7 @@ At /app/career-profile, choose a saved CV or import, read its populated sections
 
 In standalone and embedded interview setup, the current document language is visible in **CV language · Change**. Expand it to change the language; closing it retains the choice. Source selection, same-person consent and credit guidance stay visible. While a question or clarification is open, the duplicate information-review action is omitted; finish the answer before reviewing information through the existing stages. These navigation changes do not call AI, modify evidence scope or enter CV/PDF output.
 
-Implementation (full component ranges): `frontend/src/components/ai/Interview/FactEditor.jsx`, 1–142; `frontend/src/pages/Site/CareerProfilePage.jsx`, 1–159; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–549. Regression coverage: FactEditor.runtime.test.jsx tests empty sections, keyboard focus and cancelling a note; AiAssistantInterview.runtime.test.jsx and e2e/interviews.spec.js test retained language choices; e2e/career-profile.spec.js tests source errors, note persistence and deletion focus. Run the existing frontend runtime tests, these Playwright suites, lint and build. Browser coverage uses synthetic API fixtures at 390, 834, 1280 and 1920px, with reduced motion and 200% text scaling. No API, database, dependency, environment or deployment changes are required. Reduced cognitive load is a design intention, not a measured user-study result. [WAI disclosure guidance](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/) explains keyboard access to optional content.
+Implementation (full component ranges): `frontend/src/components/ai/Interview/FactEditor.jsx`, 1–142; `frontend/src/pages/Site/CareerProfilePage.jsx`, 1–159; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–559. Regression coverage: FactEditor.runtime.test.jsx tests empty sections, keyboard focus and cancelling a note; AiAssistantInterview.runtime.test.jsx and e2e/interviews.spec.js test retained language choices; e2e/career-profile.spec.js tests source errors, note persistence and deletion focus. Run the existing frontend runtime tests, these Playwright suites, lint and build. Browser coverage uses synthetic API fixtures at 390, 834, 1280 and 1920px, with reduced motion and 200% text scaling. No API, database, dependency, environment or deployment changes are required. Reduced cognitive load is a design intention, not a measured user-study result. [WAI disclosure guidance](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/) explains keyboard access to optional content.
 
 ## Readability gate for interview-generated CVs
 
@@ -56,7 +83,7 @@ A saved interview now checks its source document when reopened. Previously, the 
 
 The shared `InterviewFlow` combines the server flag with unsaved editor changes, so standalone and embedded interviews use the same recovery controls and disabled states. The translated status uses the existing error styling and keyboard-operable button; it never enters the CV or PDF. [WAI status messages](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) explains the non-interrupting announcement.
 
-Implementation: `backend/app/api/routes/interviews.py`, lines 233–255 (`get_interview`), and `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 83–85 and 362–363 (`InterviewFlow`). Regression tests: `backend/tests/test_interviews.py`, lines 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` covers recovery and draft retention; `frontend/e2e/interview-workspace.spec.js` covers keyboard recovery at 390, 834, 1280 and 1920px, 200% text scaling and reduced motion. Tests use synthetic records and mocked AI. Deploy backend and frontend together through the existing pipeline; no migration, dependency or configuration change is needed.
+Implementation: `backend/app/api/routes/interviews.py`, lines 233–255 (`get_interview`), and `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 83–85 and 371–372 (`InterviewFlow`). Regression tests: `backend/tests/test_interviews.py`, lines 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` covers recovery and draft retention; `frontend/e2e/interview-workspace.spec.js` covers keyboard recovery at 390, 834, 1280 and 1920px, 200% text scaling and reduced motion. Tests use synthetic records and mocked AI. Deploy backend and frontend together through the existing pipeline; no migration, dependency or configuration change is needed.
 
 ## Language of a CV created through the interview
 
@@ -107,7 +134,7 @@ The native disclosure supports keyboard activation and visible focus. Labels and
 
 The affected states include intake with and without optional notes, source review and unsaved changes, ordinary and assisted answers, round completion, factual clarification, preparation, result, pending operations, errors/retries and saved responses. Components reuse `DESIGN.md` tokens, native disclosures and the existing desktop stage buttons/compact selector. Focus, 44px targets, disabled actions, 200% reflow and reduced motion apply to both hosts. All controls stay outside the document and PDF tree.
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–549, function `InterviewFlow`, coordinates drafts, explicit operations and stage transitions; `goTo` persists changed information before leaving and retains it on failure.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–559, function `InterviewFlow`, coordinates drafts, explicit operations and stage transitions; `goTo` persists changed information before leaving and retains it on failure.
 - `frontend/src/components/ai/Interview/Interview.module.css` owns the interview working layout. `InterviewCredits.jsx`, lines 13–70, and the adjacent `InterviewCredits.module.css` own the shared receipt; the CSS Module is the only new production file.
 - `frontend/src/i18n/locales/pl.json` and `en.json` are the source dictionaries. Generated workspace dictionaries come from `scripts/generate-locale-bundles.mjs`; edit source dictionaries only.
 - `InterviewFlowNavigation.runtime.test.jsx`, lines 1–299, covers primary actions, explicit paid boundaries and draft protection. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` and `InterviewLoading.runtime.test.jsx` cover confirmation, billing and operation feedback. `frontend/e2e/interview-simple-flow.spec.js`, lines 1–166, covers keyboard clarification, retained drafts and PL/EN at 390, 834, 1280 and 1920px, including enlarged text.
@@ -122,7 +149,7 @@ The final layout can be saved even when the browser receives a network error. Du
 
 If initial generation fails, `InterviewFlow.operation` refreshes saved session state so an existing pending fit can be resumed explicitly with the current revision. If that read also fails, the original generation/fitting error remains visible. This performs no automatic paid retry. The shared HTTP client marks opaque transport failures with `code: network_error` in both JSON and download requests, so recovery works independently of translated wording. Its Polish and English messages no longer assert that the server is starting.
 
-Implementation: `frontend/src/utils/interviewFit.js`, lines 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–549 (`operation`); `frontend/src/services/api.js`, lines 1–405 (`ApiClient`, `isTransientNetworkError`). Tests: `frontend/src/utils/interviewFit.test.js`, lines 1–109; `frontend/src/services/api.test.js`, lines 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, lines 1–655; `frontend/e2e/interview-fit.spec.js`, lines 1–162. The browser regression commits the layout and then aborts the response, covering PL/EN, four viewport widths, keyboard use, 200% text zoom and reduced motion. Synthetic fixtures never call paid AI. Run the existing unit/runtime/lint/build scripts and the interview-fit Playwright suite from `frontend`.
+Implementation: `frontend/src/utils/interviewFit.js`, lines 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–559 (`operation`); `frontend/src/services/api.js`, lines 1–405 (`ApiClient`, `isTransientNetworkError`). Tests: `frontend/src/utils/interviewFit.test.js`, lines 1–109; `frontend/src/services/api.test.js`, lines 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, lines 1–655; `frontend/e2e/interview-fit.spec.js`, lines 1–162. The browser regression commits the layout and then aborts the response, covering PL/EN, four viewport widths, keyboard use, 200% text zoom and reduced motion. Synthetic fixtures never call paid AI. Run the existing unit/runtime/lint/build scripts and the interview-fit Playwright suite from `frontend`.
 
 This is a frontend recovery fix; no API endpoint, database schema, dependency or configuration changes are required. It does not diagnose production network interruptions or poll a still-running operation. If no completed result is available at recovery time, the user must load saved state and explicitly resume. [MDN Fetch documentation](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) explains browser network rejection; it does not establish whether an application write was committed.
 
@@ -154,7 +181,7 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–549; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–559; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–420; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -202,7 +229,7 @@ Verified implementation and regression references:
 
 - `backend/app/services/interview_templates.py`, lines 1–168, `preview_templates` and `select_preview_template`; `backend/app/schemas/interview_schema.py`, lines 126–130, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, lines 612–621, the two authenticated route handlers.
 - `frontend/src/utils/interviewTemplateFit.js`, lines 1–229, `measureInterviewTemplateCandidate` and `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, lines 1–207, shared S typography registration and `applyTemplateSmallTypography`. `frontend/src/utils/fitToPages.js`, lines 34–50, `buildSpacingLadder`, supplies the shared spacing steps. The scan yields to the browser between candidates and between tighter-spacing trials so progress and cancellation remain responsive with cached fonts.
-- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, lines 1–152, optional comparison, progress, cancellation and the revision-bound staged choice; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 238–256, `saveDocument`, applies that choice before creating the document; `InterviewTemplateOptions.module.css` supplies the token-based responsive sample layout.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, lines 1–152, optional comparison, progress, cancellation and the revision-bound staged choice; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 242–260, `saveDocument`, applies that choice before creating the document; `InterviewTemplateOptions.module.css` supplies the token-based responsive sample layout.
 - `backend/tests/test_interview_templates.py`, lines 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, lines 1–245 (33-field height regression: lines 34–54; cached-font cancellation: lines 179–190; fitting below compact spacing with the loosest successful step: lines 210–230; cancellation between spacing trials: lines 232–245); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, lines 1–149 (all choices: lines 53–67; clearing pending choices: lines 69–92); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx`, lines 100–163, direct save, fresh versions, failures/retry and current-template preservation; `frontend/e2e/interview-templates.spec.js`, lines 1–295 (direct Aurelia save, retry and editor reload: lines 13–120). The generated synthetic fixtures are `frontend/e2e/fixtures/interview-templates.json` and `frontend/e2e/fixtures/interview-regent-sterling.json`. The latter covers the complete two-page Regent fitting flow followed by a one-page Sterling choice, including slow comparison, cancellation and failure; browser selection covers Linden, Cadenza, Sterling and Meridian in both PL and EN. `frontend/e2e/fixtures/interview-template-spacing.json` adds nine canonical alternatives for a synthetic CV whose Aurelia layout needs spacing below compact. The PL/390px and EN/1280px regressions expose multiple matching options, choose Aurelia, save directly with the keyboard, retain the choice after a failed application and verify the selected template, text and typography after opening and reloading the saved editor.
 
 Run the existing test/runtime/lint/build commands and `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium` from `frontend`; backend commands are in the tutorial. Coverage includes PL/EN at 390/834/1280/1920px, keyboard selection, 200% text zoom, reduced motion, failed selection retry and restore. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) explains actual-font measurement; [React effect cleanup](https://react.dev/reference/react/useEffect) explains ignoring late comparison results. [React state snapshots](https://react.dev/learn/state-as-a-snapshot) explains why the save handler uses the template response's version fields for the next request. Unsupported or unmeasurable layouts are excluded, so the feature makes no guarantee that every CV can fit one page.
@@ -307,7 +334,7 @@ At `/app/documents`, choose **Saved CVs** to search, sort, open, download or del
 
 No database, API contract, dependency or PDF renderer changes are introduced. The new module belongs beside `DocumentsPage` in `frontend/src/pages/Site/`; existing upload history remains available in the editor.
 
-Implementation: `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, lines 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, `AiCvPanel`. Tests: `frontend/e2e/documents-library.spec.js`, lines 1–71; run `cd frontend` then `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Coverage includes tab keyboard navigation, import reuse, deletion focus, read retry, empty state and 390/834/1280/1920px layouts plus 640px reflow and reduced motion.
+Implementation: `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–117, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, lines 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, `AiCvPanel`. Tests: `frontend/e2e/documents-library.spec.js`, lines 1–71; run `cd frontend` then `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Coverage includes tab keyboard navigation, import reuse, deletion focus, read retry, empty state and 390/834/1280/1920px layouts plus 640px reflow and reduced motion.
 
 Reference: [W3C tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) explains tab selection, panel relationships and keyboard navigation.
 
@@ -342,7 +369,7 @@ Implementation references (verified against this revision):
 - `frontend/src/i18n/index.js`, lines 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, lines 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, lines 1–18, `LanguageSelect`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteHeader` and its opt-in `showLanguageSelect` placement.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteHeader` and its opt-in `showLanguageSelect` placement.
 - `frontend/src/pages/Hero/Hero.jsx`, line 120, the sole `SiteHeader` call that enables the application-language selector.
 - `frontend/src/utils/cvStarter.js`, lines 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, lines 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
@@ -405,9 +432,9 @@ Both complete dictionaries in `frontend/src/i18n/locales/pl.json` and `en.json` 
 
 Implementation (whole-module ranges, including `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` and `InterviewPage`):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–343.
 - `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13.
 
 Tests: `frontend/e2e/interview-positioning.spec.js` adds the bilingual discovery journey under the existing `frontend/e2e/` directory. Run `npm run test:e2e -- e2e/interview-positioning.spec.js --project=desktop-chromium --workers=1` from `frontend/`. It checks 390/834/1280/1920px layouts, 200% text zoom at 834px, reduced motion, keyboard anchor focus, guest login return and absence of paid AI calls. `Hero.test.js` checks presentation contracts; `StartChooser.runtime.test.jsx` checks Pro/Free/unresolved/revoked access. These mocked tests do not assess live AI quality or production PDF rendering. [WAI page structure](https://www.w3.org/WAI/tutorials/page-structure/) explains the semantic regions, headings and navigation used here.
@@ -428,13 +455,13 @@ Implementation (verified whole-module extents):
 
 - `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
-- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–117, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–343, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–549, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteLayout`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–559, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
 
@@ -472,15 +499,15 @@ Known Pro template hints now preserve the chosen preview instead of falling back
 
 Implementation (verified file extents; the listed exports own the complete workflows):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–117, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, lines 3–201, `TEMPLATES` — picker summaries and detail-page copy for all ten templates.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, lines 2–46, `listOwnedDocuments, loadOwnedDocument`.
-- `frontend/src/utils/siteRoutes.js`, lines 1–78, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
+- `frontend/src/utils/siteRoutes.js`, lines 1–79, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
 New directories: `pages/Site/` owns route content and library/account state; `components/common/SiteLayout/` owns shared navigation, semantic page layout and token-based styles. `services/documents.js` owns document reads and hydration, `services/accountApi.js` owns privacy-control requests, and `utils/siteRoutes.js` owns URL validation and authentication continuation. Editor state remains in the existing lifecycle/context layers. The privacy controls reuse the existing tables and storage cleanup outbox, so no database migration or environment variable is required; the backend adds authenticated `/account/export` and `/account` routes. The existing `render.yaml` SPA rewrite to `/index.html` supports refreshing every new address.
 
@@ -877,9 +904,9 @@ Implementation and tests (verified complete module extents):
 | `backend/app/services/career_profile_source.py` | 1–90; `is_supplemental_fact, supplemental_facts, resolve_source, synchronise_source` |
 | `backend/app/api/routes/interviews.py` | 1–663; `get_profile, write_profile, choose_profile_source, clear_profile` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `ProfileWrite, ProfileSourceWrite` |
-| `backend/app/models/models.py` | 1–586; `CareerProfile.source_binding` |
+| `backend/app/models/models.py` | 1–603; `CareerProfile.source_binding` |
 | `backend/app/services/interview_service.py` | 1–659; `profile_payload, put_profile` |
-| `backend/app/services/account_data_service.py` | 1–309; `build_account_export` |
+| `backend/app/services/account_data_service.py` | 1–315; `build_account_export` |
 | `backend/alembic/versions/20260912_0018_profile_source.py` | 1–24; `upgrade, downgrade` |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–159; `CareerProfilePage, refreshSource` |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; `source, source selection layout` |
@@ -1053,7 +1080,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 
 | File | Current lines and symbols |
 | --- | --- |
-| `backend/app/models/models.py` | 1–586; CareerProfile, InterviewSession |
+| `backend/app/models/models.py` | 1–603; CareerProfile, InterviewSession |
 | `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
 | `backend/app/services/interview_clarification.py` | 1–214; answer_proposals, clarification_queue, repair_clarification_state, start_clarifications, finish_clarification_answer |
 | `backend/app/services/interview_recovery.py` | 1–90; assemble_reviewed_draft |
@@ -1089,14 +1116,14 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–549; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–559; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–132; apply, cancel, undo, focus, search, question-and-answer presentation |
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–88; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–176; grouped profile, responsive question-and-answer display, editing and persistence |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–71; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–72; SiteLayout compact |
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `source-only interview review, notes and persistence` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–142; FactEditor |
@@ -1129,7 +1156,7 @@ Implementation:
 - `frontend/src/services/accountApi.js`, lines 2–36, functions `downloadAccountData` and `deleteAccount`.
 - `frontend/src/utils/authSession.js`, lines 144–166, function `clearLocalAccountData`.
 - `backend/app/api/routes/account.py`, lines 1–59, handlers `export_account_data` and `delete_account`.
-- `backend/app/services/account_data_service.py`, lines 50–213, function `build_account_export`, and lines 216–309, function `delete_account_data`.
+- `backend/app/services/account_data_service.py`, lines 51–218, function `build_account_export`, and lines 216–309, function `delete_account_data`.
 
 Tests: `backend/tests/test_account_privacy.py`, lines 105–203; `frontend/src/pages/Site/PrivacyPage.test.js`, lines 1–24; `frontend/src/utils/authSession.test.js`, lines 50–70; and `frontend/e2e/site-architecture.spec.js`, lines 76–99 (the account privacy-controls scenario).
 
@@ -1840,8 +1867,8 @@ Implementation:
 
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, component `StartChooser` — three primary cards (`onNew`, `onImport`, entitlement-aware interview link) plus secondary saved-document and legacy-recovery actions
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–454 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, three columns on wide screens, two columns with a full-width third choice on tablets, and one column on compact screens, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
-- `frontend/src/App.jsx`, lines 53–73, functions `StartRoute` and `CreateCvRoute` — resolves generic `/app/new` to `start=choose` for an account and `start=new` for a guest or an explicit template; `/app/import` remains directed
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
+- `frontend/src/App.jsx`, lines 54–74, functions `StartRoute` and `CreateCvRoute` — resolves generic `/app/new` to `start=choose` for an account and `start=new` for a guest or an explicit template; `/app/import` remains directed
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–343, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
 - `frontend/src/utils/startChooser.js`, lines 30–46, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx`, lines 253–265 and 1110–1135, component `EditorController` — consumes the `choose` intent, keeps the chooser ahead of automatic template selection, and wires new/import/documents/recovery actions while omitting editor chrome
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — a new A4 setup is generated directly; legacy browser drafts require the explicit recovery action
@@ -1855,7 +1882,7 @@ Tests:
 
 Implementation (Topbar / landing entry points):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–343, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/pages/Hero/Hero.module.css`, lines 1–944 — Swiss tokens, responsive hero, `.copyExample`, `.finalCta`, focus-visible, and reduced motion.
 - `frontend/src/pages/Hero/Hero.test.js`, lines 1–47 — account and Pro boundaries, starts and CTA events, canonical plans, accessible gallery and FAQ.
 - `frontend/src/utils/authSession.js`, function `getEditorPath` — builds `/cvstudio/guest` or `/cvstudio/{username}` (plus optional `?start=` and the setup-only `template` hint)
@@ -3090,10 +3117,10 @@ Implementation:
 
 - `backend/app/services/entitlements.py`, lines 37–70 (`PLAN_SEEDS`), 422–477 (`get_entitlements`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`), and 724–771 (`record_cv_import`); assistant credits remain in `charge_ai_credits`
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, lines 1–97, migration `20260831_0008` — updates existing production Free rows without changing legacy file markers
-- `backend/app/api/routes/billing.py`, lines 49–106 (`get_plans`, `select_plan`) and 147–214 (`admin_set_user_plan`) — product plan selection plus the exact-account, secret-protected support path
+- `backend/app/api/routes/billing.py`, lines 52–116 (`get_plans`, `select_plan`) and 147–214 (`admin_set_user_plan`) — product plan selection plus the exact-account, secret-protected support path
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 22–175, component `PlanSelectModal` — accessible two-card picker with loading, fallback, current, pending, success, and error states
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–343, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/templates/index.js`, lines 19–33, registry `TEMPLATES` — three shipped Free element packs and six metadata-only, server-materialized Pro entries
 - `frontend/src/hooks/useEntitlements.js`, lines 3–49, hook `useEntitlements`
 
@@ -3117,7 +3144,7 @@ Implementation:
 
 - `backend/alembic/versions/20260829_0007_cloudflare_cv_import_quota.py`, lines 1–70, migration `20260829_0007` — adds nullable `plans.max_cv_imports_per_month` and zero-filled `usage_counters.cv_imports_count`; the downgrade removes only these two columns
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, migration `20260831_0008` — applies the one-import/three-export/one-project/no-AI Free contract to an existing catalog row while preserving truthful legacy-file markers
-- `backend/app/models/models.py`, lines 1–586, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
+- `backend/app/models/models.py`, lines 1–603, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
 - `backend/app/services/entitlements.py`, lines 362–413 (`_usage_row`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`), and 724–771 (`record_cv_import`) — race-safe Free limits, transactional import claims, and paid-template enforcement
 - `backend/app/api/routes/ai.py`, lines 267–400, function `extract_cv`, and `backend/app/crud/cv_import_snapshots.py`, lines 71–100, function `mark_snapshot_succeeded` — one successful-normalization transaction for the import claim and snapshot, with safe rollback/error mapping
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, component `AiCvPanel` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
@@ -3187,10 +3214,10 @@ Implementation:
 - `backend/app/services/email_verification.py`, lines 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
 - `backend/app/services/email_service.py`, lines 20–102 — `_safe_provider_error`, `send_verification_email`
 - `backend/app/services/google_auth_service.py`, lines 7–18 — `verify_google_credential`
-- `backend/app/api/routes/billing.py`, lines 68–136 and 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
+- `backend/app/api/routes/billing.py`, lines 71–146 and 272–341 — `select_plan`, `stripe_webhook`, `checkout_session_status`
 - `backend/app/services/stripe_service.py`, lines 17–37, and `billing_service.py`, lines 18–68 — hosted checkout boundary and `fulfill_pro_payment`
 - `backend/app/core/security.py` — Argon2id, successful-login legacy bcrypt rehash, canonical identity, and versioned Bearer JWT
-- `frontend/src/pages/Auth/VerifyEmail.jsx`, lines 6–61; `frontend/src/components/common/GoogleSignInButton/GoogleSignInButton.jsx`, lines 3–78; `frontend/src/services/authApi.js`, lines 2–43; `frontend/src/pages/Billing/CheckoutResult.jsx`, lines 3–55; and `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 22–198 — verification, federated login/linking, checkout redirect and truthful return states
+- `frontend/src/pages/Auth/VerifyEmail.jsx`, lines 6–61; `frontend/src/components/common/GoogleSignInButton/GoogleSignInButton.jsx`, lines 3–78; `frontend/src/services/authApi.js`, lines 2–43; `frontend/src/pages/Billing/CheckoutResult.jsx`, lines 3–57; and `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 22–198 — verification, federated login/linking, checkout redirect and truthful return states
 
 Tests: `backend/tests/test_auth_providers_and_stripe.py`,
 `backend/tests/test_alembic_auth_billing_migration.py`,
@@ -3385,7 +3412,7 @@ Implementation: `frontend/src/utils/savedTextLayout.js`, lines 1–38, `preserve
 Tests: `frontend/src/utils/savedTextLayout.test.js`, lines 1–38; `frontend/src/hooks/useDirtyGuard.runtime.test.jsx`, lines 1–95; `frontend/src/components/common/RecoverySurfaces.runtime.test.jsx`; `frontend/e2e/unsaved-changes.spec.js`, lines 1–102. Run `npm --prefix frontend run test:runtime -- src/hooks/useDirtyGuard.runtime.test.jsx src/components/common/RecoverySurfaces.runtime.test.jsx` and `npm --prefix frontend run test:e2e -- e2e/unsaved-changes.spec.js --workers=1`. Browser fixtures cover 390/834/1280/1920px, desktop/touch profiles, reduced motion, 200% text zoom, focus restoration, failed save/retry and first-save copy without production API writes.
 
 
-The editor owns a monotonic document epoch and local revision. Async loads capture that scope and may commit only while it remains current, preventing a late response from an old document from overwriting the newly opened one. Dirty state comes from a stable persisted snapshot that excludes transient selection/edit/resize flags. React Router blocking and `beforeunload` protect authenticated work; guest navigation first flushes the local draft. The accessible discard dialog restores focus and supports the least-destructive default. Route-level and canvas-level Error Boundaries reset on document session changes, expose a branded recovery action, and never render raw exception text or CV content. Implementation: `frontend/src/store/document-lifecycle-context.jsx`, lines 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, lines 9–68; `frontend/src/hooks/useDirtyGuard.js`, lines 9–161; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, lines 14–93; `frontend/src/App.jsx`, lines 4–130. Tests: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime Error Boundary tests, and `frontend/e2e/editor-smoke.spec.js`.
+The editor owns a monotonic document epoch and local revision. Async loads capture that scope and may commit only while it remains current, preventing a late response from an old document from overwriting the newly opened one. Dirty state comes from a stable persisted snapshot that excludes transient selection/edit/resize flags. React Router blocking and `beforeunload` protect authenticated work; guest navigation first flushes the local draft. The accessible discard dialog restores focus and supports the least-destructive default. Route-level and canvas-level Error Boundaries reset on document session changes, expose a branded recovery action, and never render raw exception text or CV content. Implementation: `frontend/src/store/document-lifecycle-context.jsx`, lines 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, lines 9–68; `frontend/src/hooks/useDirtyGuard.js`, lines 9–161; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, lines 14–93; `frontend/src/App.jsx`, lines 4–133. Tests: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime Error Boundary tests, and `frontend/e2e/editor-smoke.spec.js`.
 
 #### Readiness, catalog, and paginated import history
 
@@ -3799,6 +3826,33 @@ Notable product facts:
 
 # Polski
 
+## Prowadzone dopasowanie CV do oferty pracy
+
+Zaimplementowana trasa `/app/tailor` prowadzi zalogowaną osobę przez **Twoje CV → Oferta pracy → Pytania → Sprawdź CV → Pobierz**. Wejścia znajdują się na stronie głównej, w nawigacji aplikacji i bibliotece dokumentów. Ręczne tworzenie pozostaje dostępne. Gość widzi cenę i przejście do konta przed przesłaniem danych osobowych.
+
+1. Prześlij PDF (do 10 MB, w ramach dotychczasowego limitu importu) albo wybierz własne CV/udany import. Sprawdź odczytane informacje.
+2. Wklej wymagany opis oferty albo wybierz opcję linku. Tylko wybrana opcja trafia do wywiadu; przełączanie zachowuje obie wersje robocze. Wybierz polski lub angielski język wyniku.
+3. Użytkownik Free może zapisać dane przed zakupem Pro (59 zł za 30 dni, bez automatycznego odnowienia). Serwer sprawdza dostęp przed rozpoczęciem. Kontynuacja potwierdza pokazane źródło i tworzy odizolowany wywiad z szablonem Linden, bez profilu kariery konta. Dopiero jawne pobranie kolejnego pytania uruchamia istniejący płatny proces analizy i pytań. Odczyt importu zachowuje osobny dotychczasowy limit.
+4. Odpowiedz na pytania, przygotuj i sprawdź CV we wspólnym komponencie wywiadu. Generowanie, weryfikacja i ewentualne skracanie zachowują dotychczasowe naliczanie kredytów i potwierdzanie faktów. Zapis odpowiedzi i ponowne otwarcie zadania nie zużywają kredytów AI.
+5. Zapisz osobny dokument i pobierz PDF bezpośrednio. Przejście do edytora jest opcjonalne. Komunikat informuje o przekazaniu pliku przeglądarce, bez deklarowania, że zapis na urządzeniu zakończył się powodzeniem.
+
+`Workspace` kolejkuje automatyczne zapisy z kontrolą rewizji i chroni niezapisany formularz przy nawigacji. Backend odpowiada za sprawdzenie źródła, identyfikator wywiadu i wynikowego dokumentu. Niepewny start jest odzyskiwany przez odczyt; ponowienie wykorzystuje ten sam wywiad. Sukces i anulowanie Checkout zachowują dozwolony adres własnego zadania. Za aktywację Pro nadal odpowiada webhook Stripe.
+
+Implementacja i zweryfikowane zakresy kodu:
+
+- `frontend/src/pages/Site/TailoringPage.jsx`, wiersze 23–253 (`TailoringPage`, `FlowList`, `Workspace`); style: `TailoringPage.module.css`, wiersze 1–29.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, wiersze 32–559 (`InterviewFlow`): opcjonalne wywołania zwrotne etapu i dokumentu; zwykłe wywiady zachowują swoją nawigację.
+- `frontend/src/pages/Billing/CheckoutResult.jsx`, wiersze 14–57 (`CheckoutResult`), oraz `frontend/src/utils/siteRoutes.js`, wiersze 23–33 (`safeReturnTo`): bezpieczny powrót do zadania.
+- `backend/app/api/routes/tailoring.py`, wiersze 23–209: kontrakty formularza, odczyty właściciela, zapis z rewizją, start i usuwanie wersji roboczej.
+- `backend/app/api/routes/billing.py`, wiersze 47–146 (`SelectPlanRequest`, `select_plan`): opcjonalny własny `tailoring_flow_id`.
+- `backend/app/models/models.py`, wiersze 365–379 (`TailoringFlow`); migracja `backend/alembic/versions/20260916_0019_tailoring_flows.py`, wiersze 1–31.
+- `backend/app/services/account_data_service.py`, wiersze 51–315 (`build_account_export`, `delete_account_data`): eksport danych konta i ich usunięcie obejmują wersje robocze.
+- Testy: `backend/tests/test_tailoring.py`, wiersze 1–125; `frontend/e2e/tailoring.spec.js` (pełna responsywna ścieżka, błędy zapisu/pobrania, Checkout Free i stany powrotu).
+
+[Pełny przewodnik implementacji po angielsku i polsku](docs/GUIDED_TAILORING.md) opisuje schemat tabeli, wszystkie nowe kontrakty API, przepływ danych, wdrożenie, wycofanie i polecenia testowe. Nie dodano zależności ani zmiennych środowiskowych. Przed udostępnieniem nowego frontendu zastosuj rewizję Alembic `20260916_0019`; istniejąca inicjalizacja bazy również wykonuje migracje. Interfejs używa wspólnych tokenów Swiss, opisanych natywnych kontrolek, fokusu etapów, listy postępu z `aria-current` i zawijania na małych ekranach. Trasa i jej kontrolki pozostają poza renderowaniem dokumentu/PDF.
+
+Testy przeglądarkowe korzystają z fikcyjnego API i bajtów PDF; nie sprawdzają jakości odpowiedzi rzeczywistego AI, prawdziwych płatności Stripe ani typografii eksportu. Testy implementacji nie dowodzą poprawy konwersji.
+
 ## Wejście w edycję stanowiska zachowuje układ masthead
 
 Kliknięcie pustego pola stanowiska, wpisanie krótkiego tytułu i wyczyszczenie go zachowuje zaprojektowane położenie imienia, kontaktów, ramy i treści w Vellum, Aurelia i Cadenza. `reflowTextareaHeight` obsługuje pola masthead przed ogólnym mechanizmem układania rekordów treści: pola bez deskryptora `identityLayout` aktualizują wyłącznie własną wysokość i zachowują przynajmniej jeden edytowalny wiersz. Istniejący mechanizm dopasowania imienia nadal odpowiada za jego zawijanie, a nagłówki sterowane deskryptorem zachowują własny układ. Dzięki temu pomiar stanowiska nie traktuje poprzedzającego imienia jak sąsiedniego elementu rekordu treści. Poprawka nie naprawia współrzędnych wcześniej uszkodzonych i zapisanych przez starszą wersję.
@@ -3820,7 +3874,7 @@ Na /app/career-profile wybierz zapisane CV lub import, przeglądaj sekcje z dany
 
 W ustawieniach wywiadu samodzielnego i osadzonego bieżący język dokumentu jest widoczny w **Język CV · Zmień**. Rozwiń tę opcję, aby zmienić język; zamknięcie zachowuje wybór. Wybór źródła, zgoda na dołączenie profilu tej samej osoby i informacja o kosztach pozostają widoczne. Podczas pytania lub doprecyzowania pomijana jest powtórzona akcja przeglądania informacji; zakończ odpowiedź, zanim przejdziesz do przeglądu przez istniejące etapy. Te zmiany nawigacji nie wywołują AI, nie zmieniają zakresu dowodów i nie trafiają do CV/PDF.
 
-Implementacja (pełne zakresy komponentów): `frontend/src/components/ai/Interview/FactEditor.jsx`, 1–142; `frontend/src/pages/Site/CareerProfilePage.jsx`, 1–159; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–549. Regresje: FactEditor.runtime.test.jsx sprawdza puste sekcje, fokus klawiatury i anulowanie notatki; AiAssistantInterview.runtime.test.jsx oraz e2e/interviews.spec.js sprawdzają zachowanie języka; e2e/career-profile.spec.js sprawdza błędy źródła, trwałość notatek i fokus po usunięciu. Uruchom istniejące testy runtime frontendu, te zestawy Playwright, lint i build. Testy przeglądarkowe używają syntetycznych danych API przy 390, 834, 1280 i 1920px, z ograniczonym ruchem i tekstem powiększonym do 200%. Zmiana nie wymaga nowego API, bazy, zależności, konfiguracji środowiska ani wdrożenia. Zmniejszenie obciążenia poznawczego jest założeniem projektu, a nie wynikiem badania użytkowników. [Wskazówki WAI dotyczące rozwijania treści](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/) wyjaśniają dostęp klawiaturą do opcjonalnej treści.
+Implementacja (pełne zakresy komponentów): `frontend/src/components/ai/Interview/FactEditor.jsx`, 1–142; `frontend/src/pages/Site/CareerProfilePage.jsx`, 1–159; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–559. Regresje: FactEditor.runtime.test.jsx sprawdza puste sekcje, fokus klawiatury i anulowanie notatki; AiAssistantInterview.runtime.test.jsx oraz e2e/interviews.spec.js sprawdzają zachowanie języka; e2e/career-profile.spec.js sprawdza błędy źródła, trwałość notatek i fokus po usunięciu. Uruchom istniejące testy runtime frontendu, te zestawy Playwright, lint i build. Testy przeglądarkowe używają syntetycznych danych API przy 390, 834, 1280 i 1920px, z ograniczonym ruchem i tekstem powiększonym do 200%. Zmiana nie wymaga nowego API, bazy, zależności, konfiguracji środowiska ani wdrożenia. Zmniejszenie obciążenia poznawczego jest założeniem projektu, a nie wynikiem badania użytkowników. [Wskazówki WAI dotyczące rozwijania treści](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/) wyjaśniają dostęp klawiaturą do opcjonalnej treści.
 
 ## Kontrola czytelności CV generowanego z wywiadu
 
@@ -3855,7 +3909,7 @@ Zapisany wywiad sprawdza teraz dokument źródłowy podczas ponownego otwarcia. 
 
 Wspólny `InterviewFlow` łączy flagę serwera z niezapisanymi zmianami edytora, więc wywiad samodzielny i osadzony mają te same kontrolki odzyskiwania oraz stany zablokowania. Przetłumaczony komunikat używa istniejącego stylu błędu i przycisku obsługiwanego klawiaturą; nie trafia do CV ani PDF. [Komunikaty stanu WAI](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) wyjaśniają ogłaszanie stanu bez przerywania pracy.
 
-Implementacja: `backend/app/api/routes/interviews.py`, linie 233–255 (`get_interview`), oraz `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 83–85 i 362–363 (`InterviewFlow`). Testy regresji: `backend/tests/test_interviews.py`, linie 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` sprawdza odzyskiwanie i zachowanie szkiców; `frontend/e2e/interview-workspace.spec.js` sprawdza odzyskiwanie klawiaturą przy 390, 834, 1280 i 1920px, powiększeniu tekstu 200% i ograniczonym ruchu. Testy używają danych syntetycznych i symulowanego AI. Wdróż backend i frontend razem istniejącym procesem; nie potrzeba migracji, zależności ani zmiany konfiguracji.
+Implementacja: `backend/app/api/routes/interviews.py`, linie 233–255 (`get_interview`), oraz `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 83–85 i 371–372 (`InterviewFlow`). Testy regresji: `backend/tests/test_interviews.py`, linie 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` sprawdza odzyskiwanie i zachowanie szkiców; `frontend/e2e/interview-workspace.spec.js` sprawdza odzyskiwanie klawiaturą przy 390, 834, 1280 i 1920px, powiększeniu tekstu 200% i ograniczonym ruchu. Testy używają danych syntetycznych i symulowanego AI. Wdróż backend i frontend razem istniejącym procesem; nie potrzeba migracji, zależności ani zmiany konfiguracji.
 
 ## Język CV tworzonego przez wywiad
 
@@ -3906,7 +3960,7 @@ Natywne rozwinięcie obsługuje klawiaturę i widoczny fokus. Etykiety oraz dłu
 
 Zakres obejmuje rozpoczęcie z opcjonalną notatką i bez niej, przegląd źródła i niezapisane zmiany, zwykłe i wspomagane odpowiedzi, koniec rundy, doprecyzowanie faktów, przygotowanie, wynik, trwające operacje, błędy i ponowienia oraz zapisane odpowiedzi. Komponenty wykorzystują tokeny `DESIGN.md`, natywne rozwijane sekcje i dotychczasowe przyciski etapów oraz selektor w wąskim widoku. Fokus, cele 44px, blokady akcji, układ przy powiększeniu 200% i ograniczony ruch dotyczą obu miejsc uruchamiania. Kontrolki pozostają poza drzewem dokumentu i PDF.
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–549, funkcja `InterviewFlow`, koordynuje szkice, jawne operacje i przejścia; `goTo` zapisuje zmienione informacje przed opuszczeniem etapu i zachowuje je po błędzie.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–559, funkcja `InterviewFlow`, koordynuje szkice, jawne operacje i przejścia; `goTo` zapisuje zmienione informacje przed opuszczeniem etapu i zachowuje je po błędzie.
 - `frontend/src/components/ai/Interview/Interview.module.css` odpowiada za układ wywiadu. `InterviewCredits.jsx`, linie 13–70, i sąsiedni `InterviewCredits.module.css` odpowiadają za wspólne rozliczenie; moduł CSS jest jedynym nowym plikiem produkcyjnym.
 - `frontend/src/i18n/locales/pl.json` i `en.json` są słownikami źródłowymi. Słowniki robocze generuje `scripts/generate-locale-bundles.mjs`; edytuj wyłącznie słowniki źródłowe.
 - `InterviewFlowNavigation.runtime.test.jsx`, linie 1–299, sprawdza główne akcje, jawne granice płatnych operacji i ochronę szkiców. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` i `InterviewLoading.runtime.test.jsx` sprawdzają zatwierdzanie, rozliczenia i komunikaty operacji. `frontend/e2e/interview-simple-flow.spec.js`, linie 1–166, obejmuje doprecyzowanie klawiaturą, zachowanie szkiców oraz PL/EN przy 390, 834, 1280 i 1920px, w tym powiększony tekst.
@@ -3921,7 +3975,7 @@ Końcowy układ może zostać zapisany, mimo że przeglądarka otrzyma błąd si
 
 Po błędzie początkowego generowania `InterviewFlow.operation` odświeża zapisany stan sesji, aby istniejące oczekujące dopasowanie można było jawnie wznowić z bieżącą rewizją. Jeśli odczyt również zawiedzie, widoczny pozostaje pierwotny błąd generowania/dopasowania. Nie następuje automatyczne ponowienie płatnego AI. Wspólny klient HTTP oznacza nieprzejrzyste błędy transportu przez `code: network_error` zarówno dla JSON, jak i pobierania plików, dzięki czemu odzyskiwanie nie zależy od języka komunikatu. Komunikaty polskie i angielskie nie twierdzą już, że serwer się uruchamia.
 
-Implementacja: `frontend/src/utils/interviewFit.js`, linie 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–549 (`operation`); `frontend/src/services/api.js`, linie 1–405 (`ApiClient`, `isTransientNetworkError`). Testy: `frontend/src/utils/interviewFit.test.js`, linie 1–109; `frontend/src/services/api.test.js`, linie 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–655; `frontend/e2e/interview-fit.spec.js`, linie 1–162. Regresja przeglądarkowa zapisuje układ i zrywa odpowiedź; obejmuje PL/EN, cztery szerokości okna, klawiaturę, tekst powiększony do 200% i ograniczony ruch. Syntetyczne dane nie wywołują płatnego AI. Należy uruchomić istniejące skrypty testów jednostkowych/runtime, lint/build i zestaw Playwright interview-fit z katalogu `frontend`.
+Implementacja: `frontend/src/utils/interviewFit.js`, linie 1–186 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–559 (`operation`); `frontend/src/services/api.js`, linie 1–405 (`ApiClient`, `isTransientNetworkError`). Testy: `frontend/src/utils/interviewFit.test.js`, linie 1–109; `frontend/src/services/api.test.js`, linie 1–69; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–655; `frontend/e2e/interview-fit.spec.js`, linie 1–162. Regresja przeglądarkowa zapisuje układ i zrywa odpowiedź; obejmuje PL/EN, cztery szerokości okna, klawiaturę, tekst powiększony do 200% i ograniczony ruch. Syntetyczne dane nie wywołują płatnego AI. Należy uruchomić istniejące skrypty testów jednostkowych/runtime, lint/build i zestaw Playwright interview-fit z katalogu `frontend`.
 
 To poprawka odzyskiwania we frontendzie; nie wymaga zmian endpointów API, schematu bazy, zależności ani konfiguracji. Nie diagnozuje przerw sieciowych na produkcji i nie odpytuje cyklicznie nadal trwającej operacji. Jeśli gotowy wynik nie jest dostępny podczas odczytu, użytkownik musi wczytać zapisany stan i jawnie wznowić pracę. [Dokumentacja Fetch w MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) wyjaśnia odrzucenie żądania przez przeglądarkę; nie rozstrzyga, czy zapis aplikacji został wykonany.
 
@@ -3953,7 +4007,7 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–549; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–559; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–420; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -4001,7 +4055,7 @@ Zweryfikowane odwołania do implementacji i regresji:
 
 - `backend/app/services/interview_templates.py`, linie 1–168, `preview_templates` i `select_preview_template`; `backend/app/schemas/interview_schema.py`, linie 126–130, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, linie 612–621, dwa uwierzytelnione handlery tras.
 - `frontend/src/utils/interviewTemplateFit.js`, linie 1–229, `measureInterviewTemplateCandidate` i `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, linie 1–207, wspólna rejestracja typografii S i `applyTemplateSmallTypography`. `frontend/src/utils/fitToPages.js`, linie 34–50, `buildSpacingLadder`, dostarcza wspólne kroki odstępów. Porównanie oddaje przeglądarce sterowanie między wariantami i próbami mniejszych odstępów, aby postęp i przerwanie pozostawały responsywne również przy czcionkach w pamięci podręcznej.
-- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, linie 1–152, opcjonalne porównanie, postęp, przerwanie i tymczasowy wybór powiązany z rewizją; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 238–256, `saveDocument`, stosuje wybór przed utworzeniem dokumentu; `InterviewTemplateOptions.module.css` zapewnia responsywny układ próbki oparty na tokenach.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, linie 1–152, opcjonalne porównanie, postęp, przerwanie i tymczasowy wybór powiązany z rewizją; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 242–260, `saveDocument`, stosuje wybór przed utworzeniem dokumentu; `InterviewTemplateOptions.module.css` zapewnia responsywny układ próbki oparty na tokenach.
 - `backend/tests/test_interview_templates.py`, linie 1–175; `frontend/src/utils/interviewTemplateFit.test.js`, linie 1–245 (regresja wysokości 33 pól: linie 34–54; przerwanie przy czcionkach z pamięci podręcznej: linie 179–190; dopasowanie poniżej odstępów kompaktowych z największym pasującym krokiem: linie 210–230; przerwanie między próbami odstępów: linie 232–245); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, linie 1–149 (wszystkie opcje: linie 53–67; usuwanie oczekującego wyboru: linie 69–92); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx`, linie 100–163, bezpośredni zapis, aktualne wersje, błędy/ponowienie i zachowanie obecnego szablonu; `frontend/e2e/interview-templates.spec.js`, linie 1–295 (bezpośredni zapis Aurelii, ponowienie i odczyt w edytorze: linie 13–120). Wygenerowane syntetyczne dane testowe to `frontend/e2e/fixtures/interview-templates.json` oraz `frontend/e2e/fixtures/interview-regent-sterling.json`. Drugi plik obejmuje pełny przepływ dopasowania dwustronicowego Regent i wyboru jednostronicowego Sterling, w tym wolne porównanie, przerwanie i błąd; wybór w przeglądarce obejmuje Linden, Cadenzę, Sterling i Meridian w wersjach PL i EN. `frontend/e2e/fixtures/interview-template-spacing.json` dodaje dziewięć kanonicznych alternatyw dla syntetycznego CV, którego układ Aurelia wymaga odstępów mniejszych od kompaktowych. Regresje PL/390px i EN/1280px pokazują kilka pasujących opcji, wybierają Aurelię, zapisują bezpośrednio klawiaturą, zachowują wybór po nieudanym zastosowaniu i sprawdzają wybrany szablon, tekst oraz typografię po otwarciu i ponownym wczytaniu zapisanego edytora.
 
 W `frontend` uruchom obecne polecenia testów/runtime/lint/build i `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium`; polecenia backendu są w instrukcji. Pokrycie obejmuje PL/EN przy 390/834/1280/1920px, wybór klawiaturą, powiększenie tekstu 200%, ograniczenie animacji, ponowienie nieudanego wyboru i przywracanie. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) wyjaśnia pomiar rzeczywistych czcionek, a [czyszczenie efektów React](https://react.dev/reference/react/useEffect) odrzucanie spóźnionych wyników porównania. [Migawki stanu React](https://react.dev/learn/state-as-a-snapshot) wyjaśniają, dlaczego obsługa zapisu przekazuje do następnego żądania pola wersji otrzymane w odpowiedzi zastosowania szablonu. Układy nieobsługiwane lub niemożliwe do zmierzenia są wykluczane, więc funkcja nie gwarantuje zmieszczenia każdego CV na jednej stronie.
@@ -4106,7 +4160,7 @@ Na `/app/documents` wybierz **Zapisane CV**, aby wyszukiwać, sortować, otwiera
 
 Zmiana nie wprowadza zmian bazy, kontraktu API, zależności ani renderera PDF. Nowy moduł znajduje się obok `DocumentsPage` w `frontend/src/pages/Site/`; dotychczasowa historia przesyłania pozostaje dostępna w edytorze.
 
-Implementacja: `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, linie 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, `AiCvPanel`. Testy: `frontend/e2e/documents-library.spec.js`, linie 1–71; uruchom `cd frontend`, następnie `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Zakres obejmuje klawiaturę zakładek, ponowne użycie importu, fokus po usuwaniu, ponowienie odczytu, pusty stan oraz układy 390/834/1280/1920 px, reflow 640 px i ograniczony ruch.
+Implementacja: `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–117, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, linie 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, `AiCvPanel`. Testy: `frontend/e2e/documents-library.spec.js`, linie 1–71; uruchom `cd frontend`, następnie `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Zakres obejmuje klawiaturę zakładek, ponowne użycie importu, fokus po usuwaniu, ponowienie odczytu, pusty stan oraz układy 390/834/1280/1920 px, reflow 640 px i ograniczony ruch.
 
 Źródło: [wzorzec zakładek W3C](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) wyjaśnia wybór zakładek, powiązania paneli i obsługę klawiatury.
 
@@ -4141,7 +4195,7 @@ Referencje implementacji (zweryfikowane dla tej rewizji):
 - `frontend/src/i18n/index.js`, linie 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, linie 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, linie 1–18, `LanguageSelect`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteHeader` i opcjonalne umiejscowienie przez `showLanguageSelect`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteHeader` i opcjonalne umiejscowienie przez `showLanguageSelect`.
 - `frontend/src/pages/Hero/Hero.jsx`, linia 120, jedyne wywołanie `SiteHeader`, które włącza selektor języka aplikacji.
 - `frontend/src/utils/cvStarter.js`, linie 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, linie 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
@@ -4204,9 +4258,9 @@ Pełne słowniki `frontend/src/i18n/locales/pl.json` i `en.json` są źródłem 
 
 Implementacja (zakresy całych modułów obejmujące `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` i `InterviewPage`):
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–343.
 - `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13.
 
 Testy: `frontend/e2e/interview-positioning.spec.js` dodaje dwujęzyczną ścieżkę odkrywania w istniejącym katalogu `frontend/e2e/`. Uruchom `npm run test:e2e -- e2e/interview-positioning.spec.js --project=desktop-chromium --workers=1` z `frontend/`. Test sprawdza szerokości 390/834/1280/1920px, tekst powiększony do 200% przy 834px, ograniczony ruch, fokus kotwic z klawiatury, powrót po logowaniu gościa i brak płatnych wywołań AI. `Hero.test.js` kontroluje prezentację; `StartChooser.runtime.test.jsx` sprawdza dostęp Pro/Free/nieustalony/cofnięty. Testy z mockami nie oceniają jakości rzeczywistego AI ani produkcyjnego renderowania PDF. [Struktura strony według WAI](https://www.w3.org/WAI/tutorials/page-structure/) wyjaśnia użyte regiony semantyczne, nagłówki i nawigację.
@@ -4227,13 +4281,13 @@ Implementacja (zweryfikowane zakresy całych modułów):
 
 - `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
-- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–117, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–343, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–549, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteLayout`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–559, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteLayout`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
 
@@ -4271,15 +4325,15 @@ Rozpoznany parametr szablonu Pro zachowuje teraz wybrany podgląd zamiast wraca�
 
 Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowiadają za kompletne przepływy):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–117, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, linie 3–201, `TEMPLATES` — krótkie opisy pickerów i treść stron szczegółów wszystkich dziesięciu szablonów.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, linie 2–46, `listOwnedDocuments, loadOwnedDocument`.
-- `frontend/src/utils/siteRoutes.js`, linie 1–78, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
+- `frontend/src/utils/siteRoutes.js`, linie 1–79, `getDocumentPath, parseDocumentId, safeReturnTo, authLink, savePendingAuthIntent, getPendingAuthIntent, postAuthPath`.
 
 Nowe katalogi: `pages/Site/` zawiera treść tras i stan biblioteki/konta; `components/common/SiteLayout/` odpowiada za wspólną nawigację, semantyczny układ strony i style oparte na tokenach. `services/documents.js` odpowiada za odczyt i odtwarzanie dokumentów, `services/accountApi.js` za żądania kontroli prywatności, a `utils/siteRoutes.js` za walidację adresów i kontynuację po uwierzytelnieniu. Stan edytora pozostaje w istniejących warstwach cyklu życia i kontekstów. Kontrole prywatności korzystają z istniejących tabel i kolejki cleanup storage, dlatego nie wymagają migracji bazy ani zmiennej środowiskowej; backend dodaje uwierzytelnione trasy `/account/export` i `/account`. Istniejące przekierowanie SPA do `/index.html` w `render.yaml` obsługuje odświeżenie nowych adresów.
 
@@ -4669,9 +4723,9 @@ Implementacja i testy (zweryfikowane pełne zakresy modułów):
 | `backend/app/services/career_profile_source.py` | 1–90; `is_supplemental_fact, supplemental_facts, resolve_source, synchronise_source` |
 | `backend/app/api/routes/interviews.py` | 1–663; `get_profile, write_profile, choose_profile_source, clear_profile` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `ProfileWrite, ProfileSourceWrite` |
-| `backend/app/models/models.py` | 1–586; `CareerProfile.source_binding` |
+| `backend/app/models/models.py` | 1–603; `CareerProfile.source_binding` |
 | `backend/app/services/interview_service.py` | 1–659; `profile_payload, put_profile` |
-| `backend/app/services/account_data_service.py` | 1–309; `build_account_export` |
+| `backend/app/services/account_data_service.py` | 1–315; `build_account_export` |
 | `backend/alembic/versions/20260912_0018_profile_source.py` | 1–24; `upgrade, downgrade` |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–159; `CareerProfilePage, refreshSource` |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; `source, source selection layout` |
@@ -4846,7 +4900,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 
 | Plik | Aktualne linie i symbole |
 | --- | --- |
-| `backend/app/models/models.py` | 1–586; CareerProfile, InterviewSession |
+| `backend/app/models/models.py` | 1–603; CareerProfile, InterviewSession |
 | `backend/alembic/versions/20260910_0017_career_interviews.py` | 1–41; upgrade, downgrade |
 | `backend/app/services/interview_clarification.py` | 1–214; answer_proposals, clarification_queue, repair_clarification_state, start_clarifications, finish_clarification_answer |
 | `backend/app/services/interview_recovery.py` | 1–90; assemble_reviewed_draft |
@@ -4882,14 +4936,14 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–549; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–559; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–132; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–88; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–176; grupowanie profilu, responsywne pytanie z odpowiedzią, edycja i zapis |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–71; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–72; SiteLayout compact |
 | `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `przegląd źródła w wywiadzie, notatki i trwałość zapisu` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–142; FactEditor |
@@ -4922,7 +4976,7 @@ Implementacja:
 - `frontend/src/services/accountApi.js`, linie 2–36, funkcje `downloadAccountData` i `deleteAccount`.
 - `frontend/src/utils/authSession.js`, linie 144–166, funkcja `clearLocalAccountData`.
 - `backend/app/api/routes/account.py`, linie 1–59, handlery `export_account_data` i `delete_account`.
-- `backend/app/services/account_data_service.py`, linie 50–213, funkcja `build_account_export`, oraz linie 216–309, funkcja `delete_account_data`.
+- `backend/app/services/account_data_service.py`, linie 51–218, funkcja `build_account_export`, oraz linie 216–309, funkcja `delete_account_data`.
 
 Testy: `backend/tests/test_account_privacy.py`, linie 105–203; `frontend/src/pages/Site/PrivacyPage.test.js`, linie 1–24; `frontend/src/utils/authSession.test.js`, linie 50–70; oraz `frontend/e2e/site-architecture.spec.js`, linie 76–99 (scenariusz kontroli prywatności konta).
 
@@ -5628,8 +5682,8 @@ Implementacja:
 
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, komponent `StartChooser` — trzy główne karty (`onNew`, `onImport`, link wywiadu zależny od uprawnień) oraz drugorzędne akcje dokumentów i recovery legacy
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–454 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, trzema kolumnami na szerokim ekranie, dwiema z trzecią kartą na całą szerokość na tablecie i jedną na małym ekranie, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
-- `frontend/src/App.jsx`, linie 53–73, funkcje `StartRoute` i `CreateCvRoute` — rozstrzyga ogólne `/app/new` jako `start=choose` dla konta i `start=new` dla gościa lub jawnego szablonu; `/app/import` pozostaje skierowany
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
+- `frontend/src/App.jsx`, linie 54–74, funkcje `StartRoute` i `CreateCvRoute` — rozstrzyga ogólne `/app/new` jako `start=choose` dla konta i `start=new` dla gościa lub jawnego szablonu; `/app/import` pozostaje skierowany
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–343, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
 - `frontend/src/utils/startChooser.js`, linie 30–46, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx`, linie 253–265 i 1110–1135, komponent `EditorController` — zużywa intencję `choose`, utrzymuje chooser przed automatycznym wyborem szablonu i podpina nowe/import/dokumenty/recovery bez montowania chrome edytora
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — nowe A4 jest generowane bezpośrednio; starszy szkic przeglądarki wymaga jawnej akcji recovery
@@ -5643,7 +5697,7 @@ Testy:
 
 Implementacja:
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–343, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/pages/Hero/Hero.module.css`, linie 1–944 — tokeny Swiss, responsywne hero, `.copyExample`, `.finalCta`, focus-visible i ograniczenie ruchu.
 - `frontend/src/pages/Hero/Hero.test.js`, linie 1–47 — granice konta i Pro, starty i zdarzenia CTA, kanoniczne plany, dostępna galeria i FAQ.
 - `frontend/src/utils/authSession.js`, funkcja `getEditorPath` — buduje `/cvstudio/guest` albo `/cvstudio/{username}` (plus opcjonalne `?start=` i parametr `template` tylko dla konfiguracji)
@@ -6868,10 +6922,10 @@ Support produkcyjny może przypisać `free` lub `pro` przez `POST /billing/admin
 
 - `backend/app/services/entitlements.py`, linie 37–70 (`PLAN_SEEDS`), 422–477 (`get_entitlements`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`) i 724–771 (`record_cv_import`); kredyty asystenta pozostają w `charge_ai_credits`
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, linie 1–97, migracja `20260831_0008` — aktualizuje istniejące produkcyjne rekordy Darmowego bez zmiany znaczników starszych plików
-- `backend/app/api/routes/billing.py`, linie 49–106 (`get_plans`, `select_plan`) i 147–214 (`admin_set_user_plan`) — wybór planu w produkcie oraz chroniona sekretem ścieżka supportu dla dokładnego konta
+- `backend/app/api/routes/billing.py`, linie 52–116 (`get_plans`, `select_plan`) i 147–214 (`admin_set_user_plan`) — wybór planu w produkcie oraz chroniona sekretem ścieżka supportu dla dokładnego konta
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 22–175, komponent `PlanSelectModal` — dostępny modal dwóch planów ze stanami ładowania, fallbacku, planu bieżącego, operacji, sukcesu i błędu
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–343, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/templates/index.js`, linie 19–33, rejestr `TEMPLATES` — trzy wysyłane pakiety elementów Free i sześć metadata-only, server-materialized wpisów Pro
 - `frontend/src/hooks/useEntitlements.js`, linie 3–49, hook `useEntitlements`
 
@@ -6895,7 +6949,7 @@ Implementacja:
 
 - `backend/alembic/versions/20260829_0007_cloudflare_cv_import_quota.py`, linie 1–70, migracja `20260829_0007` — dodaje nullable `plans.max_cv_imports_per_month` i wyzerowane `usage_counters.cv_imports_count`; downgrade usuwa tylko te kolumny
 - `backend/alembic/versions/20260831_0008_free_plan_contract.py`, migracja `20260831_0008` — stosuje kontrakt jednego importu, trzech eksportów, jednego projektu i braku AI do istniejącego rekordu katalogu, zachowując prawdziwe znaczniki starszych plików
-- `backend/app/models/models.py`, linie 1–586, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
+- `backend/app/models/models.py`, linie 1–603, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
 - `backend/app/services/entitlements.py`, linie 362–413 (`_usage_row`), 480–523 (`assert_can_create_project`), 589–603 (`assert_can_extract_cv`), 620–648 (`assert_template_allowed`), 651–721 (`record_export`) i 724–771 (`record_cv_import`) — odporne na wyścigi limity Free, transakcyjny claim importu i kontrola płatnych szablonów
 - `backend/app/api/routes/ai.py`, linie 267–400, funkcja `extract_cv`, oraz `backend/app/crud/cv_import_snapshots.py`, linie 71–100, funkcja `mark_snapshot_succeeded` — jedna transakcja sukcesu dla claimu importu i snapshotu, z bezpiecznym rollbackiem/mapowaniem błędów
 - `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, komponent `AiCvPanel` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
@@ -6962,10 +7016,10 @@ Implementacja:
 - `backend/app/services/email_verification.py`, linie 29–68 — `issue_email_verification_token`, `consume_email_verification_token`
 - `backend/app/services/email_service.py`, linie 20–102 — `_safe_provider_error`, `send_verification_email`
 - `backend/app/services/google_auth_service.py`, linie 7–18 — `verify_google_credential`
-- `backend/app/api/routes/billing.py`, linie 68–136 i 262–331 — `select_plan`, `stripe_webhook`, `checkout_session_status`
+- `backend/app/api/routes/billing.py`, linie 71–146 i 272–341 — `select_plan`, `stripe_webhook`, `checkout_session_status`
 - `backend/app/services/stripe_service.py`, linie 17–37, i `billing_service.py`, linie 18–68 — granica hostowanego Checkout oraz `fulfill_pro_payment`
 - `backend/app/core/security.py` — Argon2id, rehash legacy bcrypt po udanym logowaniu, kanoniczna tożsamość i wersjonowany JWT Bearer
-- `frontend/src/pages/Auth/VerifyEmail.jsx`, linie 6–61; `frontend/src/components/common/GoogleSignInButton/GoogleSignInButton.jsx`, linie 3–78; `frontend/src/services/authApi.js`, linie 2–43; `frontend/src/pages/Billing/CheckoutResult.jsx`, linie 3–55; i `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 22–198 — weryfikacja, logowanie/łączenie, przekierowanie Checkout i prawdziwe stany powrotu
+- `frontend/src/pages/Auth/VerifyEmail.jsx`, linie 6–61; `frontend/src/components/common/GoogleSignInButton/GoogleSignInButton.jsx`, linie 3–78; `frontend/src/services/authApi.js`, linie 2–43; `frontend/src/pages/Billing/CheckoutResult.jsx`, linie 3–57; i `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 22–198 — weryfikacja, logowanie/łączenie, przekierowanie Checkout i prawdziwe stany powrotu
 
 Testy: `backend/tests/test_auth_providers_and_stripe.py`,
 `backend/tests/test_alembic_auth_billing_migration.py`,
@@ -7162,7 +7216,7 @@ Implementacja: `frontend/src/utils/savedTextLayout.js`, linie 1–38, `preserveS
 Testy: `frontend/src/utils/savedTextLayout.test.js`, linie 1–38; `frontend/src/hooks/useDirtyGuard.runtime.test.jsx`, linie 1–95; `frontend/src/components/common/RecoverySurfaces.runtime.test.jsx`; `frontend/e2e/unsaved-changes.spec.js`, linie 1–102. Uruchom `npm --prefix frontend run test:runtime -- src/hooks/useDirtyGuard.runtime.test.jsx src/components/common/RecoverySurfaces.runtime.test.jsx` oraz `npm --prefix frontend run test:e2e -- e2e/unsaved-changes.spec.js --workers=1`. Dane przeglądarkowe obejmują 390/834/1280/1920px, profile desktop/dotyk, ograniczony ruch, powiększenie tekstu 200%, przywracanie fokusu, błąd/ponowienie zapisu i treść pierwszego zapisu bez zapisów do produkcyjnego API.
 
 
-Edytor utrzymuje monotoniczną epokę dokumentu i lokalną rewizję. Operacje async przechwytują scope i mogą zatwierdzić wynik tylko, gdy nadal jest aktualny, więc spóźniona odpowiedź starego dokumentu nie nadpisze nowo otwartego. Dirty state powstaje ze stabilnego persisted snapshot, który pomija tymczasowe flagi selection/edit/resize. Blokada React Router i `beforeunload` chronią pracę zalogowaną; nawigacja gościa najpierw flushuje lokalny draft. Dostępny dialog odrzucenia przywraca fokus i domyślnie wybiera najmniej destrukcyjną akcję. Error Boundary trasy i canvasu resetują się po zmianie sesji dokumentu, pokazują markową akcję recovery i nigdy nie renderują surowego wyjątku ani treści CV. Implementacja: `frontend/src/store/document-lifecycle-context.jsx`, linie 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, linie 9–68; `frontend/src/hooks/useDirtyGuard.js`, linie 9–161; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, linie 14–93; `frontend/src/App.jsx`, linie 4–130. Testy: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime testy Error Boundary i `frontend/e2e/editor-smoke.spec.js`.
+Edytor utrzymuje monotoniczną epokę dokumentu i lokalną rewizję. Operacje async przechwytują scope i mogą zatwierdzić wynik tylko, gdy nadal jest aktualny, więc spóźniona odpowiedź starego dokumentu nie nadpisze nowo otwartego. Dirty state powstaje ze stabilnego persisted snapshot, który pomija tymczasowe flagi selection/edit/resize. Blokada React Router i `beforeunload` chronią pracę zalogowaną; nawigacja gościa najpierw flushuje lokalny draft. Dostępny dialog odrzucenia przywraca fokus i domyślnie wybiera najmniej destrukcyjną akcję. Error Boundary trasy i canvasu resetują się po zmianie sesji dokumentu, pokazują markową akcję recovery i nigdy nie renderują surowego wyjątku ani treści CV. Implementacja: `frontend/src/store/document-lifecycle-context.jsx`, linie 1–86; `frontend/src/utils/persistedDocumentSnapshot.js`, linie 9–68; `frontend/src/hooks/useDirtyGuard.js`, linie 9–161; `frontend/src/components/common/ErrorBoundary/ErrorBoundary.jsx`, linie 14–93; `frontend/src/App.jsx`, linie 4–133. Testy: `frontend/src/utils/documentLifecycleGuards.test.js`, `frontend/src/utils/persistedDocumentSnapshot.test.js`, runtime testy Error Boundary i `frontend/e2e/editor-smoke.spec.js`.
 
 #### Readiness, katalog i stronicowana historia importów
 

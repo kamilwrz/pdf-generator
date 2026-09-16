@@ -25,6 +25,7 @@ const DocumentsPage = workspacePage(() => import('./pages/Site/DocumentsPage'));
 const AccountPage = workspacePage(() => import('./pages/Site/AccountPage'));
 const CareerProfilePage = workspacePage(() => import('./pages/Site/CareerProfilePage'));
 const InterviewPage = workspacePage(() => import('./pages/Site/InterviewPage'));
+const TailoringPage = workspacePage(() => import('./pages/Site/TailoringPage'));
 const TemplatesPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatesPage })));
 const TemplatePage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatePage })));
 const PricingPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.PricingPage })));
@@ -90,6 +91,8 @@ const router = createBrowserRouter([
   { path: "/app/account", element: <RequireSession><AccountPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/career-profile", element: <RequireSession><CareerProfilePage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/interview", element: <RequireSession><InterviewPage /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/app/tailor", element: <TailoringPage />, errorElement: <RouteErrorPage /> },
+  { path: "/app/tailor/:flowId", element: <RequireSession><TailoringPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/interview/:sessionId", element: <RequireSession><InterviewPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/new", element: <CreateCvRoute />, errorElement: <RouteErrorPage /> },
   { path: "/app/import", element: <StartRoute start="import" />, errorElement: <RouteErrorPage /> },

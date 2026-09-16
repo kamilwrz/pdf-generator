@@ -435,5 +435,8 @@
   "account": {
     "planSelectModal.pln": "zł",
     "accountPage.profileAndSavedInterviews": "Profil i zapisane rozmowy"
+  },
+  "tailoring": {
+    "title": "Dopasuj CV do oferty"
   }
 }

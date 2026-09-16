@@ -1,5 +1,8 @@
 {
-  "interview_quality_not_ready": {"pl": "Treść CV nadal wymaga poprawy czytelności po jednej próbie redakcji. Nie pokazaliśmy jej jako gotowego wyniku. Twoje odpowiedzi są zapisane. Możesz spróbować ponownie; kolejna próba korzysta z kredytów AI.", "en": "The CV still needs readability improvements after one repair attempt. It has not been presented as a finished result. Your answers are saved. You can try again; another attempt uses AI credits."},
+  "interview_quality_not_ready": {
+    "pl": "Treść CV nadal wymaga poprawy czytelności po jednej próbie redakcji. Nie pokazaliśmy jej jako gotowego wyniku. Twoje odpowiedzi są zapisane. Możesz spróbować ponownie; kolejna próba korzysta z kredytów AI.",
+    "en": "The CV still needs readability improvements after one repair attempt. It has not been presented as a finished result. Your answers are saved. You can try again; another attempt uses AI credits."
+  },
   "interview_answer_help_unavailable": {
     "pl": "Przy tym pytaniu potrzebna jest Twoja własna informacja. Wpisz odpowiedź, wybierz Nie pamiętam albo Pomiń.",
     "en": "This question needs information only you can provide. Write your answer, choose I cannot remember or Skip."
@@ -631,5 +634,25 @@
   "interview_source_required": {
     "pl": "Wywiad i edycja profilu wymagają CV lub udanego importu z danymi, w tym imieniem i nazwiskiem. Najpierw uzupełnij i zapisz CV albo zaimportuj PDF. Sam profil konta i dodatkowe notatki nie wystarczą.",
     "en": "Interviews and profile editing require a CV or successful import containing candidate details, including a full name. First complete and save a CV or import a PDF. An account profile and additional notes alone are not enough."
+  },
+  "tailoring_not_found": {
+    "pl": "Nie znaleziono tego dopasowania.",
+    "en": "This tailoring flow was not found."
+  },
+  "tailoring_conflict": {
+    "pl": "Ten proces zmienił się w innym oknie. Wczytaj zapisany stan przed dalszą pracą.",
+    "en": "This flow changed in another window. Load saved progress before continuing."
+  },
+  "tailoring_source_required": {
+    "pl": "Wybierz dostępne CV lub udany import.",
+    "en": "Choose an available CV or successful import."
+  },
+  "tailoring_source_changed": {
+    "pl": "Źródłowe CV uległo zmianie. Wróć do kroku Twoje CV i sprawdź aktualne informacje.",
+    "en": "The source CV changed. Return to Your CV and check the current information."
+  },
+  "tailoring_offer_required": {
+    "pl": "Dodaj treść oferty albo publiczny link HTTPS.",
+    "en": "Add the job description or a public HTTPS link."
   }
 }

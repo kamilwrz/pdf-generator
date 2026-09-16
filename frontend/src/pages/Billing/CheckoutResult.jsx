@@ -7,6 +7,7 @@ import SiteLayout from "../../components/common/SiteLayout/SiteLayout";
 import classes from "../../components/common/SiteLayout/SiteLayout.module.css";
 import { ApiClient, ENDPOINTS } from "../../services/api";
 import { getEditorPath } from "../../utils/authSession";
+import { safeReturnTo } from "../../utils/siteRoutes";
 
 const POLL_DELAYS = [0, 1000, 1800, 3000, 5000];
 
@@ -14,6 +15,7 @@ export default function CheckoutResult({ variant }) {
   useTranslation();
   const [params] = useSearchParams();
   const sessionId = params.get("session_id") || "";
+  const returnTo = safeReturnTo(params.get('returnTo'));
   const [state, setState] = useState(
     variant === "cancel" ? "cancel" : sessionId ? "checking" : "error",
   );
@@ -48,8 +50,8 @@ export default function CheckoutResult({ variant }) {
 
   return <SiteLayout title={copy[0]} intro={copy[1]}>
     <section className={state === "error" ? classes.error : classes.section} aria-live="polite">
-      <p>{state === "checking" ? "Weryfikacja…" : copy[1]}</p>
-      <div className={classes.actions}><Link className={classes.primary} to="/app/account">{uiText("account:checkoutResult.goToAccount")}</Link><Link className={classes.secondary} to={getEditorPath()}>{uiText("account:checkoutResult.backToCv")}</Link></div>
+      <p>{state === "checking" ? copy[0] : copy[1]}</p>
+      <div className={classes.actions}>{returnTo ? <Link className={classes.primary} to={returnTo}>{uiText('tailoring:returnToFlow')}</Link> : <Link className={classes.primary} to="/app/account">{uiText("account:checkoutResult.goToAccount")}</Link>}{!returnTo && <Link className={classes.secondary} to={getEditorPath()}>{uiText("account:checkoutResult.backToCv")}</Link>}</div>
     </section>
   </SiteLayout>;
 }
