@@ -11,6 +11,7 @@ import { useEntitlements } from '../../hooks/useEntitlements';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import InterviewFlow from '../../components/ai/Interview/InterviewFlow';
 import CvContent from '../../components/ai/Interview/CvContent';
+import SavedConversationDetails from './SavedConversationDetails';
 import ui from '../../components/common/SiteLayout/SiteLayout.module.css';
 import styles from './TailoringPage.module.css';
 
@@ -64,9 +65,17 @@ function FlowList() {
     <button className={ui.primary} disabled={busy} onClick={create}>{busy ? t('tailoring:working') : t('tailoring:begin')}</button>
     {error && <div role="alert" className={ui.error}><p>{error.message}</p><button className={ui.secondary} onClick={load}>{t('tailoring:reload')}</button></div>}
     {loading && <p role="status">{t('tailoring:loading')}</p>}
-    {items.length > 0 && <><h2 className={styles.listTitle}>{t('tailoring:resume')}</h2><ul className={styles.list}>{items.map((item, index) => <li key={item.id}>
-      <Link to={`/app/tailor/${item.id}`}>{t('tailoring:savedFlow', { number: index + 1 })}</Link><span>{new Date(item.updated_at).toLocaleDateString(getUiLanguage() === 'en' ? 'en-GB' : 'pl-PL')}</span>
-    </li>)}</ul></>}
+    {items.length > 0 && <section aria-labelledby="tailoring-history-title">
+      <h2 id="tailoring-history-title" className={styles.listTitle}>{t('tailoring:resume')}</h2>
+      <ul className={styles.list}>{items.map(item => <li key={item.id} aria-labelledby={`tailoring-title-${item.id}`}>
+        <SavedConversationDetails session={{ ...item, mode: 'tailor' }} titleId={`tailoring-title-${item.id}`} />
+        <div className={`${ui.actions} ${styles.listActions}`}>
+          <Link className={ui.secondary} to={`/app/tailor/${item.id}`} aria-describedby={`tailoring-title-${item.id}`}>{t('tailoring:history.continue')}</Link>
+          {item.document_id && <Link className={ui.secondary} to={`/app/documents/${item.document_id}`} aria-describedby={`tailoring-title-${item.id}`}>{t('tailoring:edit')}</Link>}
+        </div>
+      </li>)}</ul>
+    </section>}
+    {!loading && !error && items.length === 0 && <p className={styles.hint}>{t('tailoring:history.empty')}</p>}
   </section>;
 }
 

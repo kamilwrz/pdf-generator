@@ -10,11 +10,14 @@ This guide describes the account-owned `/app/tailor` workflow. The README's **Gu
 backend/
   alembic/versions/20260916_0019_tailoring_flows.py
   app/api/routes/tailoring.py
+  app/services/tailoring_history.py
+  tests/test_tailoring_history.py
   tests/test_tailoring.py
 frontend/
   src/pages/Site/TailoringPage.jsx
   src/pages/Site/TailoringPage.module.css
   e2e/tailoring.spec.js
+  e2e/tailoring-history.spec.js
 ```
 
 The migration adds owned intake storage. The route module validates and stores intake, resolves an owned source and joins one existing interview. The page owns navigation, serial autosave, recovery and PDF handoff; its CSS uses application tokens. Tests cover ownership, revisions, payment boundaries, privacy and browser interaction. Registration in `backend/app/main.py` and the database readiness gate make the route available only when storage is ready. The frontend route is lazy-loaded through `frontend/src/App.jsx`.
@@ -61,12 +64,12 @@ Paths below are backend paths; browser requests use the configured API prefix. A
 
 | Method and path | Handler and lines in `app/api/routes/tailoring.py` | Input / successful response |
 | --- | --- | --- |
-| GET `/tailoring` | `list_flows`, 80–85 | Latest 50 owned drafts, ordered by update; `{"items":[{"id":"UUID","updated_at":"UTC timestamp","started":false}]}` |
-| GET `/tailoring/sources` | `sources`, 88–91 | Existing eligible source metadata: `documents` and `imports` arrays |
-| GET `/tailoring/{flow_id}` | `get_flow`, 94–97 | Full saved flow payload, no AI call |
-| PUT `/tailoring/{flow_id}` | `save_flow`, 100–140 | Intake contract below; returns full payload. Revision 0 creates; matching revisions update; identical retries return current payload |
-| POST `/tailoring/{flow_id}/start` | `start_flow`, 143–201 | `{"revision":1}`; returns payload with the one session ID. Requires Pro before creation; existing confirmed session can be recovered without another charge |
-| DELETE `/tailoring/{flow_id}` | `delete_flow`, 204–209 | No body; `{"deleted":true}`; deletes intake only |
+| GET `/tailoring` | `list_flows`, 81–87 | Latest 50 owned intake drafts, returned in combined intake/interview activity order; `{ "items": [...] }` with saved offer/source identity, phase, timestamps, answer count and available result. See [Identifiable saved tailoring](../README.md#identifiable-saved-tailoring) for the complete summary contract and limit. |
+| GET `/tailoring/sources` | `sources`, 90–93 | Existing eligible source metadata: `documents` and `imports` arrays |
+| GET `/tailoring/{flow_id}` | `get_flow`, 96–99 | Full saved flow payload, no AI call |
+| PUT `/tailoring/{flow_id}` | `save_flow`, 102–142 | Intake contract below; returns full payload. Revision 0 creates; matching revisions update; identical retries return current payload |
+| POST `/tailoring/{flow_id}/start` | `start_flow`, 145–203 | `{"revision":1}`; returns payload with the one session ID. Requires Pro before creation; existing confirmed session can be recovered without another charge |
+| DELETE `/tailoring/{flow_id}` | `delete_flow`, 206–211 | No body; `{"deleted":true}`; deletes intake only |
 
 Intake example (replace `source_id` with an owned saved CV; IDs and text are illustrative):
 
@@ -134,11 +137,14 @@ Przewodnik opisuje należącą do konta ścieżkę `/app/tailor`. Sekcja README 
 backend/
   alembic/versions/20260916_0019_tailoring_flows.py
   app/api/routes/tailoring.py
+  app/services/tailoring_history.py
+  tests/test_tailoring_history.py
   tests/test_tailoring.py
 frontend/
   src/pages/Site/TailoringPage.jsx
   src/pages/Site/TailoringPage.module.css
   e2e/tailoring.spec.js
+  e2e/tailoring-history.spec.js
 ```
 
 Migracja dodaje zapis danych wejściowych przypisanych do właściciela. Moduł tras sprawdza i zapisuje formularz, odczytuje własne źródło i łączy je z jednym istniejącym wywiadem. Strona odpowiada za nawigację, kolejkę zapisów, odzyskiwanie i przekazanie PDF; CSS używa tokenów aplikacji. Testy obejmują właściciela, rewizje, granice płatności, prywatność i obsługę przeglądarki. Rejestracja w `backend/app/main.py` i kontrola gotowości bazy udostępniają trasę dopiero po przygotowaniu zapisu. Frontend ładuje stronę na żądanie przez `frontend/src/App.jsx`.
@@ -185,12 +191,12 @@ Poniżej podano ścieżki backendu; przeglądarka używa skonfigurowanego prefik
 
 | Metoda i ścieżka | Handler i wiersze w `app/api/routes/tailoring.py` | Dane wejściowe / poprawna odpowiedź |
 | --- | --- | --- |
-| GET `/tailoring` | `list_flows`, 80–85 | Najnowszych 50 własnych formularzy według aktualizacji; `{"items":[{"id":"UUID","updated_at":"czas UTC","started":false}]}` |
-| GET `/tailoring/sources` | `sources`, 88–91 | Istniejące metadane dostępnych źródeł: tablice `documents` i `imports` |
-| GET `/tailoring/{flow_id}` | `get_flow`, 94–97 | Pełny zapisany stan, bez AI |
-| PUT `/tailoring/{flow_id}` | `save_flow`, 100–140 | Kontrakt poniżej; zwraca pełny stan. Rewizja 0 tworzy; zgodna rewizja aktualizuje; identyczne ponowienie zwraca bieżący stan |
-| POST `/tailoring/{flow_id}/start` | `start_flow`, 143–201 | `{"revision":1}`; zwraca stan z jednym ID sesji. Wymaga Pro przed utworzeniem; potwierdzoną sesję można odzyskać bez kolejnego naliczenia |
-| DELETE `/tailoring/{flow_id}` | `delete_flow`, 204–209 | Bez treści żądania; `{"deleted":true}`; usuwa wyłącznie formularz |
+| GET `/tailoring` | `list_flows`, 81–87 | Najnowszych 50 własnych formularzy, zwracanych według łącznej aktywności formularza/rozmowy; `{ "items": [...] }` z zapisaną ofertą/źródłem, etapem, datami, liczbą odpowiedzi i dostępnym wynikiem. Pełny kontrakt i limit: [Rozpoznawalne zapisane dopasowania](../README.md#rozpoznawalne-zapisane-dopasowania). |
+| GET `/tailoring/sources` | `sources`, 90–93 | Istniejące metadane dostępnych źródeł: tablice `documents` i `imports` |
+| GET `/tailoring/{flow_id}` | `get_flow`, 96–99 | Pełny zapisany stan, bez AI |
+| PUT `/tailoring/{flow_id}` | `save_flow`, 102–142 | Kontrakt poniżej; zwraca pełny stan. Rewizja 0 tworzy; zgodna rewizja aktualizuje; identyczne ponowienie zwraca bieżący stan |
+| POST `/tailoring/{flow_id}/start` | `start_flow`, 145–203 | `{"revision":1}`; zwraca stan z jednym ID sesji. Wymaga Pro przed utworzeniem; potwierdzoną sesję można odzyskać bez kolejnego naliczenia |
+| DELETE `/tailoring/{flow_id}` | `delete_flow`, 206–211 | Bez treści żądania; `{"deleted":true}`; usuwa wyłącznie formularz |
 
 Przykład formularza (zastąp `source_id` własnym zapisanym CV; identyfikatory i tekst są przykładowe):
 

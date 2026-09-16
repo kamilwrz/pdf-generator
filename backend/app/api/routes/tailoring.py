@@ -1,7 +1,7 @@
 """Persist Free intake before Pro, then reuse the existing interview pipeline."""
 from datetime import datetime
 from typing import Literal
-from uuid import UUID, uuid5, NAMESPACE_URL
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import Field
@@ -15,6 +15,7 @@ from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.schemas.interview_schema import Contract, InterviewCreate, ConfirmWrite
 from app.services import interview_service as service
 from app.services.interview_sources import available_interview_sources, has_interview_source
+from app.services.tailoring_history import flow_session_id, tailoring_summaries
 from app.api.routes.interviews import create_interview, confirm_interview
 
 router = APIRouter(prefix="/tailoring", tags=["tailoring"])
@@ -64,7 +65,7 @@ def source_data(db, user, state):
 def session_for(db, user, row):
     # The deterministic key also recovers a crash after interview creation but
     # before its response. No second session or paid request is needed.
-    session_id = str(uuid5(NAMESPACE_URL, f"interview:{user.id}:tailor-{row.id}"))
+    session_id = flow_session_id(user.id, row.id)
     return db.query(InterviewSession).filter_by(id=session_id, owner_id=user.id).first()
 
 
@@ -79,10 +80,11 @@ def payload(db, user, row):
 
 @router.get("")
 def list_flows(user=Depends(get_current_user), db=Depends(get_db)):
-    """List the latest 50 owned drafts; opening a list never invokes AI."""
-    rows = db.query(TailoringFlow).filter_by(owner_id=user.id).order_by(TailoringFlow.updated_at.desc()).limit(50).all()
-    return {"items": [{"id": row.id, "updated_at": row.updated_at,
-                       "started": bool(row.state.get("locked"))} for row in rows]}
+    """Describe the latest 50 owned intake drafts, including interview activity."""
+    rows = db.query(TailoringFlow).filter_by(owner_id=user.id).order_by(
+        TailoringFlow.updated_at.desc(), TailoringFlow.created_at.desc(), TailoringFlow.id.desc(),
+    ).limit(50).all()
+    return {"items": tailoring_summaries(db, user.id, rows)}
 
 
 @router.get("/sources")

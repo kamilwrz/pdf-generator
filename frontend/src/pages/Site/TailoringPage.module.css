@@ -19,11 +19,12 @@
 .review summary { min-height: var(--control-height); cursor: pointer; font-weight: 600; }
 .review article { max-height: 50dvh; overflow: auto; padding: var(--space-4); background: var(--color-canvas); }
 .panel .listTitle { margin-top: var(--space-8); }
-.list { padding: 0; list-style: none; }
-.list li { display: flex; flex-wrap: wrap; gap: var(--space-4); justify-content: space-between; border-top: 1px solid var(--color-border); padding-block: var(--space-3); }
-.list a { display: inline-flex; align-items: center; min-height: var(--control-height); }
+.list { padding: 0; margin: 0; list-style: none; }
+.list > li { display: flex; align-items: start; flex-wrap: wrap; gap: var(--space-4) var(--space-6); border-top: 1px solid var(--color-border); padding-block: var(--space-6); }
+.list .listActions { margin: 0; flex: 0 1 auto; }
 @media (max-width: 768px) {
   .panel { padding: var(--space-4); }
+  .list .listActions { width: 100%; }
   .steps { display: flex; flex-wrap: wrap; }
   .steps li { padding: var(--space-2); font-size: var(--text-ui, .875rem); }
 }
