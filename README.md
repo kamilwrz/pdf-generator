@@ -9,6 +9,8 @@ Implementation: `frontend/src/pages/Hero/Hero.jsx`, lines 135–144, `Hero`; `fr
 
 ## Guided CV tailoring to a job advert
 
+The shared intake message asks users to upload their CV and add the advert they are applying for. It distinguishes preparing details on Free from AI tailoring on Pro; adding an advert means providing its text or link, not publishing a vacancy. The existing import allowance still applies. This wording is shared by the guest entry, saved-task list and intake steps through `tailoring.price` in both UI languages.
+
 The implemented `/app/tailor` route guides a signed-in user through **Your CV → Job advert → Questions → Review CV → Download**. It is linked from the homepage, workspace navigation and document library. Manual creation remains available. Guests see the price and account entry before uploading personal information.
 
 1. Upload a PDF (up to 10 MB, within the existing import allowance), or select an owned CV/successful import. Review the extracted information.
@@ -3841,6 +3843,8 @@ Implementacja: `frontend/src/pages/Hero/Hero.jsx`, wiersze 135–144, `Hero`; `f
 
 
 ## Prowadzone dopasowanie CV do oferty pracy
+
+Wspólny komunikat prosi o wgranie CV i wskazanie ogłoszenia, na które użytkownik aplikuje. Rozróżnia przygotowanie danych na Free od dopasowania z AI w Pro; dodanie ogłoszenia oznacza podanie treści lub linku, a nie publikację wakatu. Nadal obowiązuje dotychczasowy limit importów. Tekst jest wspólny dla wejścia gościa, listy zapisanych zadań i etapów formularza przez `tailoring.price` w obu językach interfejsu.
 
 Zaimplementowana trasa `/app/tailor` prowadzi zalogowaną osobę przez **Twoje CV → Oferta pracy → Pytania → Sprawdź CV → Pobierz**. Wejścia znajdują się na stronie głównej, w nawigacji aplikacji i bibliotece dokumentów. Ręczne tworzenie pozostaje dostępne. Gość widzi cenę i przejście do konta przed przesłaniem danych osobowych.
 
