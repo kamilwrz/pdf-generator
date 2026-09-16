@@ -44,27 +44,32 @@ export default function InterviewCredits({ sessionId, revision, busy, entitlemen
   const readStatus = busy ? t('interview:credits.working') : loading ? t('interview:credits.loading') : failed ? t('interview:credits.error') : null;
 
   return <section className={classes.credits} aria-label={t('interview:credits.title')}>
-    <div role="status" aria-live="polite" aria-atomic="true">
-      <div className={classes.summary}>
-        <p><strong>{t('interview:credits.total')}</strong> {data ? credits(data.credits_charged) : '—'}</p>
-        {showBalance && <p><strong>{t('interview:credits.remaining')}</strong> {knownBalance ? credits(remaining) : t('interview:credits.unavailable')}</p>}
-        {/* Keep the last receipt readable while the next charge is unknown. */}
-        {latest && <p>{t('interview:credits.latest', { operation: operation(latest.operation), cost: status(latest) })}</p>}
-        {!latest && !readStatus && <p>{t('interview:credits.empty')}</p>}
+    <details className={classes.history}>
+      <summary>
+        <span>{t('interview:credits.title')}</span>
+        <span className={classes.metric} aria-live="polite" aria-atomic="true">{t('interview:credits.usedShort')} <strong>{data ? number(data.credits_charged) : '—'}</strong></span>
+        {showBalance && <span className={classes.metric}>{t('interview:credits.balanceShort')} <strong>{knownBalance ? number(remaining) : '—'}</strong></span>}
+        {(busy || loading || data?.requests.some(item => item.pending)) && <span className={classes.hint}>{t('interview:credits.pending')}</span>}
+      </summary>
+      <div role="status" aria-live="polite" aria-atomic="true">
+        <div className={classes.summary}>
+          <p><strong>{t('interview:credits.total')}</strong> {data ? credits(data.credits_charged) : '—'}</p>
+          {showBalance && <p><strong>{t('interview:credits.remaining')}</strong> {knownBalance ? credits(remaining) : t('interview:credits.unavailable')}</p>}
+          {latest && <p>{t('interview:credits.latest', { operation: operation(latest.operation), cost: status(latest) })}</p>}
+          {!latest && !readStatus && <p>{t('interview:credits.empty')}</p>}
+        </div>
+        {readStatus && !failed && <p className={classes.notice}>{readStatus}</p>}
       </div>
-      {readStatus && <p className={classes.notice}>{readStatus}</p>}
-    </div>
-    {failed && <button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button>}
-    {latest ? <details className={classes.history}>
-      <summary>{t('interview:credits.history', { count: data.requests.length })}</summary>
       <p className={classes.hint}>{t('interview:credits.free')}</p>
-      <ol>{data.requests.map((item) => <li key={item.id}>
+      {latest && <p className={classes.hint}>{t('interview:credits.history', { count: data.requests.length })}</p>}
+      <ol>{data?.requests.map((item) => <li key={item.id}>
         <div className={classes.summary}><strong>{operation(item.operation)}</strong><span>{status(item)}</span></div>
         <time dateTime={item.created_at}>{new Intl.DateTimeFormat(getUiLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.created_at))}</time>
         <ul>{item.stages.map((stage, index) => <li key={index}>{operation(stage.operation === 'preview' ? 'draft' : stage.operation)}: {stage.status === 'pending' ? t('interview:credits.pending') : credits(stage.credits_charged)}{stage.status === 'failed' ? ` · ${t('interview:credits.failedStage')}` : ''}</li>)}</ul>
       </li>)}</ol>
-      <p className={classes.hint}>{t('interview:credits.recovery')}</p>
-      {!failed && data.requests.some((item) => item.pending) && <button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button>}
-    </details> : <p className={classes.hint}>{t('interview:credits.free')}</p>}
+      {latest && <p className={classes.hint}>{t('interview:credits.recovery')}</p>}
+      {!failed && data?.requests.some((item) => item.pending) && <button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button>}
+    </details>
+    {failed && <div role="status"><p className={classes.notice}>{readStatus}</p><button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button></div>}
   </section>;
 }

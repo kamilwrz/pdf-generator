@@ -200,7 +200,7 @@ describe('interview task navigation', () => {
     ], imports: [] } };
     const user = userEvent.setup();
     renderInterview({ sessionId: undefined });
-    const source = await screen.findByLabelText('Źródło informacji');
+    const source = await screen.findByLabelText('Twoje CV');
     await user.selectOptions(source, 'document:30');
     const summary = screen.getByText('Dodaj notatkę (opcjonalnie)', { exact: true });
     const disclosure = summary.closest('details');

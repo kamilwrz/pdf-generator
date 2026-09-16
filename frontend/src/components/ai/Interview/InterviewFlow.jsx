@@ -359,8 +359,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const canExtend = !session?.discovery_complete && session?.question_limit < 50
     && (session?.phase === 'review' || session?.phase === 'preview');
   return <section className={`${classes.flow} ${classes.interview}`} aria-label={uiText("interview:interviewFlow.careerInterview")}>
-    <div className={classes.utility}>{!guided && <Link aria-disabled={waiting} onClick={(event) => { if (waiting) event.preventDefault(); }} className={classes.link} to="/app/career-profile">{uiText("ai:task.profileHistory")}</Link>}<Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer" aria-label={uiText("interview:interviewFlow.interviewHelpNewTab")}>{uiText("ai:task.help")}</Link>{onClose && <button type="button" disabled={waiting} onClick={onClose}>{uiText("interview:interviewFlow.backToAssistant")}</button>}</div>
-    <h2 ref={heading} tabIndex={-1} className={classes.taskTitle}>{activePanel === 'prepare' ? uiText("interview:interviewFlow.prepareYourVersionOfTheCv") : reviewing ? uiText("interview:interviewFlow.reviewYourCvInformation") : session?.phase === 'clarification' ? uiText("interview:interviewFlow.letSClarifyTheDetails") : session?.phase === 'preview' ? uiText("interview:interviewFlow.yourNewCvVersion") : mode === 'tailor' || session?.mode === 'tailor' ? uiText("interview:interviewFlow.jobSpecificInterview") : uiText("interview:interviewFlow.conversationTitle")}</h2>
+    <header className={classes.taskHeader}><h2 ref={heading} tabIndex={-1} className={classes.taskTitle}>{activePanel === 'prepare' ? uiText("interview:interviewFlow.prepareYourVersionOfTheCv") : reviewing ? uiText("interview:interviewFlow.reviewYourCvInformation") : session?.phase === 'clarification' ? uiText("interview:interviewFlow.letSClarifyTheDetails") : session?.phase === 'preview' ? uiText("interview:interviewFlow.yourNewCvVersion") : mode === 'tailor' || session?.mode === 'tailor' ? uiText("interview:interviewFlow.jobSpecificInterview") : uiText("interview:interviewFlow.conversationTitle")}</h2><div className={classes.utility}>{!guided && <Link aria-disabled={waiting} onClick={(event) => { if (waiting) event.preventDefault(); }} className={classes.link} to="/app/career-profile">{uiText("ai:task.profileHistory")}</Link>}<Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer" aria-label={uiText("interview:interviewFlow.interviewHelpNewTab")}>{uiText("ai:task.help")}</Link>{onClose && <button type="button" disabled={waiting} onClick={onClose}>{uiText("interview:interviewFlow.backToAssistant")}</button>}</div></header>
     {error && <div className={classes.error} role="alert"><p>{error}</p><button disabled={busy} type="button" onClick={() => run(load)}>{uiText("interview:interviewFlow.loadSavedState")}</button></div>}
     <p role="status" aria-live="polite">{!waiting ? notice : ''}</p>
     {session && <InterviewCredits showBalance={!onClose} sessionId={session.id} revision={session.revision} busy={waiting} entitlements={entitlements} balanceLoading={balanceLoading} balanceError={balanceError} onRefreshBalance={() => { refresh(); onCreditsChanged?.(); }} />}
@@ -380,7 +379,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     {!profile && !error && <p>{uiText("interview:interviewFlow.loadingCareerProfile")}</p>}
     {!session && profile && <fieldset disabled={busy}>
       {(sourceReady || documents.length > 0 || imports.length > 0) && <>
-      <legend>{mode === 'tailor' ? uiText("interview:interviewFlow.addExperienceRelevantToThisJob") : uiText("interview:interviewFlow.whereShallWeStart")}</legend>
+      <legend className={classes.intakeLegend}>{mode === 'tailor' ? uiText("interview:interviewFlow.addExperienceRelevantToThisJob") : uiText("interview:interviewFlow.whereShallWeStart")}</legend>
       {mode === 'tailor' && <p>{uiText(initialSource?.analysis_key && notes.trim() === (initialSource.candidate_notes || '').trim() ? 'ai:jobMatch.reused' : 'ai:jobMatch.fresh')}</p>}
       <p id="interview-source-help">{uiText("interview:interviewFlow.chooseWhetherToUseYourProfileOr")}</p>
       {!initialSource && <><label>{uiText("interview:interviewFlow.informationSource")}<select value={source} onChange={(e) => {
@@ -487,7 +486,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             <button disabled={busy} onClick={() => saveAnswer('unknown', '')}>{uiText("interview:interviewFlow.iCannotRemember")}</button>
             <button disabled={busy} onClick={() => saveAnswer('skipped', '')}>{uiText("ai:aiAssistant.skip")}</button>
           </div></details></div>}
-        {session.phase !== 'completed' && !session.question && session.phase !== 'clarification' && <div className={classes.actions}>
+        {(guided || hasPending) && session.phase !== 'completed' && !session.question && session.phase !== 'clarification' && <div className={classes.actions}>
           <button disabled={busy || Boolean(assistedAnswer && assistedAnswer.questionId === session.question?.id)} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
         </div>}
         {!session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}>

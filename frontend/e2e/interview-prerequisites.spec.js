@@ -92,7 +92,7 @@ for (const language of ['pl', 'en']) {
       expect(writes).toHaveLength(0);
       ready = true;
       await page.goto('/app/interview');
-      const selector = page.getByLabel(en ? 'Information source' : 'Źródło informacji');
+      const selector = page.getByLabel(en ? 'Your CV' : 'Twoje CV');
       await selector.selectOption('document:30');
       await expect(page.getByRole('button', { name: en ? 'Start conversation' : 'Rozpocznij rozmowę', exact: true })).toBeEnabled();
       await expect(page.getByLabel(en ? 'This is my CV — include my career profile' : 'To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();

@@ -121,15 +121,15 @@ for (const width of [390, 834, 1280, 1920]) {
     await installInterviewApi(page);
     await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
     await page.goto('/app/interview');
-    await page.getByRole('combobox', { name: 'Information source', exact: true }).selectOption('document:30');
+    await page.getByRole('combobox', { name: 'Your CV', exact: true }).selectOption('document:30');
     await page.getByRole('button', { name: 'Start conversation', exact: true }).click();
     await page.getByRole('button', { name: 'Continue to conversation', exact: true }).click();
     await page.getByRole('button', { name: 'Next question', exact: true }).click();
     const credits = page.getByRole('region', { name: 'Conversation credits' });
-    await expect(credits).toContainText('Last AI request — Interview question: 7 credits');
-    await credits.getByText('AI request history (1)').focus();
+    await expect(credits).toContainText('Last AI request — Assistant question: 7 credits');
+    await credits.locator('summary').focus();
     await page.keyboard.press('Enter');
-    await expect(credits.getByText('Interview question: 7 credits', { exact: true })).toBeVisible();
+    await expect(credits.getByText('Assistant question: 7 credits', { exact: true })).toBeVisible();
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-credits-en-${width}.png`, fullPage: true });
@@ -140,7 +140,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const api = await installInterviewApi(page, true);
     await page.goto('/app/interview');
-    await page.getByLabel('Źródło informacji').selectOption('document:30');
+    await page.getByLabel('Twoje CV').selectOption('document:30');
+    await page.screenshot({ path: `../tmp/assistant-intake-${width}.png`, fullPage: true });
     await page.getByLabel('To moje CV — dołącz mój profil zawodowy').check();
     await page.getByRole('button', { name: 'Rozpocznij rozmowę', exact: true }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
@@ -148,7 +149,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByText(/Pytanie 1 z maksymalnie 8 · Zapisane odpowiedzi: 0/)).toBeVisible();
     const credits = page.getByRole('region', { name: 'Kredyty rozmowy' });
     await expect(credits).toContainText('Ostatnie zapytanie AI — Pytanie asystenta: 7 kredytów');
-    await credits.getByText('Historia zapytań AI (1)').focus();
+    await credits.locator('summary').focus();
     await page.keyboard.press('Enter');
     await expect(credits.getByText('Pytanie asystenta: 7 kredytów', { exact: true })).toBeVisible();
     await page.keyboard.press('Enter');
@@ -159,7 +160,7 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(api.calls.filter((call) => call.path.endsWith('/confirm'))).toHaveLength(1);
     await page.goto(`/app/interview/${ID}`);
     await expect(page.getByRole('region', { name: 'Kredyty rozmowy' })).toContainText('Zużycie w tej rozmowie: 7 kredytów');
-    await page.getByRole('button', { name: /Sprawdź informacje/ }).click();
+    await openInformation(page);
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await openPreparation(page);
     await page.getByLabel('Szablon nowego CV').selectOption('linden');
@@ -255,7 +256,7 @@ for (const width of [390, 834, 1280, 1920]) {
     // repeats its own settled cost, avoiding two competing balance readouts.
     await expect(flow.getByRole('region', { name: 'Kredyty rozmowy' })).not.toContainText('Pozostało na koncie:');
     await expect(page.getByTitle('Wykorzystano 18 z 200 kredytów AI w tym miesiącu')).toContainText('182');
-    await flow.getByText('Historia zapytań AI (1)').click();
+    await flow.getByRole('region', { name: 'Kredyty rozmowy' }).locator('summary').click();
     await expect(flow.getByText('Redakcja języka i stylu: 6 kredytów')).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-assistant-${width}.png`, fullPage: true });
     expect(await flow.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);

@@ -10,7 +10,13 @@
 .context dt { font-size: .75rem; color: var(--color-muted); }
 .context dd { margin: var(--space-1) 0 0; font-weight: 600; }
 .body .note { color: var(--color-muted); margin-bottom: 0; }
-.compact { padding-block: var(--space-3); margin-bottom: var(--space-4); }
+.compact { padding-block: var(--space-2); margin-bottom: var(--space-3); }
 .compact .body h3 { font-size: 1rem; }
 @keyframes travel { from { transform: translateX(-30%); } to { transform: translateX(215%); } }
 @media (prefers-reduced-motion: reduce) { .track span { animation: none; } }
+
+.compact .body { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; }
+.compact .body h3 { margin: 0; }
+.compact .track { grid-column: 1 / -1; grid-row: 2; margin: 0; }
+.compact .current { grid-column: 2; grid-row: 1; margin: 0; }
+.compact .note { grid-column: 1 / -1; }

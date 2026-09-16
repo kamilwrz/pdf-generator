@@ -109,7 +109,7 @@ describe('interview workflow', () => {
     expect(screen.getByText(/Omówiliśmy dostępne wpisy/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Odpowiedz na kolejne pytania/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sprawdź informacje' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Twoje informacje/ })).toBeEnabled();
     await user.click(prepare);
     expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeEnabled();
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
@@ -320,7 +320,7 @@ describe('candidate evidence separation', () => {
   it('defaults selected documents to isolated data and confirms without the owner profile', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    await user.selectOptions(await screen.findByLabelText('Źródło informacji'), 'document:30');
+    await user.selectOptions(await screen.findByLabelText('Twoje CV'), 'document:30');
     expect(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Rozpocznij rozmowę' }));
     await screen.findByRole('button', { name: 'Otwórz wpis: Anna Candidate' });
@@ -333,7 +333,7 @@ describe('candidate evidence separation', () => {
   it('requires a fresh same-person opt-in when switching documents', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    const select = await screen.findByLabelText('Źródło informacji');
+    const select = await screen.findByLabelText('Twoje CV');
     await user.selectOptions(select, 'document:30');
     await user.click(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy'));
     await user.selectOptions(select, 'document:31');
@@ -344,7 +344,7 @@ describe('candidate evidence separation', () => {
   });
   it('requires a CV selection even when the account profile contains a name', async () => {
     render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    await screen.findByLabelText('Źródło informacji');
+    await screen.findByLabelText('Twoje CV');
     expect(screen.queryByRole('option', { name: 'Mój profil zawodowy' })).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Nowe CV/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rozpocznij rozmowę' })).not.toBeInTheDocument();
@@ -524,7 +524,7 @@ for (const kind of ['document', 'import']) {
       sources: { documents: [{ id: 31, title: 'Other CV' }], imports: [] } };
     interviewRequest.mockImplementation(async (path) => path === '/career-profile' ? profile : session);
     render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    const select = await screen.findByLabelText('Źródło informacji');
+    const select = await screen.findByLabelText('Twoje CV');
     await user.selectOptions(select, 'profile');
     expect(screen.queryByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeInTheDocument();
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
@@ -543,7 +543,7 @@ it.each([null, { kind: 'document', id: 30 }])('does not offer an unavailable or 
   interviewRequest.mockResolvedValue({ revision: 1, facts: [fact], source_binding: binding, source_available: false,
     sources: { documents: [{ id: 31, title: 'Other CV' }], imports: [] } });
   render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-  await screen.findByLabelText('Źródło informacji');
+  await screen.findByLabelText('Twoje CV');
   expect(screen.queryByRole('option', { name: 'Profil zawodowy', exact: true })).not.toBeInTheDocument();
 });
 

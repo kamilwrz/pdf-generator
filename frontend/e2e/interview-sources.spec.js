@@ -36,7 +36,7 @@ for (const width of [390, 834, 1280, 1920]) {
       await route.fulfill({ json: session });
     });
     await page.goto('/app/interview');
-    const source = page.getByLabel('Źródło informacji');
+    const source = page.getByLabel('Twoje CV');
     await source.selectOption(width === 834 ? 'import:40' : 'document:30');
     const optIn = page.getByLabel('To moje CV — dołącz mój profil zawodowy');
     await expect(optIn).not.toBeChecked();
@@ -87,7 +87,7 @@ for (const lang of ['pl', 'en']) {
           source_cv_data: { name: 'Anna Profile' }, answers: [], proposed_facts: [], requirements: [], language: 'pl', confirmed: false } });
       });
       await page.goto('/app/interview');
-      const select = page.getByRole('combobox', { name: lang === 'pl' ? 'Źródło informacji' : 'Information source', exact: true });
+      const select = page.getByRole('combobox', { name: lang === 'pl' ? 'Twoje CV' : 'Your CV', exact: true });
       await select.selectOption('profile');
       await expect(page.getByRole('checkbox')).toHaveCount(0);
       await expect(select.locator('option:checked')).toHaveText(lang === 'pl' ? 'Profil zawodowy' : 'Career profile');

@@ -9,5 +9,5 @@ import classes from '../../components/ai/Interview/Interview.module.css';
 export default function InterviewPage() {
   useTranslation();
   const { sessionId } = useParams();
-  return <SiteLayout workspace compact title={uiText("interview:interviewPage.cvThroughAnInterview")} eyebrow={uiText("interview:interviewPage.interviewPro")} intro={uiText("interview:interviewPage.exploreYourExperienceInAnInterviewAnd")}><div className={classes.interviewWorkspace}><InterviewFlow key={sessionId || 'new'} sessionId={sessionId} /></div></SiteLayout>;
+  return <SiteLayout workspace compact dense title={uiText("interview:interviewPage.cvThroughAnInterview")} eyebrow={uiText("interview:interviewPage.interviewPro")}><div className={classes.interviewWorkspace}><InterviewFlow key={sessionId || 'new'} sessionId={sessionId} /></div></SiteLayout>;
 }

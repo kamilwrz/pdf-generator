@@ -13,11 +13,12 @@ const props = { sessionId: 'session', revision: 2, busy: false, entitlements: { 
 it('shows actual costs, free saves and native history in both languages', async () => {
   interviewRequest.mockResolvedValue(receipt);
   render(<InterviewCredits {...props} />);
+  await userEvent.setup().click(screen.getByText('Kredyty rozmowy', { selector: 'summary > span' }));
   await screen.findByText('Ostatnie zapytanie AI — Pytanie asystenta: 7 kredytów');
   expect(screen.getByText(/Pozostało na koncie:/).parentElement).toHaveTextContent('93 kredyty');
   // Native summary keyboard activation is covered in Chromium; jsdom only
   // implements its click default action.
-  await userEvent.setup().click(screen.getByText('Historia zapytań AI (1)'));
+
   expect(screen.getByText(/Zapis odpowiedzi, informacji i doprecyzowań: 0/)).toBeVisible();
   expect(screen.getByText('Pytanie asystenta: 7 kredytów')).toBeVisible();
   await setUiLanguage('en');
@@ -28,6 +29,7 @@ it('shows actual costs, free saves and native history in both languages', async 
 it('refreshes after failed work, retains earlier charges and never presents unknown costs as zero', async () => {
   interviewRequest.mockResolvedValue(receipt);
   const { rerender } = render(<InterviewCredits {...props} />);
+  await userEvent.setup().click(screen.getByText('Kredyty rozmowy', { selector: 'summary > span' }));
   await screen.findByText(/Ostatnie zapytanie AI/);
   rerender(<InterviewCredits {...props} busy />);
   expect(screen.getByText(/Koszt bieżącego zapytania/)).toBeVisible();
@@ -49,6 +51,7 @@ it('refreshes after failed work, retains earlier charges and never presents unkn
 it('does not duplicate recovered charges and labels pending settlement explicitly', async () => {
   interviewRequest.mockResolvedValue(receipt);
   const { rerender } = render(<InterviewCredits {...props} />);
+  await userEvent.setup().click(screen.getByText('Kredyty rozmowy', { selector: 'summary > span' }));
   await screen.findByText(/Ostatnie zapytanie AI/);
   rerender(<InterviewCredits {...props} busy />);
   rerender(<InterviewCredits {...props} revision={3} />);
@@ -61,15 +64,16 @@ it('does not duplicate recovered charges and labels pending settlement explicitl
   expect(screen.getByText(/Zużycie w tej rozmowie:/).parentElement).toHaveTextContent('0 kredytów');
 });
 
-it('keeps free-save guidance visible without an empty history disclosure', async () => {
+it('keeps free-save guidance in the expandable credit summary', async () => {
   interviewRequest.mockResolvedValue({ credits_charged: 0, requests: [] });
   const { container } = render(<InterviewCredits {...props} />);
+  await userEvent.setup().click(screen.getByText('Kredyty rozmowy', { selector: 'summary > span' }));
   await waitFor(() => expect(screen.getByText(/Zużycie w tej rozmowie:/).parentElement).toHaveTextContent('0 kredytów'));
   expect(screen.getByText(/Zapis odpowiedzi, informacji i doprecyzowań: 0/)).toBeVisible();
-  expect(container.querySelector('details')).toBeNull();
+  expect(container.querySelector('details')).toHaveAttribute('open');
   await setUiLanguage('en');
   expect(screen.getByText('Saving answers, information and clarifications: 0 credits.')).toBeVisible();
-  expect(container.querySelector('details')).toBeNull();
+  expect(container.querySelector('details')).toHaveAttribute('open');
 });
 
 it('keeps pending and failed metered stages in history and retries only its read', async () => {
@@ -82,8 +86,9 @@ it('keeps pending and failed metered stages in history and retries only its read
     ],
   }] });
   render(<InterviewCredits {...props} onRefreshBalance={onRefreshBalance} />);
+  await userEvent.setup().click(screen.getByText('Kredyty rozmowy', { selector: 'summary > span' }));
   await screen.findByText(/Ostatnie zapytanie AI.*rozliczenie w toku/);
-  await userEvent.setup().click(screen.getByText('Historia zapytań AI (1)'));
+
   expect(screen.getByText(/7 kredytów.*etap nie powiódł się/)).toBeVisible();
   expect(screen.getByText(/Redakcja.*rozliczenie w toku/)).toBeVisible();
   await userEvent.setup().click(screen.getByRole('button', { name: 'Odśwież rozliczenia' }));
@@ -102,7 +107,8 @@ it('names both bounded quality repair charges in Polish and English', async () =
     ],
   }] });
   render(<InterviewCredits {...props} />);
-  await userEvent.setup().click(await screen.findByText('Historia zapytań AI (1)'));
+  await userEvent.setup().click(screen.getByText('Kredyty rozmowy', { selector: 'summary > span' }));
+
   expect(screen.getByText(/Poprawa czytelności:/)).toBeVisible();
   expect(screen.getByText(/Kontrola poprawionej treści:/)).toBeVisible();
   await setUiLanguage('en');

@@ -197,7 +197,7 @@ test('question waiting, failed answer and draft recovery use distinct states', a
   await expect(page.getByRole('heading', { name: 'Przygotowujemy pytanie' })).toBeVisible();
   await page.screenshot({ path: '../tmp/interview-loading-question.png', fullPage: true });
   releaseQuestion();
-  await expect(page.getByLabel('Twoja odpowiedź')).toHaveAccessibleDescription(/Odpowiedz własnymi słowami/);
+  await expect(page.getByLabel('Twoja odpowiedź')).toHaveAccessibleDescription(/Pisz własnymi słowami/);
   await page.getByLabel('Twoja odpowiedź').fill('Zautomatyzowałam raport tygodniowy.');
   api.failAnswer();
   const releaseAnswer = api.hold('answers');
@@ -209,3 +209,31 @@ test('question waiting, failed answer and draft recovery use distinct states', a
   await expect(page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true })).toBeEnabled();
   expect(api.calls).toEqual(['next', 'answers']);
 });
+
+for (const language of ['pl', 'en']) {
+  for (const width of [390, 834, 1280, 1920]) {
+    test(`compact assistant summary ${language} at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await workspaceApi(page, 'ready');
+      await page.addInitScript(lang => localStorage.setItem('cvstudio.uiLanguage', lang), language);
+      await page.goto(`/app/interview/${ID}`);
+      const heading = page.getByRole('heading', { level: 1 });
+      await expect(heading).toHaveText(language === 'pl' ? 'Asystent CV' : 'CV Assistant');
+      const credits = page.getByRole('region', { name: language === 'pl' ? 'Kredyty rozmowy' : 'Conversation credits' });
+      const details = credits.locator('details');
+      await expect(credits.locator('summary')).toContainText(language === 'pl' ? 'Zużyte 0' : 'Used 0');
+      await expect(details).not.toHaveAttribute('open');
+      const next = page.getByRole('button', { name: language === 'pl' ? 'Następne pytanie' : 'Next question', exact: true });
+      await expect(next).toBeInViewport();
+      await page.screenshot({ path: `../tmp/assistant-compact-${language}-${width}.png`, fullPage: true });
+      await credits.locator('summary').focus();
+      await page.keyboard.press('Enter');
+      await expect(details).toHaveAttribute('open');
+      await page.keyboard.press('Enter');
+      await expect(details).not.toHaveAttribute('open');
+      if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    });
+  }
+}

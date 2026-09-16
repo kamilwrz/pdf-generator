@@ -33,12 +33,12 @@
 .interviewWorkspace { max-width: 1120px; margin-inline: auto; }
 
 /* The interview exposes one working stage; profile management keeps its own layout. */
-.interview { container: interview / inline-size; border: var(--interview-border, 1px solid var(--color-border)); padding: var(--interview-padding, var(--space-6)); }
-.utility { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
+.interview { container: interview / inline-size; border: var(--interview-border, 1px solid var(--color-border)); padding: var(--interview-padding, var(--space-4)); --interview-title-size: 1.125rem; --fact-workspace-padding: var(--space-4); }
+.utility { display: flex; flex-wrap: wrap; gap: var(--space-3); padding: 0; margin: 0; }
 .utility .link { border: 0; padding-inline: 0; font-weight: 400; text-decoration: underline; text-underline-offset: var(--space-1); }
 .utility [aria-disabled='true'] { opacity: .55; cursor: wait; }
-.interview .taskTitle { font-size: var(--interview-title-size, clamp(1.5rem, 3vw, 2rem)); line-height: 1.1; letter-spacing: -.02em; margin-bottom: var(--space-4); }
-.stages { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-2); margin-bottom: var(--space-6); }
+.interview .taskTitle { font-size: var(--interview-title-size, 1.125rem); line-height: 1.1; letter-spacing: -.02em; margin-bottom: var(--space-4); }
+.stages { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-2); margin-bottom: var(--space-3); }
 .stages button { justify-content: flex-start; gap: var(--space-3); text-align: left; }
 .stages button > span { flex-shrink: 0; white-space: nowrap; font: .75rem var(--font-mono); color: var(--color-muted); }
 .stages button[aria-current] { border-bottom: 2px solid var(--color-accent); background: var(--color-canvas); }
@@ -57,10 +57,10 @@
 .alternativeAnswers p { color: var(--color-muted); }
 .alternativeAnswers { padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
 .alternativeAnswers .actions { margin-bottom: 0; }
-.nextStep { padding-block: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border); display: grid; gap: var(--space-4); }
+.nextStep { padding-block: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border); display: grid; gap: var(--space-3); }
 .nextStep p { color: var(--color-muted); margin: 0; }
 .nextStep .actions { margin: 0; }
-.optionalNotes { margin-block: var(--space-4); }
+.optionalNotes { margin-block: var(--space-1); }
 .moreQuestions { border-top: 1px solid var(--color-border); }
 .moreQuestions p { margin-bottom: var(--space-4); }
 .interview .preparation { max-width: 72ch; padding-block: var(--space-4); background: var(--color-paper); border-block: 1px solid var(--color-border); margin-inline: auto; }
@@ -85,3 +85,15 @@
 .interview > [role='status']:empty { margin: 0; }
 .flow button, .flow a { font-size: var(--interview-control-size, 1rem); }
 @container interview (max-width: 720px) { .stages { display: none; } .flow .compactStages { display: grid; } }
+
+/* Task title and utility links share a compact header; DOM order follows the display. */
+.taskHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-3); padding-bottom: var(--space-2); }
+.taskHeader .utility { order: 2; }
+.taskHeader .taskTitle { margin: 0; }
+.interview .hint { font-size: .875rem; }
+.intakeLegend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.interview .step { font: .75rem/1.55 var(--font-ui); letter-spacing: normal; margin-block: var(--space-3); }
+.interview .scopeChoice { margin-block: var(--space-2); }
+.interview fieldset > .primary { margin-top: var(--space-3); }
+.interview fieldset > .primary + .hint { margin-top: var(--space-2); margin-bottom: 0; }
+@container interview (max-width: 480px) { .taskHeader { display: block; } .taskHeader .utility { margin-top: var(--space-2); margin-bottom: 0; padding: 0; } }
