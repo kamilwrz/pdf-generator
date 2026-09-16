@@ -72,7 +72,7 @@ for (const lang of ['pl', 'en']) {
       await expect(page.getByLabel(/^(Rodzaj informacji|Information type|Przeznaczenie|Purpose)$/)).toHaveCount(0);
       await input.fill('New note');
       await page.getByRole('button', { name: lang === 'pl' ? 'Zastosuj zmianę' : 'Apply change', exact: true }).click();
-      await page.getByRole('button', { name: lang === 'pl' ? 'Przejdź do rozmowy' : 'Continue to interview', exact: true }).click();
+      await page.getByRole('button', { name: lang === 'pl' ? 'Przejdź do rozmowy' : 'Continue to conversation', exact: true }).click();
       await expect(page.getByRole('button', { name: /^01 / })).toBeEnabled();
       expect(calls).toHaveLength(1);
       expect(profile.facts.slice(0, 3)).toEqual(cvFacts);

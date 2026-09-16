@@ -1,5 +1,9 @@
 # English
 
+## CV Assistant naming
+
+The public feature name is **CV Assistant** (Polish: **Asystent CV**). Landing, shared navigation/footer, pricing/help, document/account entries, editor entry points and the conversation screens use this name. Saved sessions are called conversations; action labels describe improving content or tailoring a CV to a job advert. Canonical strings live in `frontend/src/i18n/locales/pl.json` and `en.json`; `generate-locale-bundles.mjs` produces their shell/workspace bundles. Existing `/app/interview`, `/help#wywiad`, translation keys, API identifiers and stored sessions retain their technical names for compatibility. Historical references to Interview in this technical guide refer to the same feature. This is a copy change without new dependencies, API changes or data migration. Existing locale, component and browser tests cover translated labels, entry permissions, recovery and responsive layout.
+
 ## Three goals on the landing page
 
 Each demo is labelled as an example conversation. It shows the question, answer and suggested CV description, with one reminder to check the description before saving. Repeated explanations under the question and answer and a second sample-data footer are omitted. The examples retain their concrete Zendesk and Excel details without adding achievements.
@@ -3847,6 +3851,10 @@ Notable product facts:
 ---
 
 # Polski
+
+## Nazwa Asystent CV
+
+Publiczna nazwa funkcji to **Asystent CV** (angielska: **CV Assistant**). Korzystają z niej landing, wspólne menu i stopka, cennik i pomoc, wejścia z dokumentów i konta, edytor oraz ekrany rozmowy. Zapisane sesje to rozmowy; przyciski opisują poprawę treści lub dopasowanie CV do ogłoszenia. Kanoniczne teksty znajdują się w `frontend/src/i18n/locales/pl.json` i `en.json`; `generate-locale-bundles.mjs` tworzy pakiety shell/workspace. Istniejące `/app/interview`, `/help#wywiad`, klucze tłumaczeń, identyfikatory API i zapisane sesje zachowują techniczne nazwy dla zgodności. Historyczne odniesienia do Wywiadu w tym przewodniku technicznym dotyczą tej samej funkcji. Zmiana dotyczy tekstów, bez nowych zależności, zmian API ani migracji danych. Istniejące testy tłumaczeń, komponentów i przeglądarkowe obejmują nazwy, uprawnienia wejścia, odzyskiwanie rozmów i układ responsywny.
 
 ## Trzy cele na stronie głównej
 

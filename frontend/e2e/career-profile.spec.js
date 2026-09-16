@@ -69,7 +69,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.locator('dl').getByText('B2', { exact: true })).toBeVisible();
     await page.getByLabel('Szukaj w profilu').fill('podzieliłaś się wiedzą');
     await page.getByRole('button', { name: 'Otwórz wpis: Jak podzieliłaś się wiedzą z zespołem?' }).click();
-    await expect(page.getByText('Pytanie z wywiadu', { exact: true })).toBeVisible();
+    await expect(page.getByText('Pytanie z rozmowy', { exact: true })).toBeVisible();
     await expect(page.getByText('Twoja odpowiedź', { exact: true })).toBeVisible();
     await expect(page.getByText('Przeprowadziłam warsztat z raportowania dla zespołu.', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: /^Edytuj:/ }).focus();
@@ -94,8 +94,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByRole('combobox', { name: 'Źródło danych profilu', exact: true })).toHaveValue('document:31');
     await page.getByRole('combobox', { name: 'Źródło danych profilu', exact: true }).selectOption('import:40');
     await expect(page.getByRole('link', { name: 'Przejdź do importów w edytorze' })).toHaveAttribute('href', '/app/import');
-    await page.getByRole('button', { name: /Zapisane wywiady/ }).click();
-    await expect(page.getByRole('link', { name: 'Wznów wywiad' })).toBeVisible();
+    await page.getByRole('button', { name: /Zapisane rozmowy/ }).click();
+    await expect(page.getByRole('link', { name: 'Wznów rozmowę' })).toBeVisible();
     api.base.assertHermetic();
   });
 }

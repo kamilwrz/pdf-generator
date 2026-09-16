@@ -70,10 +70,10 @@ for (const width of [390, 834, 1280, 1920]) {
     api.changeSource();
     await page.goto(`/app/interview/${ID}`);
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-    await expect(page.getByText(/Źródłowe CV zmieniło się od zapisania wywiadu/)).toBeVisible();
+    await expect(page.getByText(/Źródłowe CV zmieniło się od zapisania rozmowy/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Następne pytanie', exact: true })).toBeDisabled();
     expect(api.calls).toEqual([]);
-    const refresh = page.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu', exact: true });
+    const refresh = page.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy', exact: true });
     await refresh.focus();
     await expect(refresh).toBeFocused();
     expect(await refresh.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
@@ -99,7 +99,7 @@ for (const width of [390, 834, 1280, 1920]) {
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     await expect(page.getByText(/Omówiliśmy dostępne wpisy/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Następne pytanie', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Pogłęb wywiad/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Odpowiedz na kolejne pytania/ })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     const prepare = page.getByRole('button', { name: 'Przejdź do przygotowania CV', exact: true });
     await prepare.focus();
@@ -171,12 +171,12 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByText(/Każdy wykonany etap zużywa kredyty AI/)).toBeVisible();
     const release = api.hold('preview');
     await page.getByRole('button', { name: 'Odśwież podgląd', exact: true }).click();
-    const loading = page.getByRole('region', { name: 'Przetwarzanie wywiadu' });
+    const loading = page.getByRole('region', { name: 'Przetwarzanie rozmowy' });
     await expect(loading.getByRole('heading')).toHaveText('Przygotowujemy CV');
     await expect(loading.getByRole('heading')).toBeFocused();
     await expect(loading).toContainText('osobną redakcję języka i stylu, niezależne sprawdzenie faktów');
     await expect(page.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
-    await expect(page.getByRole('navigation', { name: 'Etapy wywiadu' })).toBeHidden();
+    await expect(page.getByRole('navigation', { name: 'Etapy rozmowy' })).toBeHidden();
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     if (width === 834) expect(await page.getByRole('progressbar').locator('span').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');

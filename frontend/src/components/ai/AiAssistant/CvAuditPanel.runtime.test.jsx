@@ -93,7 +93,7 @@ it('opens a priority by keyboard, focuses its finding and preserves reading stat
   await act(async () => setUiLanguage('en'));
   expect(screen.getByRole('region', { name: 'CV audit' })).toBeVisible();
   expect(within(details).getByText('Achievements and specifics')).toBeVisible();
-  expect(within(details).getByRole('button', { name: 'Open interview' })).toBeVisible();
+  expect(within(details).getByRole('button', { name: 'Open CV Assistant' })).toBeVisible();
   expect(findingHeading).toHaveFocus();
   expect(details).toHaveAttribute('open');
   expect(findingHeading).toHaveTextContent('Brakuje rezultatu pracy');
@@ -102,7 +102,7 @@ it('opens a priority by keyboard, focuses its finding and preserves reading stat
 it.each([
   ['grammar', 'Popraw gramatykę'], ['language', 'Popraw styl języka'],
   ['improve', 'Wzmocnij treść'], ['shorten', 'Skróć CV'],
-  ['translate', 'Wybierz język tłumaczenia'], ['interview', 'Otwórz wywiad'],
+  ['translate', 'Wybierz język tłumaczenia'], ['interview', 'Otwórz Asystenta CV'],
   ['ats_score', 'Sprawdź czytelność ATS'], ['match_job', 'Dodaj ofertę pracy'],
 ])('routes %s only after its explicitly named tool button is activated', async (action, label) => {
   const user = userEvent.setup();
@@ -150,7 +150,7 @@ it('retains explicit action identities when an interview replaces and remounts t
   const props = { audit: source, auditId: 'saved-audit-message', onAction: vi.fn() };
   const first = render(<CvAuditPanel {...props} />);
   await user.click(first.container.querySelector('[data-audit-category="achievements"] summary'));
-  const previousId = screen.getByRole('button', { name: 'Otwórz wywiad' }).id;
+  const previousId = screen.getByRole('button', { name: 'Otwórz Asystenta CV' }).id;
   first.unmount();
   render(<CvAuditPanel {...props} />);
   const restored = document.getElementById(previousId);
@@ -158,7 +158,7 @@ it('retains explicit action identities when an interview replaces and remounts t
   // The assistant owns restoration because it knows which subflow just closed.
   restored.closest('details').open = true;
   restored.focus();
-  expect(screen.getByRole('button', { name: 'Otwórz wywiad' })).toHaveFocus();
+  expect(screen.getByRole('button', { name: 'Otwórz Asystenta CV' })).toHaveFocus();
 });
 
 it('gives every specialised action an English label and the same explicit routing contract', async () => {
@@ -167,7 +167,7 @@ it('gives every specialised action an English label and the same explicit routin
   const actions = [
     ['grammar', 'Fix grammar'], ['language', 'Improve writing style'],
     ['improve', 'Strengthen content'], ['shorten', 'Shorten CV'],
-    ['translate', 'Choose translation language'], ['interview', 'Open interview'],
+    ['translate', 'Choose translation language'], ['interview', 'Open CV Assistant'],
     ['ats_score', 'Check ATS readability'], ['match_job', 'Add a job advert'],
   ];
   const onAction = vi.fn();

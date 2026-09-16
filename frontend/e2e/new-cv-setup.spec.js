@@ -162,7 +162,7 @@ test("authenticated generic create action opens the three-path chooser", async (
   await expect(page.getByRole("heading", { name: "Jak chcesz zacząć?" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Utwórz nowe CV/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Zaimportuj istniejące CV/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Wywiad/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Asystent CV/ })).toBeVisible();
   api.assertHermetic();
 });
 

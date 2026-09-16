@@ -226,9 +226,9 @@ it("never auto-starts over an existing document", () => {
 describe('setup interview header action', () => {
   afterEach(cleanup);
   it.each([
-    [{ ai_assistant: true }, 'Wywiad AI Rozpocznij rozmowę', '/app/interview'],
-    [{ ai_assistant: false, plan_slug: 'free' }, 'Wywiad AI Tylko w Pro', '/app/account'],
-    [null, 'Wywiad AI Sprawdź dostęp Pro', '/app/account'],
+    [{ ai_assistant: true }, 'Asystent CV Rozpocznij rozmowę', '/app/interview'],
+    [{ ai_assistant: false, plan_slug: 'free' }, 'Asystent CV Tylko w Pro', '/app/account'],
+    [null, 'Asystent CV Sprawdź dostęp Pro', '/app/account'],
   ])('uses the confirmed permission for the header destination', (entitlements, name, destination) => {
     const onCreate = vi.fn();
     render(<NewCvSetupModal open onClose={vi.fn()} onCreate={onCreate} entitlements={entitlements} />);
@@ -245,16 +245,16 @@ describe('setup interview header action', () => {
   it('keeps guest setup and replacement confirmation focused on their current task', () => {
     const props = { open: true, onClose: vi.fn(), onCreate: vi.fn() };
     const { rerender } = render(<NewCvSetupModal {...props} isGuest />);
-    expect(screen.queryByRole('link', { name: /Wywiad AI/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Asystent CV/ })).toBeNull();
     rerender(<NewCvSetupModal key="replacement" {...props} hasActiveDocument entitlements={{ ai_assistant: true }} />);
-    expect(screen.queryByRole('link', { name: /Wywiad AI/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Asystent CV/ })).toBeNull();
   });
 
   it('disables interview navigation during creation and restores it after failure', async () => {
     let fail;
     const onCreate = vi.fn(() => new Promise((_, reject) => { fail = reject; }));
     render(<NewCvSetupModal open onClose={vi.fn()} onCreate={onCreate} entitlements={{ ai_assistant: true }} />);
-    const action = screen.getByRole('link', { name: /Wywiad AI/ });
+    const action = screen.getByRole('link', { name: /Asystent CV/ });
     create();
     expect(action).toHaveAttribute('aria-disabled', 'true');
     expect(action).toHaveAttribute('tabindex', '-1');

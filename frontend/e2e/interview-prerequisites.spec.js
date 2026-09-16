@@ -70,7 +70,7 @@ for (const language of ['pl', 'en']) {
       for (const path of ['/app/interview', '/app/career-profile']) {
         await page.goto(path);
         await expect(page.getByRole('heading', { name: heading })).toBeVisible();
-        await expect(page.getByRole('button', { name: en ? 'Start interview' : 'Rozpocznij wywiad', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: en ? 'Start conversation' : 'Rozpocznij rozmowę', exact: true })).toHaveCount(0);
         await expect(page.getByRole('button', { name: /Dodaj informację|Add information/ })).toHaveCount(0);
         const recovery = page.getByRole('region', { name: heading });
         const importLink = recovery.getByRole('link', { name: en ? 'Import PDF' : 'Importuj PDF' });
@@ -94,7 +94,7 @@ for (const language of ['pl', 'en']) {
       await page.goto('/app/interview');
       const selector = page.getByLabel(en ? 'Information source' : 'Źródło informacji');
       await selector.selectOption('document:30');
-      await expect(page.getByRole('button', { name: en ? 'Start interview' : 'Rozpocznij wywiad', exact: true })).toBeEnabled();
+      await expect(page.getByRole('button', { name: en ? 'Start conversation' : 'Rozpocznij rozmowę', exact: true })).toBeEnabled();
       await expect(page.getByLabel(en ? 'This is my CV — include my career profile' : 'To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
       await page.goto('/app/career-profile');
       await expect(page.getByRole('button', { name: /Dodaj informację|Add information/ })).toBeVisible();

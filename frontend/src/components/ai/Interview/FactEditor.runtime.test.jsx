@@ -72,7 +72,7 @@ it('presents an interview prompt with its answer and keeps the prompt while edit
   render(<Harness initial={[answer]} saved={saved} />);
 
   await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Jak zweryfikowałaś ryzyko tej transakcji?' }));
-  expect(screen.getByText('Pytanie z wywiadu')).toBeInTheDocument();
+  expect(screen.getByText('Pytanie z rozmowy')).toBeInTheDocument();
   expect(screen.getByText(answer.question)).toBeInTheDocument();
   expect(screen.getByText('Twoja odpowiedź')).toBeInTheDocument();
   expect(screen.getByText(answer.text)).toBeInTheDocument();
@@ -118,7 +118,7 @@ it('retains an interview answer binding and meaning without exposing assignment 
   const saved = vi.fn();
   const answer = { ...make('answer-q1', '/experience/0/bullets/0', 'Oryginalna odpowiedź'), source: 'interview:session', question: 'Co zrobiłaś?', kind: 'framing' };
   render(<Harness initial={[...role, answer]} saved={saved} />);
-  await user.click(screen.getByRole('button', { name: /Z wywiadu i notatki/ }));
+  await user.click(screen.getByRole('button', { name: /Z rozmowy i notatki/ }));
   await user.click(screen.getByRole('button', { name: /Otwórz wpis:/ }));
   await user.click(screen.getByRole('button', { name: /^Edytuj:/ }));
   await user.click(screen.getByText('Kontekst i sposób wykorzystania'));

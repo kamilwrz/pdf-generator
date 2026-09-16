@@ -94,8 +94,8 @@ for (const width of [390, 834, 1280, 1920]) {
       await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
       await page.goto('/app/documents/41');
       await page.getByRole('button', { name: 'Open AI assistant', exact: true }).click();
-      await page.getByRole('button', { name: 'Interview', exact: true }).click();
-      const flow = page.getByRole('region', { name: 'Career interview' });
+      await page.getByRole('button', { name: 'CV Assistant', exact: true }).click();
+      const flow = page.getByRole('region', { name: 'CV Assistant' });
       const languageField = flow.getByRole('combobox', { name: 'New CV language', exact: true });
       await expect(languageField).toBeHidden();
       await flow.locator('summary').filter({ hasText: /^CV language:/ }).click();
@@ -108,7 +108,7 @@ for (const width of [390, 834, 1280, 1920]) {
       if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       expect(await flow.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
       await page.keyboard.press('Tab');
-      await expect(flow.getByRole('button', { name: 'Start interview', exact: true })).toBeFocused();
+      await expect(flow.getByRole('button', { name: 'Start conversation', exact: true })).toBeFocused();
       await page.keyboard.press('Enter');
       await expect.poll(() => api.calls.find(call => call.path.endsWith('/interviews') && call.method === 'POST')?.body.language).toBe(language);
       api.base.assertHermetic();
@@ -122,10 +122,10 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
     await page.goto('/app/interview');
     await page.getByRole('combobox', { name: 'Information source', exact: true }).selectOption('document:30');
-    await page.getByRole('button', { name: 'Start interview', exact: true }).click();
-    await page.getByRole('button', { name: 'Continue to interview', exact: true }).click();
+    await page.getByRole('button', { name: 'Start conversation', exact: true }).click();
+    await page.getByRole('button', { name: 'Continue to conversation', exact: true }).click();
     await page.getByRole('button', { name: 'Next question', exact: true }).click();
-    const credits = page.getByRole('region', { name: 'Interview credits' });
+    const credits = page.getByRole('region', { name: 'Conversation credits' });
     await expect(credits).toContainText('Last AI request — Interview question: 7 credits');
     await credits.getByText('AI request history (1)').focus();
     await page.keyboard.press('Enter');
@@ -142,15 +142,15 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.goto('/app/interview');
     await page.getByLabel('Źródło informacji').selectOption('document:30');
     await page.getByLabel('To moje CV — dołącz mój profil zawodowy').check();
-    await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
+    await page.getByRole('button', { name: 'Rozpocznij rozmowę', exact: true }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
     await expect(page.getByText(/Pytanie 1 z maksymalnie 8 · Zapisane odpowiedzi: 0/)).toBeVisible();
-    const credits = page.getByRole('region', { name: 'Kredyty wywiadu' });
-    await expect(credits).toContainText('Ostatnie zapytanie AI — Pytanie wywiadu: 7 kredytów');
+    const credits = page.getByRole('region', { name: 'Kredyty rozmowy' });
+    await expect(credits).toContainText('Ostatnie zapytanie AI — Pytanie asystenta: 7 kredytów');
     await credits.getByText('Historia zapytań AI (1)').focus();
     await page.keyboard.press('Enter');
-    await expect(credits.getByText('Pytanie wywiadu: 7 kredytów', { exact: true })).toBeVisible();
+    await expect(credits.getByText('Pytanie asystenta: 7 kredytów', { exact: true })).toBeVisible();
     await page.keyboard.press('Enter');
     await page.getByLabel('Twoja odpowiedź').fill('Tworzę raporty.');
     await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
@@ -158,7 +158,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByText(/do zapisania/)).toHaveCount(0);
     expect(api.calls.filter((call) => call.path.endsWith('/confirm'))).toHaveLength(1);
     await page.goto(`/app/interview/${ID}`);
-    await expect(page.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Zużycie w tym wywiadzie: 7 kredytów');
+    await expect(page.getByRole('region', { name: 'Kredyty rozmowy' })).toContainText('Zużycie w tej rozmowie: 7 kredytów');
     await page.getByRole('button', { name: /Sprawdź informacje/ }).click();
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await openPreparation(page);
@@ -235,25 +235,25 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Dopasuj do oferty', exact: true }).click();
     await page.getByRole('radio', { name: 'Wklej treść', exact: true }).check();
     await page.getByLabel('Lub wklej treść oferty', { exact: true }).fill('Szukamy programisty React. Firma Przykład.');
-    await page.getByRole('button', { name: 'Dopasuj z wywiadem', exact: true }).click();
-    const flow = page.getByRole('region', { name: 'Wywiad zawodowy' });
+    await page.getByRole('button', { name: 'Dopasuj CV do ogłoszenia', exact: true }).click();
+    const flow = page.getByRole('region', { name: 'Asystent CV' });
     await expect(flow).toBeVisible();
-    await flow.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
+    await flow.getByRole('button', { name: 'Rozpocznij rozmowę', exact: true }).click();
     await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await openPreparation(flow);
     await expect(flow.getByLabel('Szablon nowego CV')).toHaveValue('sterling');
     await expect(flow.getByLabel('Szablon nowego CV')).toBeDisabled();
-    await expect(flow.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' })).toHaveCount(0);
+    await expect(flow.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' })).toHaveCount(0);
     await openInformation(flow);
-    await flow.getByRole('button', { name: 'Wczytaj aktualne CV do wywiadu' }).click();
+    await flow.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' }).click();
     await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await openPreparation(flow);
     await flow.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
     await expect(flow.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();
-    await expect(flow.getByRole('region', { name: 'Kredyty wywiadu' })).toContainText('Ostatnie zapytanie AI — Przygotowanie CV: 18 kredytów');
+    await expect(flow.getByRole('region', { name: 'Kredyty rozmowy' })).toContainText('Ostatnie zapytanie AI — Przygotowanie CV: 18 kredytów');
     // The embedded host owns the account balance; the interview receipt only
     // repeats its own settled cost, avoiding two competing balance readouts.
-    await expect(flow.getByRole('region', { name: 'Kredyty wywiadu' })).not.toContainText('Pozostało na koncie:');
+    await expect(flow.getByRole('region', { name: 'Kredyty rozmowy' })).not.toContainText('Pozostało na koncie:');
     await expect(page.getByTitle('Wykorzystano 18 z 200 kredytów AI w tym miesiącu')).toContainText('182');
     await flow.getByText('Historia zapytań AI (1)').click();
     await expect(flow.getByText('Redakcja języka i stylu: 6 kredytów')).toBeVisible();
@@ -264,7 +264,7 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(start.body.source_document_id).toBe(41);
     expect(start.body.job_description).toContain('React');
     await flow.getByRole('button', { name: 'Wróć do asystenta' }).click();
-    await expect(page.getByRole('button', { name: 'Dopasuj z wywiadem', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Dopasuj CV do ogłoszenia', exact: true })).toBeFocused();
     api.base.assertHermetic();
   });
 }

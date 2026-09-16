@@ -74,10 +74,10 @@ test('analysis key enters interview with optional profile; no second analysis re
   await page.getByLabel('Lub wklej treść oferty').fill('SQL oraz Python');
   await page.getByRole('button', { name: 'Tylko analiza' }).click();
   await expect(page.getByText('Python', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Dopasuj z wywiadem', exact: true }).click();
+  await page.getByRole('button', { name: 'Dopasuj CV do ogłoszenia', exact: true }).click();
   await expect(page.getByText('Wykorzystamy Twoją analizę oferty.', { exact: false })).toBeVisible();
   await expect(page.getByLabel('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
-  await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
+  await page.getByRole('button', { name: 'Rozpocznij rozmowę', exact: true }).click();
   await expect(page.getByText(/Plan: do 4 pytań · Zapisane odpowiedzi: 0/)).toBeVisible();
   await expect.poll(() => created?.analysis_key).toBe('owned-analysis');
   expect(created.include_profile).toBe(false);
@@ -111,7 +111,7 @@ test('job analysis validates the link, disables duplicate requests and recovers 
   await page.getByRole('button', { name: 'Tylko analiza' }).click();
   await expect.poll(() => requests).toBe(1);
   await expect(workspace.getByRole('button', { name: 'Tylko analiza' })).toBeDisabled();
-  await expect(workspace.getByRole('button', { name: 'Dopasuj z wywiadem', exact: true })).toBeDisabled();
+  await expect(workspace.getByRole('button', { name: 'Dopasuj CV do ogłoszenia', exact: true })).toBeDisabled();
   await expect(page.getByLabel('Lub wklej treść oferty')).toBeDisabled();
   finish();
   await expect(workspace.getByRole('alert')).toContainText('Nie udało się odczytać oferty');

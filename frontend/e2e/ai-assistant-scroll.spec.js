@@ -160,7 +160,7 @@ test("AI assistant keeps consecutive quick-action results visible without a free
   await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
 
-  await expect(page.getByRole("button", { name: "Wywiad", exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Asystent CV", exact: true })).toBeFocused();
   const checkCv = page.getByRole("button", { name: "Sprawdź CV", exact: true });
   await expect(page.getByRole("textbox", { name: "Wiadomość do asystenta AI" })).toHaveCount(0);
   await expect(page.getByText("Nie wpisuj danych o zdrowiu ani innych danych wrażliwych.")).toHaveCount(0);

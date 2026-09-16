@@ -12,7 +12,7 @@ describe("landing product positioning", () => {
     assert.equal((source.match(/<h1>/g) || []).length, 1);
     assert.match(hero, /Darmowa rejestracja jest potrzebna dopiero przy zapisie lub pobieraniu PDF/);
     assert.match(hero, /FREE_TEMPLATES.length/);
-    assert.match(source, /Wywiad · Pro/);
+    assert.match(source, /Asystent CV · Pro/);
     assert.doesNotMatch(hero, /100% ZA DARMO|zwiększy Twoje szanse|systemy ATS/);
   });
 

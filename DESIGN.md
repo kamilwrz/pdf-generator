@@ -476,6 +476,8 @@ Motion explains causality and state; it is never ambient decoration.
 
 ## 7. Content and iconography
 
+- The user-facing feature is named **Asystent CV / CV Assistant**. Name saved sessions **rozmowy / conversations** and use action-led labels for improving content and tailoring to a job advert. Existing Interview references in this specification describe the same feature; technical route, API and translation identifiers retain their compatibility names.
+
 - Public positioning distinguishes CV Studio (design, layout and direct editing) from the Interview (eliciting experience details, drafting, editing and factual checks). Give the Interview its own labelled section and an illustrative source/question/answer/result example before the Studio tools. Public navigation links to interview help; opening the account workflow never starts paid AI. One-page claims must remain conditional on measured content and template geometry. Explain free template comparison separately from paid text shortening and verification, with a dedicated help anchor. Preserve both languages, existing entry permissions and PDF isolation.
 
 

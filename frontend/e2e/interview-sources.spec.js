@@ -45,13 +45,13 @@ for (const width of [390, 834, 1280, 1920]) {
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-source-choice-${width}.png`, fullPage: true });
-    await page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true }).click();
+    await page.getByRole('button', { name: 'Rozpocznij rozmowę', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Otwórz wpis: Anna Candidate' })).toBeVisible();
     await expect(page.locator('body')).not.toContainText('Kamil Owner');
     await expect(page.getByRole('heading', { name: 'Informacje do tego CV', exact: true })).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-source-review-${width}.png`, fullPage: true });
     await page.getByRole('button', { name: 'Przejdź do rozmowy' }).click();
-    await expect(page.getByText('Informacje zapisane tylko w tym wywiadzie. Profil konta pozostaje bez zmian.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Informacje zapisane tylko w tej rozmowie. Profil konta pozostaje bez zmian.', { exact: true })).toBeVisible();
     expect(writes).toHaveLength(2);
     const beforeResume = profileReads;
     await page.goto('/app/interview/separate');
@@ -93,7 +93,7 @@ for (const lang of ['pl', 'en']) {
       await expect(select.locator('option:checked')).toHaveText(lang === 'pl' ? 'Profil zawodowy' : 'Career profile');
       if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-      const start = page.getByRole('button', { name: lang === 'pl' ? 'Rozpocznij wywiad' : 'Start interview', exact: true });
+      const start = page.getByRole('button', { name: lang === 'pl' ? 'Rozpocznij rozmowę' : 'Start conversation', exact: true });
       await start.focus();
       await page.screenshot({ path: `../tmp/interview-profile-source-${lang}-${width}.png`, fullPage: true });
       expect(calls).toEqual([]);

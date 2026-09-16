@@ -8,14 +8,14 @@ const HELP_ID = 'answer-help-0';
 const copy = {
   pl: {
     suggest: 'Zaproponuj odpowiedź', use: 'Użyj propozycji', tasks: 'Użyj wybranych czynności',
-    confirm: 'Potwierdzam i zapisuję odpowiedź', answer: 'Twoja odpowiedź', credits: 'Kredyty wywiadu',
+    confirm: 'Potwierdzam i zapisuję odpowiedź', answer: 'Twoja odpowiedź', credits: 'Kredyty rozmowy',
     other: 'Inne odpowiedzi', unknown: 'Nie pamiętam', skip: 'Pomiń',
     retry: 'Spróbuj ponownie', error: 'Nie udało się przygotować propozycji. Twoja odpowiedź została zachowana.',
     cancel: 'Ukryj propozycję', reopen: 'Pokaż propozycję',
   },
   en: {
     suggest: 'Suggest an answer', use: 'Use suggestion', tasks: 'Use selected tasks',
-    confirm: 'Confirm and save answer', answer: 'Your answer', credits: 'Interview credits',
+    confirm: 'Confirm and save answer', answer: 'Your answer', credits: 'Conversation credits',
     other: 'Other answers', unknown: 'I cannot remember', skip: 'Skip',
     retry: 'Try again', error: 'We could not prepare a suggestion. Your answer has been kept.',
   },

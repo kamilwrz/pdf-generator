@@ -180,10 +180,10 @@ test('an audit missing-facts recommendation opens the existing interview without
   });
   const panel = await openAudit(page, api);
   const category = await expandCategory(panel, 'achievements');
-  const interview = category.getByRole('button', { name: 'Otwórz wywiad', exact: true }).first();
+  const interview = category.getByRole('button', { name: 'Otwórz Asystenta CV', exact: true }).first();
   await interview.focus();
   await interview.press('Enter');
-  await expect(page.getByRole('button', { name: 'Rozpocznij wywiad', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Rozpocznij rozmowę', exact: true })).toBeEnabled();
   await expect(page.getByLabel('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
   expect(assistantCalls(api).map((call) => call.action)).toEqual(['rating']);
   expect(interviewWrites).toEqual([]);
@@ -244,7 +244,7 @@ test('an audit from the previous template keeps its reading shortcuts and rerun 
   await priority.press('Enter');
   const category = panel.locator('[data-audit-category="achievements"]');
   await expect(category.getByRole('heading', { name: 'Brakuje konkretnego rezultatu', exact: true })).toBeFocused();
-  await expect(category.getByRole('button', { name: 'Otwórz wywiad', exact: true }).first()).toBeDisabled();
+  await expect(category.getByRole('button', { name: 'Otwórz Asystenta CV', exact: true }).first()).toBeDisabled();
   const rerun = panel.getByRole('button', { name: 'Uruchom audyt ponownie', exact: true });
   await expect(rerun).toBeEnabled();
   await rerun.click();
@@ -318,7 +318,7 @@ test('audit loading blocks duplicates, preserves the CV on error and recovers to
   await check.click();
   await expect.poll(() => requests).toBe(1);
   await expect(check).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Wywiad', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Asystent CV', exact: true })).toHaveCount(0);
   await expect(page.locator('#saved-name')).toHaveText('Kamil Smoke');
   finishFailure();
   await expect(page.getByText(/Audyt chwilowo niedostępny\. Spróbuj ponownie\./)).toBeVisible();

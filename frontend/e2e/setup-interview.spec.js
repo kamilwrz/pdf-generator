@@ -11,7 +11,7 @@ for (const width of [390, 834, 1280, 1920]) {
       await page.goto('/cvstudio/Kamil');
       await page.getByRole('button', { name: /Utwórz nowe CV/ }).click();
       const dialog = page.getByRole('dialog', { name: 'Utwórz CV', exact: true });
-      const action = dialog.getByRole('link', { name: plan === 'pro' ? 'Wywiad AI Rozpocznij rozmowę' : 'Wywiad AI Tylko w Pro' });
+      const action = dialog.getByRole('link', { name: plan === 'pro' ? 'Asystent CV Rozpocznij rozmowę' : 'Asystent CV Tylko w Pro' });
       await expect(action).toHaveAttribute('href', plan === 'pro' ? '/app/interview' : '/app/account');
       const title = dialog.getByRole('heading', { name: 'Utwórz CV', exact: true });
       const close = dialog.getByRole('button', { name: 'Zamknij: Utwórz CV' });

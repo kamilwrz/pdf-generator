@@ -11,10 +11,10 @@ for (const width of [390, 834, 1280, 1920]) {
       await page.goto('/cvstudio/Kamil');
       const chooser = page.getByRole('region', { name: 'Jak chcesz zacząć?' });
       await expect(chooser).toBeVisible();
-      const link = chooser.getByRole('link', { name: plan === 'pro' ? 'Wywiad Rozpocznij wywiad' : 'Wywiad Poznaj Pro' });
+      const link = chooser.getByRole('link', { name: plan === 'pro' ? 'Asystent CV Rozpocznij rozmowę' : 'Asystent CV Poznaj Pro' });
       await expect(link).toHaveAttribute('href', plan === 'pro' ? '/app/interview' : '/app/account');
       await expect(chooser.getByText(plan === 'pro' ? 'W Twoim Pro' : 'Dostępny w Pro', { exact: true })).toBeVisible();
-      if (plan === 'free') await expect(chooser.getByText('W pakiecie Free wywiad jest dostępny po przejściu na Pro.')).toBeVisible();
+      if (plan === 'free') await expect(chooser.getByText('W pakiecie Free Asystent CV jest dostępny po przejściu na Pro.')).toBeVisible();
       const controls = [chooser.getByRole('button', { name: /Utwórz nowe CV/ }), chooser.getByRole('button', { name: /Zaimportuj istniejące CV/ }), link];
       if (width >= 1280) {
         const boxes = await Promise.all(controls.map((control) => control.boundingBox()));
