@@ -17,6 +17,14 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     }));
     expect(metrics).toHaveLength(8);
     for (const metric of metrics) expect(metric).toEqual(metrics[0]);
+    // Full-width backgrounds must preserve the shared header content edges,
+    // including beyond the 1440px container and without scrollbar overflow.
+    const pageWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    const headerEdge = await page.locator('main > header').evaluate(node =>
+      node.getBoundingClientRect().left + parseFloat(getComputedStyle(node).paddingLeft));
+    expect(metrics[0].x).toBe(0);
+    expect(metrics[0].width).toBe(pageWidth);
+    expect(Math.abs(parseFloat(metrics[0].gutter) - headerEdge)).toBeLessThan(1);
     // Plans compare on open paper with aligned feature boundaries and actions.
     // A future content or locale change must not reintroduce uneven columns.
     if (width > 767) {
@@ -51,9 +59,11 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     await expect(faq.locator('details').last()).toHaveAttribute('open', '');
     await page.screenshot({ path: `test-results/landing-grid-${language}-${width}.png`, fullPage: true });
     if (language === 'pl' && [390, 1280, 1920].includes(width)) {
-      for (const id of ['wywiad', 'szablony', 'cennik']) {
+      for (const id of ['wywiad', 'dopasowanie', 'szablony', 'privacy', 'cennik']) {
         await page.locator(`#${id}`).screenshot({ path: `test-results/landing-${id}-${width}.png` });
       }
+      await page.locator('#wywiad').evaluate(node => window.scrollTo(0, node.offsetTop - 80));
+      await page.screenshot({ path: `test-results/landing-section-rhythm-${width}.png` });
     }
     await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
