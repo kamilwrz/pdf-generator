@@ -22,17 +22,20 @@ RECENT_WINDOW = 6
 # Each lens asks for one piece of information. In particular, a result, a
 # numeric measure and personal ownership are not required in every answer.
 # Tuple order is Polish, English; placeholders are authored labels, not prompts.
+# Experience identity already appears in the question context panel. Keep its
+# full label in `context`, not in the sentence: role/company/date concatenations
+# are not grammatical objects and obscure the detail the candidate should give.
 _RECORD_QUESTIONS = {
     "experience": {
-        "overview": ("Które zadanie najlepiej przybliża charakter pracy w „{label}”?", "Which task best illustrates the nature of the work in ‘{label}’?"),
-        "approach": ("Jak wyglądał przebieg typowego zadania w „{label}”?", "What did a typical task in ‘{label}’ involve, from start to finish?"),
-        "quality": ("Po czym rozpoznawano, że zadanie w „{label}” jest wykonane poprawnie?", "How was a task in ‘{label}’ judged to be done correctly?"),
-        "problem": ("Jakiej potrzebie służyła praca opisana we wpisie „{label}”?", "What need did the work described in ‘{label}’ address?"),
-        "constraint": ("Co wyznaczało sposób wykonywania zadań w „{label}”?", "What shaped the way tasks were carried out in ‘{label}’?"),
-        "learning": ("Jaka wiedza okazała się przydatna przy zadaniach w „{label}”?", "What knowledge proved useful for the tasks in ‘{label}’?"),
-        "collaboration": ("Jaką rolę odgrywał kontakt z innymi osobami w pracy opisanej jako „{label}”?", "What part did contact with other people play in the work described as ‘{label}’?"),
-        "decision": ("Który element pracy w „{label}” wymagał najwięcej namysłu?", "Which aspect of the work in ‘{label}’ required the most thought?"),
-        "outcome": ("Jaki efekt pracy we wpisie „{label}” możesz potwierdzić?", "What outcome of the work in ‘{label}’ can you substantiate?"),
+        "overview": ("Jakie były Twoje codzienne zadania na tym stanowisku?", "What were your day-to-day tasks in this role?"),
+        "approach": ("Jak krok po kroku wyglądało jedno z Twoich typowych zadań?", "What did one of your typical tasks involve, step by step?"),
+        "quality": ("Jak sprawdzano, czy zadanie zostało wykonane poprawnie?", "How was a completed task checked for mistakes?"),
+        "problem": ("Jaki był cel zadań wykonywanych na tym stanowisku?", "What were the tasks in this role meant to accomplish?"),
+        "constraint": ("Czy jakieś zasady lub ograniczenia wpływały na sposób wykonywania tych zadań?", "Did any rules or constraints affect how these tasks were done?"),
+        "learning": ("Jaka wiedza przydawała Ci się w tej pracy?", "What knowledge did you find useful in this job?"),
+        "collaboration": ("Jak wyglądała współpraca z innymi osobami, jeśli była częścią tej pracy?", "How did you work with other people, if that was part of this job?"),
+        "decision": ("Czy były zadania, przy których trzeba było wybrać sposób działania?", "Were there tasks where you had to decide how to proceed?"),
+        "outcome": ("Jakie efekty swojej pracy możesz wskazać?", "What results of your work can you describe?"),
     },
     "custom_sections": {
         "problem": ("Jaki był cel przedsięwzięcia opisanego jako „{label}”?", "What was the purpose of the activity described as ‘{label}’?"),

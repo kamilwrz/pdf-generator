@@ -13,11 +13,12 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     }, language);
     const profile = { revision: 2, facts: [
       { id: 'first', path: '/experience/0/title', text: 'Junior Analyst', kind: 'fact' },
-      { id: 'role', path: '/experience/1/title', text: 'Senior AML Analyst', kind: 'fact' },
-      { id: 'company', path: '/experience/1/company', text: 'Example Consulting', kind: 'fact' },
-      { id: 'period', path: '/experience/1/period', text: '2022–2026', kind: 'fact' },
+      { id: 'role', path: '/experience/1/title', text: 'Customer Service Representative with German', kind: 'fact' },
+      { id: 'company', path: '/experience/1/company', text: 'Example Services Sp. z o.o.', kind: 'fact' },
+      { id: 'period', path: '/experience/1/period', text: '01/2025 – 05/2025', kind: 'fact' },
     ] };
-    const session = { id: 'context', evidence_scope: width === 390 ? 'isolated' : 'profile', evidence_profile: profile, revision: 2, phase: 'question', mode: 'enrich', language, profile_revision: 2, template_id: 'linden', source_cv_data: { name: 'Anna Nowak' }, answers: [], question_limit: 10, planned_question_count: 10, requirements: [], proposed_facts: [], confirmed: true, question: { id: 'q1', entry_id: '/experience/1', context: 'Senior AML Analyst', text: 'Jak przebiega analiza alertu AML w tej roli?', reason: 'Opisz praktyczny przykład.' }, preview: null };
+    const questionText = language === 'pl' ? 'Jakie były Twoje codzienne zadania na tym stanowisku?' : 'What were your day-to-day tasks in this role?';
+    const session = { id: 'context', evidence_scope: width === 390 ? 'isolated' : 'profile', evidence_profile: profile, revision: 2, phase: 'question', mode: 'enrich', language, profile_revision: 2, template_id: 'linden', source_cv_data: { name: 'Anna Nowak' }, answers: [], question_limit: 10, planned_question_count: 10, requirements: [], proposed_facts: [], confirmed: true, question: { id: 'q1', entry_id: '/experience/1', context: 'Customer Service Representative with German · Example Services Sp. z o.o. · 01/2025 – 05/2025', text: questionText, reason: language === 'pl' ? 'Ten szczegół pomoże opisać wpis w CV.' : 'This detail will help describe the entry in your CV.' }, preview: null };
     let writes = 0;
     await page.route('**/api/career-profile*', route => route.fulfill({ json: profile }));
     await page.route('**/api/ai/interviews**', route => {
@@ -26,8 +27,9 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     });
     await page.goto('/app/interview/context');
     const context = page.getByRole('complementary', { name: language === 'pl' ? 'Teraz omawiamy' : 'Discussing now' });
-    await expect(context).toContainText('Senior AML Analyst');
-    await expect(context).toContainText('Example Consulting · 2022–2026');
+    await expect(context).toContainText('Customer Service Representative with German');
+    await expect(context).toContainText('Example Services Sp. z o.o. · 01/2025 – 05/2025');
+    await expect(page.getByRole('heading', { name: questionText, exact: true })).toBeVisible();
     await expect(context).not.toContainText('Junior Analyst');
     await expect(context).not.toContainText('/experience/1');
     await expect(context.locator('details, button, a')).toHaveCount(0);

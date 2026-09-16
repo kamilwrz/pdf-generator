@@ -46,7 +46,11 @@ def test_local_conversation_varies_lenses_across_records_and_is_stable_after_res
             assert proposal == fallback_question(selected, entries, json.loads(json.dumps(answers)))
             assert answers == before and entries == untouched
             assert proposal["text"].count("?") == 1
-            assert proposal["context"] in proposal["text"]
+            assert proposal["context"] == selected["label"]
+            if kind == "experience":
+                assert proposal["context"] not in proposal["text"]
+            else:
+                assert proposal["context"] in proposal["text"]
             assert proposal["angle"] in ANGLES
             Question.model_validate(proposal)
             answers.append(answer(proposal, len(answers), "Potwierdzona informacja."))
@@ -68,7 +72,9 @@ def test_local_conversation_varies_lenses_across_records_and_is_stable_after_res
 def test_entire_mocked_provider_fallback_interview_keeps_diverse_saved_questions(environment, language):
     client, _, _, _ = environment
     client.headers.update({"Accept-Language": language})
-    cv = {"name": "Anna Nowak", "experience": [{"title": f"Role {index}"} for index in range(4)],
+    cv = {"name": "Anna Nowak", "experience": [
+              {"title": f"Customer Service Representative {index}", "company": "Example Services Sp. z o.o.",
+               "period": "01/2025 – 05/2025"} for index in range(4)],
           "skills": ["Writing"], "languages": [{"name": "English", "level": "B2"}],
           "custom_sections": [{"title": "Activities", "items": [{"title": "Atlas"}]}]}
     session = confirm(client, create(client, mode="enrich", include_profile=False, cv_data=cv))
@@ -89,6 +95,11 @@ def test_entire_mocked_provider_fallback_interview_keeps_diverse_saved_questions
                 break
             proposed = session["question"]
             assert proposed["entry_id"] in {f"/experience/{i}" for i in range(4)}
+            assert "Example Services" in proposed["context"]
+            assert "01/2025" in proposed["context"]
+            assert not any(value in proposed["text"] for value in (
+                "Customer Service Representative", "Example Services", "01/2025", "05/2025",
+            ))
             response = client.post(f"/ai/interviews/{session['id']}/answers", json={
                 **version(session, session["profile_revision"]), "question_id": proposed["id"],
                 "answer": "Confirmed information." if language == "en" else "Potwierdzona informacja.", "status": "answered",
@@ -102,6 +113,30 @@ def test_entire_mocked_provider_fallback_interview_keeps_diverse_saved_questions
         assert provider.call_count == 9
         assert len({item["angle"] for item in questions}) >= 6
         assert all(count <= 2 for count in Counter(item["entry_id"] for item in questions).values())
+
+
+@pytest.mark.parametrize("language,expected", [
+    ("pl", "Jakie były Twoje codzienne zadania na tym stanowisku?"),
+    ("en", "What were your day-to-day tasks in this role?"),
+])
+def test_experience_overview_asks_directly_and_keeps_identity_in_context(language, expected):
+    # Reproduce the long role/company/period heading from the reported question.
+    # Context must survive for rendering, answer attribution and saved history.
+    entry = record(kind="experience", label=(
+        "Customer Service Representative with German · Example Services Sp. z o.o. · 01/2025 – 05/2025"
+    ))
+    before = deepcopy(entry)
+    language_token = ui_language.set(language)
+    try:
+        proposal = fallback_question(entry, [entry], [])
+        assert proposal["text"] == expected
+        assert proposal["context"] == entry["label"]
+        assert proposal["entry_id"] == entry["id"]
+        assert proposal["angle"] == "overview"
+        assert entry == before
+        Question.model_validate(proposal)
+    finally:
+        ui_language.reset(language_token)
 
 
 @pytest.mark.parametrize("first,rephrased,angle", [
