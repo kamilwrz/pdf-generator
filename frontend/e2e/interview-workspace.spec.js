@@ -226,14 +226,35 @@ for (const language of ['pl', 'en']) {
       await expect(details).not.toHaveAttribute('open');
       const next = page.getByRole('button', { name: language === 'pl' ? 'Następne pytanie' : 'Next question', exact: true });
       await expect(next).toBeInViewport();
+      // The footer fills unused viewport space, but follows long content in normal flow.
+      const footer = page.locator('footer');
+      const footerPosition = () => footer.evaluate(el => ({
+        top: el.getBoundingClientRect().top + scrollY,
+        bottom: el.getBoundingClientRect().bottom + scrollY,
+        mainBottom: document.querySelector('main').getBoundingClientRect().bottom + scrollY,
+        viewport: innerHeight,
+      }));
+      const initialFooter = await footerPosition();
+      expect(initialFooter.bottom).toBeGreaterThanOrEqual(initialFooter.viewport - 1);
+      expect(initialFooter.top).toBeGreaterThanOrEqual(initialFooter.mainBottom - 1);
+      if (width >= 1280) expect(Math.abs(initialFooter.bottom - initialFooter.viewport)).toBeLessThanOrEqual(1);
       await page.screenshot({ path: `../tmp/assistant-compact-${language}-${width}.png`, fullPage: true });
       await credits.locator('summary').focus();
       await page.keyboard.press('Enter');
       await expect(details).toHaveAttribute('open');
+      const expandedFooter = await footerPosition();
+      expect(expandedFooter.top).toBeGreaterThanOrEqual(expandedFooter.mainBottom - 1);
+      if (width >= 1280) expect(expandedFooter.bottom).toBe(initialFooter.bottom);
       await page.keyboard.press('Enter');
       await expect(details).not.toHaveAttribute('open');
       if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      const finalFooter = await footerPosition();
+      expect(finalFooter.top).toBeGreaterThanOrEqual(finalFooter.mainBottom - 1);
+      const footerLink = footer.getByRole('link').last();
+      await footerLink.focus();
+      await expect(footerLink).toBeFocused();
+      await expect(footerLink).toBeInViewport();
     });
   }
 }

@@ -225,6 +225,8 @@ Z-index contract:
 
 ## 4. Layout system
 
+Shared site pages use a viewport-height flex column: the main area grows to keep the footer at the viewport bottom on short pages. Header and footer retain natural height; long content pushes the footer below itself without fixed positioning or overlapping controls.
+
 Use CSS Grid for page structure and Flexbox for one-dimensional alignment. Wide layouts use a 12-column grid within a maximum width of 1440px. Align page titles, navigation, panels, form fields, and content edges to the same column logic.
 
 ### Narrative surfaces

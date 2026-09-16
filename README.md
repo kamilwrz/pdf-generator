@@ -2,6 +2,8 @@
 
 ## Compact CV Assistant workspace
 
+The shared `SiteLayout` is a vertical flex container with a minimum height of the dynamic viewport. Its main area fills unused space, keeping the footer at the bottom on short pages, including assistant stage changes and expanded credit details. Long content pushes the footer below the page content; it never overlays forms. Header and footer retain their natural height. `frontend/e2e/interview-workspace.spec.js` verifies footer geometry, expansion, keyboard access and 200% text across both languages and four viewport widths.
+
 `InterviewPage` uses the shared `SiteLayout` dense heading variant: the title and Pro label share a row without a repeated introduction. `InterviewFlow` pairs its stage heading with utility links, uses compact spacing and keeps full-size inputs and controls. The fact editor inherits compact padding only inside the assistant; the account profile retains its existing spacing. Stage navigation replaces the duplicate review button unless pending facts or the guided workflow need that action.
 
 `InterviewCredits` shows used and available credit counts in one native disclosure summary. Unknown balances use a dash, pending settlement remains labelled, and read failures with retry remain visible outside the disclosure. Expanding reveals full amounts, request history and free-save guidance. This does not change billing or trigger AI. Inline waiting puts elapsed time next to the operation title. Polish and English copy remain synchronised; document data and PDF output are unchanged.
@@ -504,7 +506,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–558, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteLayout`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–222, `guideFaq`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–228, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
 
 Tests: `frontend/e2e/interview-discovery.spec.js` covers pricing-to-help navigation and focus, keyboard disclosures, 390/834/1280/1920 px widths, 200% text zoom, Pro invitations, Free/unavailable access, landing and start-chooser links, registration and plan-picker copy without paid calls. `planPresentation.test.js` verifies canonical benefits and retained server pricing. Run `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` and `npm run build` from `frontend/`. The new browser test lives in the existing `frontend/e2e/` directory; application folder and database structures are unchanged. Deploy through the existing frontend pipeline. Tests use mocked account data and do not verify production activation or live AI quality. [WAI page structure](https://www.w3.org/WAI/tutorials/page-structure/) explains semantic regions, headings and navigation used by the guide.
@@ -1166,7 +1168,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–176; grouped profile, responsive question-and-answer display, editing and persistence |
 | `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–72; SiteLayout compact |
-| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
+| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–228; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `source-only interview review, notes and persistence` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–142; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
@@ -3870,6 +3872,8 @@ Notable product facts:
 
 ## Zwarty panel Asystenta CV
 
+Współdzielony `SiteLayout` używa pionowego układu flex o minimalnej wysokości dynamicznego okna przeglądarki. Główna część wypełnia wolne miejsce, więc przy krótkiej treści stopka pozostaje na dole, także podczas zmian etapów Asystenta i rozwijania rozliczeń. Długa treść przesuwa stopkę pod zawartość strony; stopka nie zasłania formularzy. Nagłówek i stopka zachowują naturalną wysokość. `frontend/e2e/interview-workspace.spec.js` sprawdza położenie stopki, rozwijanie treści, dostęp klawiaturą i tekst 200% w obu językach przy czterech szerokościach.
+
 `InterviewPage` korzysta ze zwartego nagłówka współdzielonego `SiteLayout`: tytuł i oznaczenie Pro są w jednym wierszu, bez powtórzonego wprowadzenia. `InterviewFlow` łączy nagłówek etapu z linkami pomocniczymi, zmniejsza odstępy i zachowuje pełnowymiarowe pola oraz przyciski. Edytor informacji dziedziczy mniejsze odstępy tylko wewnątrz Asystenta; profil konta zachowuje dotychczasowy układ. Nawigacja etapów zastępuje powtórzony przycisk sprawdzania informacji, chyba że wymagają go niezapisane propozycje lub prowadzony proces dopasowania.
 
 `InterviewCredits` pokazuje liczby zużytych i dostępnych kredytów w nagłówku natywnej sekcji rozwijanej. Nieznane saldo oznacza kreska, oczekiwanie na rozliczenie pozostaje opisane, a błąd odczytu i ponowienie są widoczne poza sekcją. Po rozwinięciu dostępne są pełne kwoty, historia i informacja o bezpłatnym zapisie. Nie zmienia to rozliczeń ani nie uruchamia AI. Podczas krótkiej operacji czas oczekiwania znajduje się obok jej nazwy. Teksty polskie i angielskie są zsynchronizowane; dane dokumentu i eksport PDF pozostają bez zmian.
@@ -4374,7 +4378,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–558, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteLayout`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–222, `guideFaq`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–228, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
 
 Testy: `frontend/e2e/interview-discovery.spec.js` sprawdza przejście z cennika do pomocy i fokus, rozwijanie klawiaturą, szerokości 390/834/1280/1920 px, zoom tekstu 200%, zaproszenia Pro, Free/niedostępne uprawnienia, linki ze strony głównej i ekranu startowego oraz opisy rejestracji i wyboru planu bez płatnych wywołań. `planPresentation.test.js` weryfikuje kanoniczne korzyści i zachowanie cen serwera. Uruchom `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` i `npm run build` z `frontend/`. Nowy test przeglądarkowy znajduje się w istniejącym `frontend/e2e/`; struktura aplikacji i bazy pozostaje bez zmian. Wdrażaj przez istniejący proces frontendu. Testy używają mocków konta i nie weryfikują aktywacji produkcyjnej ani jakości rzeczywistych odpowiedzi AI. [Struktura strony według WAI](https://www.w3.org/WAI/tutorials/page-structure/) wyjaśnia semantyczne regiony, nagłówki i nawigację użyte w instrukcji.
@@ -5030,7 +5034,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/pages/Site/CareerProfilePage.module.css` | 1–36; profile, views, saveBar |
 | `frontend/e2e/career-profile.spec.js` | 1–176; grupowanie profilu, responsywne pytanie z odpowiedzią, edycja i zapis |
 | `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–72; SiteLayout compact |
-| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–199; compactHero |
+| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–228; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `przegląd źródła w wywiadzie, notatki i trwałość zapisu` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–142; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
