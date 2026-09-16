@@ -1569,6 +1569,42 @@ def _heading_language_pdf_bytes(language: str) -> bytes:
 
 
 class ImportedHeadingLanguageTests(unittest.TestCase):
+    def test_import_discards_summary_prose_from_heading_and_skills(self):
+        """A provider field mix-up must not duplicate summary prose on the CV."""
+        summary = (
+            "I value excellent customer service and believe that my skills are well-matched "
+            "for this job. I thrive in a team environment though can also work independently."
+        )
+        duplicated_sentence = (
+            "I value excellent customer service and believe that my skills are well-matched "
+            "for this job."
+        )
+        client = MagicMock()
+        client.chat.completions.create.return_value = _response({
+            "name": "Alex Example",
+            "language": "English",
+            "summary": summary,
+            "labels": {"summary": duplicated_sentence, "skills": "SKILLS"},
+            "skills": [duplicated_sentence, "Customer service"],
+        })
+
+        with patch.object(
+            ai_service,
+            "_provider_settings",
+            return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare"),
+        ):
+            cv_data, usage = ai_service.extract_cv_data(_pdf_bytes(
+                f"Alex Example\n{summary}\nCustomer service\nIndependent work"
+            ))
+
+        prompt = client.chat.completions.create.call_args.kwargs["messages"][1]["content"][0]["text"]
+        self.assertIn("nigdy nie kopiuj do labels treści summary", prompt)
+        self.assertIn("Nie kopiuj jej ani jej zdań do skills", prompt)
+        self.assertEqual(cv_data["labels"]["summary"], "PROFESSIONAL SUMMARY")
+        self.assertEqual(cv_data["summary"], summary)
+        self.assertEqual(cv_data["skills"], ["Customer service"])
+        self.assertEqual(usage["extraction_mode"], "text")
+
     def test_native_import_restores_source_headings_independently_of_ui_language(self):
         """A translated provider response cannot replace visible source titles."""
         from app.core.localisation import ui_language

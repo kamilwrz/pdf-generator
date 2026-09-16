@@ -357,6 +357,54 @@ def _is_redundant_skill_category(category: object) -> bool:
     return is_generic_skills_label(category)
 
 
+def _duplicates_summary_prose(value: object, summary: object) -> bool:
+    """Return whether a label or skill item repeats the authored summary.
+
+    Extraction providers occasionally copy the first summary sentence into
+    ``labels.summary`` or ``skills``. Only a substantial prose fragment is
+    treated as corruption: short overlaps such as a technology name may be a
+    legitimate skill even when the same word also appears in the summary.
+
+    @param value - Candidate heading or skill text from the profile payload.
+    @param summary - Authored professional-summary text used for comparison.
+    """
+    candidate = re.sub(r"\s+", " ", _clean_skill_chip(value)).strip().casefold()
+    authored = re.sub(r"\s+", " ", _text(summary)).strip().casefold()
+    if not candidate or not authored:
+        return False
+    if len(candidate) < 40 or len(candidate.split()) < 7:
+        return False
+    if candidate == authored:
+        return True
+    # A provider may return the complete paragraph or only its first sentence.
+    # The minimum prose length above keeps short, legitimate overlaps safe.
+    return candidate in authored or authored in candidate
+
+
+def _remove_summary_prose_from_skills(value: Any, summary: object) -> list[Any]:
+    """Remove summary paragraphs misclassified as skills without losing chips."""
+    cleaned: list[Any] = []
+    for item in value if isinstance(value, list) else []:
+        if isinstance(item, Mapping) and _is_skill_group_mapping(item):
+            group = dict(item)
+            group["items"] = [
+                skill
+                for skill in group.get("items") or []
+                if not _duplicates_summary_prose(skill, summary)
+            ]
+            if group["items"]:
+                cleaned.append(group)
+            continue
+        candidate = (
+            item.get("name") or item.get("title") or item.get("label") or item.get("content")
+            if isinstance(item, Mapping)
+            else item
+        )
+        if not _duplicates_summary_prose(candidate, summary):
+            cleaned.append(item)
+    return _normalize_skills(cleaned)
+
+
 def _normalize_skills(value: Any) -> list[Any]:
     """
     Canonical skills list: plain strings and/or ``{category, items}`` groups.
@@ -1217,6 +1265,7 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         else fallback_sections
     )
 
+    summary = _text(raw.get("summary"))
     raw_labels = raw.get("labels") if isinstance(raw.get("labels"), Mapping) else {}
     labels_skills_from_payload = _text(raw_labels.get("skills"))
     # "Explicit" means a non-generic heading (e.g. OBSŁUGA KOMPUTERA), not the
@@ -1228,7 +1277,11 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     # enters normalisation, including for documents saved before localisation.
     default_labels = {"summary": "PROFESSIONAL SUMMARY", "experience": "WORK EXPERIENCE", "education": "EDUCATION", "skills": "SKILLS"} if _text(raw.get("language")).lower() in {"en", "english"} else DEFAULT_LABELS
     labels = {
-        key: _text(raw_labels.get(key)) or default
+        key: (
+            default
+            if key == "summary" and _duplicates_summary_prose(raw_labels.get(key), summary)
+            else _text(raw_labels.get(key)) or default
+        )
         for key, default in default_labels.items()
     }
 
@@ -1247,7 +1300,9 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         force_parent_skills_label=category_parent_label,
         default_skills_label=default_labels["skills"],
     )
-    skills = _normalize_skills(skills)
+    # This final boundary also covers skills absorbed from alias/custom
+    # sections, not only the provider's top-level ``skills`` array.
+    skills = _remove_summary_prose_from_skills(_normalize_skills(skills), summary)
 
     language_items = [
         f"{entry['name']} — {entry['level']}" if entry["level"] else entry["name"]
@@ -1276,7 +1331,7 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
         "linkedin": social["linkedin"],
         "github": social["github"],
         "website": social["website"],
-        "summary": _text(raw.get("summary")),
+        "summary": summary,
         "experience": _normalize_experience(raw.get("experience")),
         "education": _normalize_education(raw.get("education")),
         "skills": skills,

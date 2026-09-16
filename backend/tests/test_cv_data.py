@@ -8,6 +8,47 @@ from app.services.cv_generator import generate_resume
 
 
 class CvDataNormalizationTests(unittest.TestCase):
+    def test_summary_prose_cannot_become_its_heading_or_a_skill(self):
+        """Provider field drift must not duplicate a paragraph as template chrome or skills."""
+        summary = (
+            "I value excellent customer service and believe that my skills are well-matched "
+            "for this job. I thrive in a team environment though can also work independently."
+        )
+        duplicated_sentence = (
+            "I value excellent customer service and believe that my skills are well-matched "
+            "for this job."
+        )
+        profile = normalize_cv_data({
+            "name": "Alex Example",
+            "language": "English",
+            "summary": summary,
+            "labels": {"summary": duplicated_sentence, "skills": "SKILLS"},
+            "skills": [duplicated_sentence, "Customer service", "Independent work"],
+        })
+
+        self.assertEqual(profile["labels"]["summary"], "PROFESSIONAL SUMMARY")
+        self.assertEqual(profile["summary"], summary)
+        self.assertEqual(profile["skills"], ["Customer service", "Independent work"])
+
+        rendered = "\n".join(
+            str(element.get("content") or "")
+            for element in generate_resume("slate", profile)
+        )
+        self.assertEqual(rendered.count(summary), 1)
+        self.assertEqual(rendered.casefold().count(duplicated_sentence.casefold()), 1)
+        self.assertIn("PROFESSIONAL SUMMARY", rendered)
+
+    def test_summary_overlap_does_not_remove_short_legitimate_skills(self):
+        """A skill name may also occur in the summary without being corruption."""
+        profile = normalize_cv_data({
+            "name": "Alex Example",
+            "language": "English",
+            "summary": "Python developer experienced in customer service.",
+            "skills": ["Python", "Customer service"],
+        })
+
+        self.assertEqual(profile["skills"], ["Python", "Customer service"])
+
     def test_manual_profile_keeps_structured_details_and_generator_fields(self):
         profile = normalize_cv_data({
             "name": "Anna Kowalska",
