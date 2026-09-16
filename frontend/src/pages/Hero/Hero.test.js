@@ -30,7 +30,8 @@ describe("landing product positioning", () => {
     assert.match(source, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(source, /PRO_PLAN_HIGHLIGHTS\.map/);
     assert.match(demo, /Przykład rozmowy i jej efektu/);
-    assert.match(demo, /bez dopisywania osiągnięć/);
+    assert.match(demo, /Opis opiera się na podanej odpowiedzi/);
+    assert.match(demo, /Umiejętności w propozycji pochodzą z odpowiedzi, nie z samego ogłoszenia/);
     assert.match(source, /Import nie kopiuje wyglądu oryginału/);
     assert.doesNotMatch(source, /href="#"/);
   });
@@ -40,7 +41,7 @@ describe("landing product positioning", () => {
     assert.match(source, /tabIndex=\{copy === 1 \? -1 : undefined\}/);
     assert.match(source, /\{TEMPLATE_COUNT\}/);
     assert.equal((source.match(/<details(?: open)?>/g) || []).length, 5);
-    for (const anchor of ["wywiad", "szablony", "privacy", "cennik", "final-cta-title"]) {
+    for (const anchor of ["wywiad", "dopasowanie", "szablony", "privacy", "cennik", "final-cta-title"]) {
       assert.ok(source.includes('id="' + anchor + '"'));
     }
     assert.match(styles, /prefers-reduced-motion: reduce/);

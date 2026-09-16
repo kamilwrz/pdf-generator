@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 /**
  * Conversion-focused marketing landing page for CV Studio.
  *
- * Page order: hero → interview outcome → Studio tools + templates → privacy → pricing → FAQ → final CTA → footer.
+ * Page order: hero → interview → job tailoring → Studio tools + templates → privacy → pricing → FAQ → final CTA → footer.
  *
  * The hero selects a Free template before A4 setup; demo is its secondary
  * action. Import remains in the capabilities section:
@@ -133,13 +133,11 @@ export default function Hero() {
                     </div>
                     <p className={classes.accountNote}>{uiText("public:hero.startWithoutAnAccountFreeRegistrationIs")}</p>
                     <nav className={classes.contentPaths} aria-label={uiText('public:hero.contentPaths')}>
-                        <Link className={`${classes.contentPath} ${classes.tailoringPath}`} to="/app/tailor">
-                            <span><strong>{uiText('tailoring:title')}</strong><span>{uiText('public:hero.tailoringHint')}</span></span>
-                            <ArrowIcon />
-                        </Link>
                         <a className={classes.contentPath} href="#wywiad">
-                            <span><strong>{uiText('public:hero.interviewJump')}</strong><span>{uiText('public:hero.interviewHint')}</span></span>
-                            <ArrowIcon />
+                            <strong>{uiText('public:hero.interviewJump')}</strong><ArrowIcon />
+                        </a>
+                        <a className={classes.contentPath} href="#dopasowanie">
+                            <strong>{uiText('public:hero.tailoringJump')}</strong><ArrowIcon />
                         </a>
                     </nav>
                     <ul className={classes.heroTrust} aria-label={uiText("public:hero.startWith")}>
@@ -163,15 +161,26 @@ export default function Hero() {
                     <p className={classes.interviewLead}>{uiText("public:hero.interviewBody")}</p>
                     <CtaLink to="/app/interview">{uiText("public:hero.openInterview")}</CtaLink>
                     <p className={classes.accountNote}>{uiText("public:hero.interviewAccess")}</p>
-                    <CtaLink to="/help#wywiad" variant="link">{uiText("public:hero.seeHowInterviewsWork")}</CtaLink>
+                    <a className={classes.sectionLink} href="#dopasowanie">{uiText("public:hero.tailoringCrossLink")} <ArrowIcon /></a>
                 </div>
                 <InterviewDemo />
+            </section>
+
+            <section id="dopasowanie" className={`${classes.interviewSection} ${classes.tailoringSection}`} aria-labelledby="tailoring-title" tabIndex={-1}>
+                <div className={classes.tailoringCopy}>
+                    <p className={classes.kicker} data-section-index="03">{uiText('public:hero.tailoringLabel')}</p>
+                    <h2 id="tailoring-title">{uiText('public:hero.tailoringTitle')}</h2>
+                    <p className={classes.interviewLead}>{uiText('public:hero.tailoringBody')}</p>
+                    <CtaLink to="/app/tailor">{uiText('tailoring:title')}</CtaLink>
+                    <p className={classes.accountNote}>{uiText('public:hero.tailoringAccess')}</p>
+                </div>
+                <InterviewDemo tailoring />
             </section>
 
             <section id="szablony" className={classes.templatesSection}>
                 <div className={classes.offerIntro}>
                     <div className={classes.offerStatement}>
-                        <p className={classes.kicker} data-section-index="03">{uiText("public:hero.workYourWay")}</p>
+                        <p className={classes.kicker} data-section-index="04">{uiText("public:hero.workYourWay")}</p>
                         <h2>
                             <span>{uiText("public:hero.enterYourContentOnce")}</span>
                             <span>{uiText("public:hero.changeTheLayoutLater")}</span>
@@ -261,7 +270,7 @@ export default function Hero() {
 
             <section id="privacy" className={classes.trustStrip}>
                 <div className={classes.trustHeading}>
-                    <p className={classes.kicker} data-section-index="04">{uiText("public:siteLayout.privacy")}</p>
+                    <p className={classes.kicker} data-section-index="05">{uiText("public:siteLayout.privacy")}</p>
                     <h2>{uiText("public:hero.yourCvIsNotPublic")}</h2>
                 </div>
                 <ul className={classes.trustPoints}>
@@ -272,7 +281,7 @@ export default function Hero() {
 
             <section id="cennik" className={classes.pricingSection}>
                 <div className={classes.pricingHeading}>
-                    <p className={classes.kicker} data-section-index="05">{uiText("public:siteLayout.pricing")}</p>
+                    <p className={classes.kicker} data-section-index="06">{uiText("public:siteLayout.pricing")}</p>
                     <h2>
                         <span>{uiText("public:hero.startForFree")}</span>
                         <em>{uiText("public:hero.chooseProWhenAiWouldHelp")}</em>
@@ -315,7 +324,7 @@ export default function Hero() {
 
             <section className={classes.faqSection}>
                 <div>
-                    <p className={classes.kicker} data-section-index="06">{uiText("public:hero.beforeYouStart")}</p>
+                    <p className={classes.kicker} data-section-index="07">{uiText("public:hero.beforeYouStart")}</p>
                     <h2>{uiText("public:hero.whatShouldYouKnow")}</h2>
                 </div>
                 <div className={classes.faqList}>
@@ -340,7 +349,7 @@ export default function Hero() {
             </section>
 
             <section className={classes.finalCta} aria-labelledby="final-cta-title">
-                <p className={classes.kicker} data-section-index="07">{uiText("public:hero.startWithATemplate")}</p>
+                <p className={classes.kicker} data-section-index="08">{uiText("public:hero.startWithATemplate")}</p>
                 <h2 id="final-cta-title">{uiText("public:hero.prepareYourCvForYourNextApplication")}</h2>
                 <CtaLink to={newCvUrl} event="final_wizard">{uiText("public:hero.createACvForFree")}</CtaLink>
             </section>

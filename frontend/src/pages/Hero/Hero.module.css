@@ -118,15 +118,15 @@
 
 .hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
     align-items: center;
-    gap: var(--space-12);
+    gap: var(--space-16);
     max-width: 1440px;
     margin: 0 auto;
     padding: var(--space-16) var(--space-12);
     background: var(--paper);
 }
-.heroCopy { min-width: 0; text-align: left; }
+.heroCopy { min-width: 0; max-width: 52ch; text-align: left; }
 .heroHeading { display: grid; gap: var(--space-6); }
 .hero h1 {
     max-width: 100%;
@@ -142,28 +142,35 @@
 .heroActions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-8); }
 .accountNote { max-width: 48ch; margin: var(--space-4) 0 0; color: var(--muted); font-size: .875rem; line-height: 1.55; }
 
-/* Two distinct content paths stay stacked in visual and keyboard order. */
-.contentPaths { display: grid; gap: var(--space-3); margin-top: var(--space-6); }
-.contentPath {
+/* Goal links follow the same order as their explanatory sections. */
+.contentPaths { display: grid; margin-top: var(--space-6); border-top: 1px solid var(--color-border); }
+.contentPath, .sectionLink {
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--space-4); min-width: 0; min-height: var(--control-height);
-    padding: var(--space-4); border: 1px solid var(--color-border);
-    background: var(--color-paper); color: var(--color-ink); text-decoration: none;
+    color: var(--color-ink); text-decoration: none; font-size: var(--text-body);
 }
-.tailoringPath { background: var(--color-canvas); border-inline-start: var(--space-1) solid var(--color-accent); padding-inline-start: var(--space-3); }
-.contentPath > span { display: grid; gap: var(--space-1); min-width: 0; }
-.contentPath strong { font-size: var(--text-body); line-height: 1.4; }
-.contentPath span span { color: var(--color-muted); font-size: var(--text-ui); line-height: 1.4; }
-.contentPath > svg { width: var(--space-6); height: var(--space-6); flex: 0 0 auto; }
-.contentPath:hover, .contentPath:focus-visible { border-color: var(--color-ink); background: var(--color-canvas); color: var(--color-ink); }
-.contentPath:hover strong, .contentPath:focus-visible strong { text-decoration: underline; text-underline-offset: var(--space-1); }
+.contentPath { padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); }
+.contentPath strong { min-width: 0; line-height: 1.4; }
+.contentPath > svg, .sectionLink > svg { width: var(--space-4); height: var(--space-4); flex: 0 0 auto; }
+.contentPath:hover, .contentPath:focus-visible { background: var(--color-canvas); color: var(--color-ink); }
+.contentPath:hover strong, .contentPath:focus-visible strong, .sectionLink:hover { text-decoration: underline; text-underline-offset: var(--space-1); }
 .contentPath:active { background: var(--color-surface); }
+.sectionLink { justify-content: flex-start; margin-top: var(--space-4); font-size: var(--text-ui); text-decoration: underline; text-underline-offset: var(--space-1); }
 .interviewSection { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: var(--space-16); padding: var(--space-16) var(--space-12); max-width: 1440px; margin-inline: auto; background: var(--color-canvas); scroll-margin-top: var(--space-16); }
 .interviewSection h2 { margin: 0; font: 700 clamp(2rem, 4vw, 3.5rem)/1.1 var(--font-ui); letter-spacing: -.035em; text-wrap: balance; }
 .interviewLead { margin: var(--space-6) 0; max-width: 48ch; font-size: 1rem; line-height: 1.55; }
 .interviewSection .textCta { min-height: var(--control-height); margin-top: var(--space-3); }
-@media (max-width: 1024px) { .interviewSection { gap: var(--space-8); padding: var(--space-12) var(--space-6); } }
+@media (max-width: 1024px) { .interviewSection { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); padding: var(--space-12) var(--space-6); } }
 @media (max-width: 767px) { .interviewSection { grid-template-columns: minmax(0, 1fr); padding: var(--space-8) var(--space-4); } }
+
+/* Mirror the example on wide screens; compact reading starts with the heading. */
+.tailoringSection { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); background: var(--color-paper); border-bottom: 1px solid var(--color-border); }
+.tailoringSection > figure { grid-column: 1; grid-row: 1; background: var(--color-canvas); }
+.tailoringCopy { grid-column: 2; grid-row: 1; align-self: center; min-width: 0; }
+@media (max-width: 1024px) {
+    .tailoringSection { grid-template-columns: minmax(0, 1fr); }
+    .tailoringSection > figure, .tailoringCopy { grid-column: auto; grid-row: auto; }
+}
 
 .finalCta {
     padding: var(--space-16) clamp(24px, 7vw, 112px);
@@ -822,7 +829,7 @@
 }
 
 @media (max-width: 1024px) {
-    .hero { gap: var(--space-6); padding: var(--space-12) var(--space-6); }
+    .hero { grid-template-columns: minmax(0, 1fr); gap: var(--space-12); padding: var(--space-12) var(--space-6); }
 
     .offerIntro {
         grid-template-columns: 1fr;

@@ -11,7 +11,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     const english = language === 'en';
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(english ? 'Stronger content.' : 'Lepsza treść.');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(english ? 'Create your CV.' : 'Stwórz CV.');
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     const jump = page.locator('a[href="#wywiad"]');
     await jump.focus();
@@ -20,7 +20,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     await expect(page.locator('#wywiad figure')).toContainText('Zendesk');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../tmp/positioning-${language}-${width}.png`, fullPage: true });
-    const start = page.locator('#wywiad').getByRole('link', { name: english ? 'Open the Interview' : 'Przejdź do Wywiadu', exact: true });
+    const start = page.locator('#wywiad').getByRole('link', { name: english ? 'Improve my CV content' : 'Popraw treść CV', exact: true });
     await expect(start).toHaveAttribute('href', '/app/interview');
     expect((await start.boundingBox()).height).toBeGreaterThanOrEqual(44);
     const fit = page.getByRole('link', { name: english ? 'How page fitting works' : 'Jak działa dopasowanie do strony' });

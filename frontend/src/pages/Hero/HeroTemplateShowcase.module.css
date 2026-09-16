@@ -2,8 +2,8 @@
 .showcase { min-width: 0; width: 100%; color: var(--color-ink); }
 .heading { display: flex; justify-content: space-between; gap: var(--space-4); border-top: 1px solid var(--color-border); padding-top: var(--space-4); font: 600 .75rem/1.4 var(--font-ui); }
 .counter { flex-shrink: 0; color: var(--color-muted); font-family: var(--font-mono); }
-.stage { position: relative; perspective: 1200px; aspect-ratio: 11 / 10; touch-action: pan-y pinch-zoom; }
-.card { position: absolute; left: 50%; top: 6%; width: 54%; aspect-ratio: 210 / 297; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-paper); box-shadow: var(--shadow-pop); cursor: pointer; backface-visibility: hidden; }
+.stage { position: relative; perspective: 1200px; aspect-ratio: 6 / 5; touch-action: pan-y pinch-zoom; }
+.card { position: absolute; left: 50%; top: 6%; width: 48%; aspect-ratio: 210 / 297; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-paper); box-shadow: var(--shadow-pop); cursor: pointer; backface-visibility: hidden; }
 .card:focus-visible { outline: 2px solid var(--color-focus); outline-offset: var(--space-1); }
 .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--color-paper); user-select: none; }
 .pendingImage { visibility: hidden; }
@@ -29,8 +29,10 @@
   .mobileAction { display: grid; margin-top: var(--space-6); }
   .showcase { max-width: 560px; justify-self: center; }
   .stage { aspect-ratio: 1 / 1; }
-  .card { width: 60%; top: 8%; }
+  .card { width: 52%; top: 8%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .card { transition: none; }
 }
+
+@media (min-width: 768px) and (max-width: 1024px) { .showcase { max-width: 640px; justify-self: center; } }

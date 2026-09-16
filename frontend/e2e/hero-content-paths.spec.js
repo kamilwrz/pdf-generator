@@ -12,8 +12,8 @@ for (const language of ['pl', 'en']) {
       const paths = page.locator('#top nav');
       const links = paths.getByRole('link');
       await expect(links).toHaveCount(2);
-      await expect(links.nth(0)).toHaveAttribute('href', '/app/tailor');
-      await expect(links.nth(1)).toHaveAttribute('href', '#wywiad');
+      await expect(links.nth(0)).toHaveAttribute('href', '#wywiad');
+      await expect(links.nth(1)).toHaveAttribute('href', '#dopasowanie');
       for (const enlarged of [false, true]) {
         if (enlarged) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
         const first = await links.nth(0).boundingBox();
@@ -30,12 +30,12 @@ for (const language of ['pl', 'en']) {
       await page.keyboard.press('Tab');
       await expect(links.nth(1)).toBeFocused();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/#wywiad$/);
+      await expect(page).toHaveURL(/#dopasowanie$/);
       await page.goto('/');
       await paths.scrollIntoViewIfNeeded();
       await paths.screenshot({ path: `test-results/hero-content-paths-${language}-${width}.png` });
       await links.nth(0).click();
-      await expect(page).toHaveURL(/\/app\/tailor$/);
+      await expect(page).toHaveURL(/#wywiad$/);
     });
   }
 }

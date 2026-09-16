@@ -69,7 +69,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
               className={classes.card}
               data-active={active}
               initial={false}
-              animate={{ x: active ? "-50%" : `${-50 + side * 56}%`, y: active ? "0%" : "8%", z: active ? 0 : -96, rotateY: active ? 0 : side * -18, rotateZ: active ? 0 : side * 6 }}
+              animate={{ x: active ? "-50%" : `${-50 + side * 46}%`, y: active ? "0%" : "8%", z: active ? 0 : -96, rotateY: active ? 0 : side * -18, rotateZ: active ? 0 : side * 6 }}
               transition={{ duration: reducedMotion ? 0 : 0.32, ease: [0.2, 0, 0, 1] }}
               style={{ zIndex: active ? 3 : 1 }}
               onClick={() => { if (!suppressClick.current) onSelect(template.id); }}
@@ -81,7 +81,7 @@ export default function HeroTemplateShowcase({ templates, selectedId, onSelect, 
               {imageState !== "error" && <img
                 src={heroPreviewPath(template.id, 595)}
                 srcSet={`${heroPreviewPath(template.id, 360)} 360w, ${heroPreviewPath(template.id, 595)} 595w`}
-                sizes="(max-width: 767px) 60vw, (max-width: 1440px) 27vw, 360px"
+                sizes="(max-width: 767px) 52vw, (max-width: 1024px) 308px, (max-width: 1440px) 24vw, 308px"
                 alt=""
                 width="595"
                 height="842"
