@@ -1,5 +1,13 @@
 # English
 
+## Plain-language interview questions
+
+The discovery prompt asks for one useful missing detail in everyday language, usually one sentence of up to 25 words. This is model guidance, not a hard validation limit. It uses one confirmed task as context, avoids chains of acronyms and does not assume that separately listed activities happened together. Unknown experience is checked before asking about its details; an ordinary process can provide useful CV material without a memorable success story or metric. Follow-ups use the saved answers, and the short `reason` explains how the answer helps describe the work.
+
+For example, when the CV confirms AML alert analysis, the prompt demonstrates “How do you tell that a transaction needs further checking?” instead of asking for a conclusion drawn from several assumed sources. Examples are conditional writing guidance, never candidate evidence. The same rules apply in the interface language to create, enrich and tailor interviews. Implementation: `backend/app/services/interview_service.py`, lines 56–131, `QUESTION_POLICY`, included only for the `next` operation. Model selection, budgets, database schema, API contracts and saved answers are unchanged. Deploy the backend through the existing process; saved or replayed questions retain their previous wording, while newly generated questions use the updated prompt.
+
+Verification: from `backend/`, run `python -m pytest tests/test_interview_questions.py tests/test_interview_job_analysis.py tests/test_interviews.py -q`. These tests use a simulated provider and check prompt routing and interview behaviour; they do not establish live model wording quality. Before production rollout, assess synthetic AML, unknown SQL experience, junior projects and already-answered reporting examples in Polish and English for clarity, one information goal and unsupported assumptions. [OpenAI prompt engineering](https://developers.openai.com/api/docs/guides/prompt-engineering) explains explicit instructions and examples used for this change.
+
 ## Compact CV Assistant workspace
 
 The shared `SiteLayout` is a vertical flex container with a minimum height of the dynamic viewport. Its main area fills unused space, keeping the footer at the bottom on short pages, including assistant stage changes and expanded credit details. Long content pushes the footer below the page content; it never overlays forms. Header and footer retain their natural height. `frontend/e2e/interview-workspace.spec.js` verifies footer geometry, expansion, keyboard access and 200% text across both languages and four viewport widths.
@@ -141,7 +149,7 @@ Reopening an existing interview preserves its stored language, and an already sa
 
 The generation contract is now version 7. An explicit retry of an unfinished attempt from an older version receives a new attempt ID, so updated language prompts cannot collide with reservation keys created for old prompt hashes. Saved previews remain readable, and opening or reading an interview does not start paid generation. Implementation: `backend/app/services/interview_editorial.py`, lines 15–18 (`PIPELINE_VERSION`) and 193–214 (`begin_generation`). Regression: `backend/tests/test_interview_editorial.py`, lines 154–178, `test_upgraded_policy_does_not_replay_completed_older_generation_stages`, covers attempts from versions 2, 5 and 6.
 
-Implementation: `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 962–979 (`openInterview`) and 1693–1696 (`handleCvLanguageChange`); `backend/app/api/routes/interviews.py`, lines 500–596 (`preview_interview`); `backend/app/services/interview_service.py`, lines 420–479 (`assemble_draft`).
+Implementation: `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, lines 962–979 (`openInterview`) and 1693–1696 (`handleCvLanguageChange`); `backend/app/api/routes/interviews.py`, lines 500–596 (`preview_interview`); `backend/app/services/interview_service.py`, lines 447–506 (`assemble_draft`).
 
 Tests: `frontend/src/components/ai/AiAssistant/AiAssistantInterview.runtime.test.jsx`, lines 1–109, checks UI-language defaults, manual choices across template/document changes, automatic source-language detection and the submitted request. `backend/tests/test_interview_language.py`, lines 1–170, covers target-language context in all three AI stages, translated text and standard/custom headings in every template, saving the generated document and preserving the source. Provider responses are simulated; the tests do not measure live-model translation quality. From `frontend`, run `npm run test:runtime -- src/components/ai/AiAssistant/AiAssistantInterview.runtime.test.jsx`; from `backend`, run `python -m pytest tests/test_interview_language.py -q`. [React's props guide](https://react.dev/learn/passing-props-to-a-component) explains how the assistant passes initial source settings to the shared interview component.
 
@@ -222,7 +230,7 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 | `backend/app/services/interview_answer_help.py` | 1–268; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `AnswerHelpWrite, AnswerHelpProposal, AnswerHelpVerification, AnswerWrite` |
 | `backend/app/api/routes/interviews.py` | 1–663; `help_interview_answer, answer_interview` |
-| `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
+| `backend/app/services/interview_service.py` | 1–686; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–558; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
@@ -363,7 +371,7 @@ Implementation and regression references:
 - `backend/app/services/job_matching_policy.py`, lines 9–189, `JOB_MATCHING_RULES`, `JOB_ANALYSIS_TASK`, `INTERVIEW_JOB_ANALYSIS_TASK`, `TAILORED_DRAFT_POLICY`, `TAILORED_EDITORIAL_POLICY` — shared instructions and separate operation contracts.
 - `backend/app/services/ai_assistant_service.py`, lines 1195–1274, `_tailor_cv_to_position`; `backend/app/services/job_tailoring.py`, lines 205–234, `build_evidence_catalog`, and lines 494–599, `build_job_tailoring_result` — source preparation, model request, deterministic output validation and analysis-only response.
 - `backend/app/api/routes/ai_assistant.py`, lines 1–470, `ai_assistant`; `backend/app/services/interview_job_analysis.py`, lines 1–154, `analysis_signature`, `load_owned_analysis`, `requirement_topics`, `requirement_facts` — private receipt and source handoff.
-- `backend/app/schemas/interview_schema.py`, lines 163–175, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, lines 580–659, `next_question`; `backend/app/services/interview_discovery.py`, lines 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, lines 500–596, `preview_interview` — direct analysis, ranked question context and tailored generation.
+- `backend/app/schemas/interview_schema.py`, lines 163–175, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, lines 607–686, `next_question`; `backend/app/services/interview_discovery.py`, lines 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, lines 500–596, `preview_interview` — direct analysis, ranked question context and tailored generation.
 - `backend/tests/test_job_tailoring.py`, lines 1–572; `backend/tests/test_interview_job_analysis.py`, lines 1–351 — canonical-only evidence, fake source markers, metadata exclusions, duplicate IDs/criteria, feedback filtering, finite scoring, empty analyses, source-bound handoff, ownership, replay and missing-detail question context.
 - `backend/tests/test_interview_editorial.py`, lines 1–402 — tailored drafting/editing instructions apply only in `tailor` mode, alongside existing source-preservation, verification and generation-replay checks.
 - `frontend/src/components/ai/AiAssistant/JobMatchPanel.jsx`, lines 1–57, `JobMatchPanel`; `frontend/src/components/ai/AiAssistant/JobMatchPanel.module.css`, lines 1–38, `.workspace`; `frontend/e2e/job-match-workspace.spec.js`, lines 1–121, `Playwright` — existing analysis workspace and browser regression coverage.
@@ -949,7 +957,7 @@ Implementation and tests (verified complete module extents):
 | `backend/app/api/routes/interviews.py` | 1–663; `get_profile, write_profile, choose_profile_source, clear_profile` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `ProfileWrite, ProfileSourceWrite` |
 | `backend/app/models/models.py` | 1–603; `CareerProfile.source_binding` |
-| `backend/app/services/interview_service.py` | 1–659; `profile_payload, put_profile` |
+| `backend/app/services/interview_service.py` | 1–686; `profile_payload, put_profile` |
 | `backend/app/services/account_data_service.py` | 1–315; `build_account_export` |
 | `backend/alembic/versions/20260912_0018_profile_source.py` | 1–24; `upgrade, downgrade` |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–159; `CareerProfilePage, refreshSource` |
@@ -1141,7 +1149,7 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/app/services/interview_questions.py` | 1–329; ANGLES, question_guidance, is_distinct_question, fallback_question |
 | `backend/tests/test_interview_questions.py` | 1–318; test_local_conversation_varies_lenses_across_records_and_is_stable_after_resume, test_legacy_paraphrases_cannot_reopen_same_record_by_renaming_topic, test_focused_follow_up_can_revisit_lens_using_a_concrete_answer_detail |
 | `backend/tests/test_interview_discovery.py` | 1–347; record coverage / pokrycie wpisów, retry, legacy, plans / plany, limits / limity |
-| `backend/app/services/interview_service.py` | 1–659; SYSTEM, QUESTION_POLICY, DISCOVERY_TASK, is_fresh_question, profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/services/interview_service.py` | 1–686; SYSTEM, QUESTION_POLICY, DISCOVERY_TASK, is_fresh_question, profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
 | `backend/app/services/interview_credits.py` | 1–53; interview_credit_usage |
 | `backend/tests/test_interview_credits.py` | 1–77; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–75; InterviewCredits |
@@ -3870,6 +3878,14 @@ Notable product facts:
 
 # Polski
 
+## Prosty język pytań wywiadu
+
+Prompt zbierania informacji prosi o jeden przydatny, brakujący szczegół codziennym językiem, zwykle w jednym zdaniu do 25 słów. To wskazówka dla modelu, a nie twardy limit walidacji. Punktem zaczepienia jest jedno potwierdzone zadanie; pytanie unika ciągów skrótów i nie zakłada, że osobno wymienione czynności odbywały się razem. Nieznane doświadczenie należy najpierw potwierdzić, zanim padnie pytanie o szczegóły. Zwykły przebieg pracy może dostarczyć materiału do CV bez historii sukcesu ani liczbowego wyniku. Dopytania uwzględniają zapisane odpowiedzi, a krótki `reason` wyjaśnia, jak odpowiedź pomoże opisać pracę.
+
+Przykładowo, gdy CV potwierdza analizę alertów AML, prompt pokazuje pytanie „Po czym rozpoznajesz, że transakcja wymaga dalszego sprawdzenia?” zamiast prośby o wniosek z kilku założonych źródeł. Przykłady są warunkowymi wskazówkami redakcyjnymi, nigdy dowodami doświadczenia. Te same zasady obowiązują w języku interfejsu przy tworzeniu, uzupełnianiu i dopasowaniu CV. Implementacja: `backend/app/services/interview_service.py`, linie 56–131, `QUESTION_POLICY`, dołączana wyłącznie dla operacji `next`. Wybór modelu, budżety, schemat bazy, kontrakty API i zapisane odpowiedzi pozostają bez zmian. Wdróż backend istniejącym procesem; zapisane lub odtwarzane pytania zachowują wcześniejsze brzmienie, a nowo generowane używają poprawionego promptu.
+
+Weryfikacja: z `backend/` uruchom `python -m pytest tests/test_interview_questions.py tests/test_interview_job_analysis.py tests/test_interviews.py -q`. Testy z symulowanym dostawcą sprawdzają dobór promptu i zachowanie wywiadu; nie potwierdzają jakości języka rzeczywistego modelu. Przed wdrożeniem produkcyjnym oceń syntetyczne przykłady analizy AML, nieznanej znajomości SQL, projektów początkujących oraz już opisanej pracy z raportami po polsku i angielsku pod kątem jasności, jednego celu i niepotwierdzonych założeń. [OpenAI prompt engineering](https://developers.openai.com/api/docs/guides/prompt-engineering) wyjaśnia użyte tu jawne instrukcje i przykłady.
+
 ## Zwarty panel Asystenta CV
 
 Współdzielony `SiteLayout` używa pionowego układu flex o minimalnej wysokości dynamicznego okna przeglądarki. Główna część wypełnia wolne miejsce, więc przy krótkiej treści stopka pozostaje na dole, także podczas zmian etapów Asystenta i rozwijania rozliczeń. Długa treść przesuwa stopkę pod zawartość strony; stopka nie zasłania formularzy. Nagłówek i stopka zachowują naturalną wysokość. `frontend/e2e/interview-workspace.spec.js` sprawdza położenie stopki, rozwijanie treści, dostęp klawiaturą i tekst 200% w obu językach przy czterech szerokościach.
@@ -4013,7 +4029,7 @@ Ponowne otwarcie istniejącego wywiadu zachowuje zapisany język, a poprawka nie
 
 Kontrakt generowania ma teraz wersję 7. Jawne ponowienie nieukończonej próby ze starszej wersji otrzymuje nowe ID próby, dzięki czemu zmienione prompty językowe nie kolidują z kluczami rezerwacji utworzonymi dla starych skrótów promptów. Zapisane podglądy pozostają dostępne, a otwarcie lub odczyt wywiadu nie uruchamia płatnego generowania. Implementacja: `backend/app/services/interview_editorial.py`, linie 15–18 (`PIPELINE_VERSION`) i 193–214 (`begin_generation`). Regresja: `backend/tests/test_interview_editorial.py`, linie 154–178, `test_upgraded_policy_does_not_replay_completed_older_generation_stages`, obejmuje próby z wersji 2, 5 i 6.
 
-Implementacja: `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 962–979 (`openInterview`) i 1693–1696 (`handleCvLanguageChange`); `backend/app/api/routes/interviews.py`, linie 500–596 (`preview_interview`); `backend/app/services/interview_service.py`, linie 420–479 (`assemble_draft`).
+Implementacja: `frontend/src/components/ai/AiAssistant/AiAssistant.jsx`, linie 962–979 (`openInterview`) i 1693–1696 (`handleCvLanguageChange`); `backend/app/api/routes/interviews.py`, linie 500–596 (`preview_interview`); `backend/app/services/interview_service.py`, linie 447–506 (`assemble_draft`).
 
 Testy: `frontend/src/components/ai/AiAssistant/AiAssistantInterview.runtime.test.jsx`, linie 1–109, sprawdza wartości domyślne zależne od języka interfejsu, ręczny wybór po zmianie szablonu lub dokumentu, automatyczne wykrywanie języka źródła i wysłane żądanie. `backend/tests/test_interview_language.py`, linie 1–170, obejmuje kontekst języka docelowego we wszystkich trzech etapach AI, przetłumaczoną treść oraz standardowe i własne nagłówki w każdym szablonie, zapis wygenerowanego dokumentu i zachowanie źródła. Odpowiedzi dostawcy są symulowane; testy nie mierzą jakości tłumaczenia rzeczywistego modelu. Z `frontend` uruchom `npm run test:runtime -- src/components/ai/AiAssistant/AiAssistantInterview.runtime.test.jsx`; z `backend` uruchom `python -m pytest tests/test_interview_language.py -q`. [Przewodnik React po props](https://react.dev/learn/passing-props-to-a-component) wyjaśnia przekazywanie początkowych ustawień źródła z asystenta do wspólnego komponentu wywiadu.
 
@@ -4094,7 +4110,7 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 | `backend/app/services/interview_answer_help.py` | 1–268; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `AnswerHelpWrite, AnswerHelpProposal, AnswerHelpVerification, AnswerWrite` |
 | `backend/app/api/routes/interviews.py` | 1–663; `help_interview_answer, answer_interview` |
-| `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
+| `backend/app/services/interview_service.py` | 1–686; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–558; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
@@ -4235,7 +4251,7 @@ Odwołania do implementacji i regresji:
 - `backend/app/services/job_matching_policy.py`, linie 9–189, `JOB_MATCHING_RULES`, `JOB_ANALYSIS_TASK`, `INTERVIEW_JOB_ANALYSIS_TASK`, `TAILORED_DRAFT_POLICY`, `TAILORED_EDITORIAL_POLICY` — wspólne instrukcje i osobne kontrakty operacji.
 - `backend/app/services/ai_assistant_service.py`, linie 1195–1274, `_tailor_cv_to_position`; `backend/app/services/job_tailoring.py`, linie 205–234, `build_evidence_catalog`, oraz linie 494–599, `build_job_tailoring_result` — przygotowanie źródeł, żądanie modelu, deterministyczna walidacja wyniku i odpowiedź zawierająca wyłącznie analizę.
 - `backend/app/api/routes/ai_assistant.py`, linie 1–470, `ai_assistant`; `backend/app/services/interview_job_analysis.py`, linie 1–154, `analysis_signature`, `load_owned_analysis`, `requirement_topics`, `requirement_facts` — prywatne rozliczenie i przekazanie źródeł.
-- `backend/app/schemas/interview_schema.py`, linie 163–175, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, linie 580–659, `next_question`; `backend/app/services/interview_discovery.py`, linie 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, linie 500–596, `preview_interview` — bezpośrednia analiza, uporządkowany kontekst pytań i generowanie dopasowanej treści.
+- `backend/app/schemas/interview_schema.py`, linie 163–175, `Requirement`, `JobAnalysis`; `backend/app/services/interview_service.py`, linie 607–686, `next_question`; `backend/app/services/interview_discovery.py`, linie 210–279, `update_discovery_budget`; `backend/app/api/routes/interviews.py`, linie 500–596, `preview_interview` — bezpośrednia analiza, uporządkowany kontekst pytań i generowanie dopasowanej treści.
 - `backend/tests/test_job_tailoring.py`, linie 1–572; `backend/tests/test_interview_job_analysis.py`, linie 1–351 — dowody wyłącznie kanoniczne, fałszywe znaczniki źródeł, wykluczenie metadanych, powtórzone ID/kryteria, filtrowanie komentarzy, skończona punktacja, puste analizy, przekazanie powiązane ze źródłem, własność, odtwarzanie i brakujący szczegół w kontekście pytania.
 - `backend/tests/test_interview_editorial.py`, linie 1–402 — instrukcje dopasowania przy tworzeniu/redakcji treści działają tylko w trybie `tailor`, obok dotychczasowych kontroli zachowania źródeł, weryfikacji i odtwarzania generacji.
 - `frontend/src/components/ai/AiAssistant/JobMatchPanel.jsx`, linie 1–57, `JobMatchPanel`; `frontend/src/components/ai/AiAssistant/JobMatchPanel.module.css`, linie 1–38, `.workspace`; `frontend/e2e/job-match-workspace.spec.js`, linie 1–121, `Playwright` — istniejący widok analizy i regresje przeglądarki.
@@ -4814,7 +4830,7 @@ Implementacja i testy (zweryfikowane pełne zakresy modułów):
 | `backend/app/api/routes/interviews.py` | 1–663; `get_profile, write_profile, choose_profile_source, clear_profile` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `ProfileWrite, ProfileSourceWrite` |
 | `backend/app/models/models.py` | 1–603; `CareerProfile.source_binding` |
-| `backend/app/services/interview_service.py` | 1–659; `profile_payload, put_profile` |
+| `backend/app/services/interview_service.py` | 1–686; `profile_payload, put_profile` |
 | `backend/app/services/account_data_service.py` | 1–315; `build_account_export` |
 | `backend/alembic/versions/20260912_0018_profile_source.py` | 1–24; `upgrade, downgrade` |
 | `frontend/src/pages/Site/CareerProfilePage.jsx` | 1–159; `CareerProfilePage, refreshSource` |
@@ -5007,7 +5023,7 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/app/services/interview_questions.py` | 1–329; ANGLES, question_guidance, is_distinct_question, fallback_question |
 | `backend/tests/test_interview_questions.py` | 1–318; test_local_conversation_varies_lenses_across_records_and_is_stable_after_resume, test_legacy_paraphrases_cannot_reopen_same_record_by_renaming_topic, test_focused_follow_up_can_revisit_lens_using_a_concrete_answer_detail |
 | `backend/tests/test_interview_discovery.py` | 1–347; record coverage / pokrycie wpisów, retry, legacy, plans / plany, limits / limity |
-| `backend/app/services/interview_service.py` | 1–659; SYSTEM, QUESTION_POLICY, DISCOVERY_TASK, is_fresh_question, profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
+| `backend/app/services/interview_service.py` | 1–686; SYSTEM, QUESTION_POLICY, DISCOVERY_TASK, is_fresh_question, profile_payload, _facts_with_answer_questions, session_payload, put_profile, check_versions, source_facts, base_cv, assemble_draft, paid_model, next_question |
 | `backend/app/services/interview_credits.py` | 1–53; interview_credit_usage |
 | `backend/tests/test_interview_credits.py` | 1–77; test_receipts_group_requests_without_exposing_provider_data, test_question_receipt_survives_resume_and_replay_without_new_charge |
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | 1–75; InterviewCredits |
