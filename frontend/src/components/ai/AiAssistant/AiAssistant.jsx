@@ -2,7 +2,7 @@ import JobMatchPanel from './JobMatchPanel';
 import { isAssistantReviewCurrent } from '../../../utils/assistantReview';
 import CvAuditPanel from './CvAuditPanel';
 import { useMessageState } from '../../../i18n/messageState.js';
-import { t as uiText } from "../../../i18n/index.js";
+import { getUiLanguage, t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
 /**
  * Floating AI assistant with predefined actions against the current canvas.
@@ -870,6 +870,7 @@ export default function AiAssistant({ hideLauncher = false }) {
     const reduceMotion = useReducedMotion();
     const {
         sessionKey,
+        conversationKey,
         revision,
         captureDocumentScope,
         isDocumentScopeCurrent,
@@ -956,6 +957,7 @@ export default function AiAssistant({ hideLauncher = false }) {
     // response reports one; the selector then reflects it. Sent with content
     // actions so corrections come back in the CV language, not always Polish.
     const [cvLanguage, setCvLanguage] = useState("");
+    const [selectedCvLanguage, setSelectedCvLanguage] = useState(null);
 
     const openInterview = useCallback((mode = 'enrich') => {
         const source = {
@@ -963,14 +965,18 @@ export default function AiAssistant({ hideLauncher = false }) {
             source_document_id: activePdfId || null,
             template_id: activeTemplateId || null,
             spacing_px: flowSpacing,
-            language: cvLanguage || 'pl',
+            // A new document follows the interface default unless the user
+            // selected a language for this CV. The conversation identity stays
+            // stable across template swaps; incidental source-language detection
+            // from an earlier audit must not change the new document's default.
+            language: (selectedCvLanguage?.documentKey === conversationKey && selectedCvLanguage.language) || getUiLanguage(),
             candidate_notes: candidateNotes,
             ...(mode === 'tailor' ? { job_offer_url: jobOfferUrl, job_description: jobDesc, ...(reusableAnalysis?.analysisKey ? { analysis_key: reusableAnalysis.analysisKey } : {}) } : {}),
         };
         setInterview({ source, mode, documentKey: sessionKey, signature: JSON.stringify(activeCvData) });
         setIsOpen(true);
         setActivePanel(null);
-    }, [activeCvData, activePdfId, activeTemplateId, flowSpacing, cvLanguage, candidateNotes, jobOfferUrl, jobDesc, sessionKey, reusableAnalysis]);
+    }, [activeCvData, activePdfId, activeTemplateId, flowSpacing, selectedCvLanguage, candidateNotes, jobOfferUrl, jobDesc, sessionKey, conversationKey, reusableAnalysis]);
     const activeInterview = interview?.documentKey === sessionKey ? interview : null;
 
     const messagesRef = useRef(null);
@@ -1686,7 +1692,8 @@ export default function AiAssistant({ hideLauncher = false }) {
     // Manual override: user picks the CV language when auto-detection is wrong.
     const handleCvLanguageChange = useCallback((code) => {
         setCvLanguage(code);
-    }, []);
+        setSelectedCvLanguage({ documentKey: conversationKey, language: code });
+    }, [conversationKey]);
 
     const openContentPanel = useCallback(() => {
         setIsOpen(true);

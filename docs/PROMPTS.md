@@ -1484,7 +1484,7 @@ Uwzględniaj tylko rzeczywiście zmienione fragmenty. Puste tablice są poprawn�
 
 ## Redakcja i wersjonowanie generowania po wywiadzie
 
-Plik `backend/app/services/interview_editorial.py`, linie 1–106. `EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. Zwraca pełne `path/value`, zachowuje dowody i zaakceptowane `framing`; po walidacji następuje niezależna weryfikacja faktów. Wersja procesu unieważnia ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.
+Plik `backend/app/services/interview_editorial.py`, linie 1–125. `EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. Zwraca pełne `path/value`, zachowuje dowody i zaakceptowane `framing`; po walidacji następuje niezależna weryfikacja faktów. Wersja procesu unieważnia ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.
 
 ```python
 """Content-only interview redaction and resumable, version-bound generation.
@@ -1501,9 +1501,10 @@ from app.services import interview_service as service
 from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY
 from app.services.scoped_ai import preserves_protected_tokens
 
-# A new generation must not replay stages prepared under the older policy.
-# Saved previews remain readable; only a fresh/retried generation uses version 3.
-PIPELINE_VERSION = 3
+# Restart unfinished attempts under the complete output-language contract.
+# Reusing a pre-upgrade attempt could pair its reservation key with a changed
+# prompt hash after interruption. Existing saved previews remain readable.
+PIPELINE_VERSION = 6
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(
@@ -1513,6 +1514,11 @@ PROSE_PATH = re.compile(
     r"(?:/(?:description|bullets/[0-9]{1,2}))?)$"
 )
 EDITORIAL_TASK = f"""{STYLE_REVIEW_POLICY}
+Redaguj selektywnie: jeden punkt to jedna czytelna jednostka informacji, zwykle
+jedno krótkie zdanie. Usuń wypełniacze, nie przepisuj całych odpowiedzi. Podsumowanie
+ma wybierać najważniejsze obszary doświadczenia zamiast streszczać wszystkie role.
+Utrzymaj jedną formę gramatyczną opisów; dla polskiego CV z formami rzeczownikowymi
+zachowaj ten styl, zamiast mieszać 'koordynacja', 'koordynowała' i 'robiłam'.
 Oceń merytoryczną przydatność opisów: wyraź jasno potwierdzone działanie, osobisty
 wkład, kontekst i rezultat, ale nie dopisuj brakujących elementów. Użytkownik może
 pisać potocznie, skrótowo lub z błędami; nie oceniaj jego kompetencji po języku.
@@ -1535,6 +1541,15 @@ def prepare_editorial_draft(raw, profile):
     before the style provider starts; the caller retains the saved evidence.
     """
     draft = deepcopy(raw)
+    # A flat skill is already an explicit list item. The legacy CV normalizer
+    # interprets "Tool: prose, clause" as a category and splits its commas.
+    # Use a display dash for generated flat units so tool names and dependent
+    # clauses survive every subsequent normalization, template fill and export.
+    # User-approved literal framing is not eligible for this punctuation repair.
+    framings = {f["id"] for f in profile["facts"] if f["kind"] == "framing"}
+    for field in draft["fields"]:
+        if re.fullmatch(r"/skills/[0-9]{1,2}", field["path"]) and not framings.intersection(field["evidence_refs"]):
+            field["value"] = re.sub(r"^([^:]{2,48}):\s+", r"\1 — ", field["value"], count=1)
     paths = [field["path"] for field in draft["fields"]]
     if len(paths) != len(set(paths)):
         raise ValueError("Duplicate draft paths")
@@ -1548,11 +1563,12 @@ def prepare_editorial_draft(raw, profile):
 
 
 def apply_editorial_review(draft, review):
-    """Validate complete path/value patches and merge without changing citations.
+    """Merge usable prose patches without changing citations or source answers.
 
     Lexical guards catch changed metrics/tools, not all changes of meaning. Independent
-    verification against raw evidence remains mandatory after this check. ValueError
-    rejects the entire edit; no fragment can be applied before the check completes.
+    verification against raw evidence remains mandatory, including for retained draft
+    text. Ambiguous path sets raise ValueError before any patch is applied. A rejected
+    wording change keeps that field's draft value instead of aborting the whole CV.
     """
     editable = {f["path"]: f for f in draft["fields"] if PROSE_PATH.fullmatch(f["path"])}
     patches = {f["path"]: f["value"] for f in review["fields"]}
@@ -1560,10 +1576,13 @@ def apply_editorial_review(draft, review):
         raise ValueError("Missing, duplicate or unexpected editorial path")
     for path, value in patches.items():
         before = editable[path]["value"]
-        if not value.strip() or not preserves_protected_tokens(before, value):
-            raise ValueError("Empty prose or changed protected tokens")
-        if re.findall(r"\[[^\]]+\]", before) != re.findall(r"\[[^\]]+\]", value):
-            raise ValueError("Changed editorial placeholders")
+        if (not value.strip() or not preserves_protected_tokens(before, value)
+                or re.findall(r"\[[^\]]+\]", before) != re.findall(r"\[[^\]]+\]", value)):
+            # A style suggestion is optional; its rejection must not strand a
+            # paid draft. Restore only this field, keeping usable sibling edits.
+            # This is still generated text, never trusted source evidence: the
+            # next stage verifies the exact merged result before publication.
+            patches[path] = before
     result = deepcopy(draft)
     for field in result["fields"]:
         if field["path"] in patches:

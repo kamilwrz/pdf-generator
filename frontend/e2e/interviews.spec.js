@@ -41,7 +41,7 @@ async function installInterviewApi(page, recovered = false) {
     if (path.endsWith('/credits')) result = { credits_charged: creditRequests.reduce((sum, item) => sum + item.credits_charged, 0), requests: creditRequests };
     else if (path.endsWith('/interviews') && method === 'GET') result = { items: session ? [{ ...session, updated_at: '2026-09-10T10:00:00' }] : [], next_offset: null };
     else if (path.endsWith('/interviews') && method === 'POST') {
-      session = { evidence_scope: body.include_profile ? 'profile' : 'session', evidence_profile: { revision: 0, facts: [] }, id: ID, revision: 1, mode: body.mode, source_document_id: body.source_document_id || null, phase: 'intake', language: 'pl', profile_revision: 0, template_id: body.template_id || null, question_limit: body.mode === 'tailor' ? 5 : 8, planned_question_count: body.mode === 'tailor' ? null : 8, answers: [], question: null, requirements: [], proposed_facts: [nameFact], confirmed: false, preview: null, source_cv_data: { name: 'Anna Nowak' } };
+      session = { evidence_scope: body.include_profile ? 'profile' : 'session', evidence_profile: { revision: 0, facts: [] }, id: ID, revision: 1, mode: body.mode, source_document_id: body.source_document_id || null, phase: 'intake', language: body.language, profile_revision: 0, template_id: body.template_id || null, question_limit: body.mode === 'tailor' ? 5 : 8, planned_question_count: body.mode === 'tailor' ? null : 8, answers: [], question: null, requirements: [], proposed_facts: [nameFact], confirmed: false, preview: null, source_cv_data: { name: 'Anna Nowak' } };
       result = session;
     } else if (path.endsWith('/confirm')) {
       if (session.evidence_scope === 'profile') profile = { revision: profile.revision + 1, facts: body.facts };
@@ -86,6 +86,33 @@ async function installInterviewApi(page, recovered = false) {
 }
 
 for (const width of [390, 834, 1280, 1920]) {
+  for (const language of ['en', 'pl']) {
+    test(`English embedded interview sends ${language} document language at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const api = await installInterviewApi(page);
+      await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
+      await page.goto('/app/documents/41');
+      await page.getByRole('button', { name: 'Open AI assistant', exact: true }).click();
+      await page.getByRole('button', { name: 'Interview', exact: true }).click();
+      const flow = page.getByRole('region', { name: 'Career interview' });
+      const languageField = flow.getByRole('combobox', { name: 'New CV language', exact: true });
+      await expect(languageField).toHaveValue('en');
+      await languageField.focus();
+      if (language === 'pl') {
+        await page.keyboard.press('Home');
+      }
+      await expect(languageField).toHaveValue(language);
+      if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+      expect(await flow.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+      await page.keyboard.press('Tab');
+      await expect(flow.getByRole('button', { name: 'Start interview', exact: true })).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect.poll(() => api.calls.find(call => call.path.endsWith('/interviews') && call.method === 'POST')?.body.language).toBe(language);
+      api.base.assertHermetic();
+    });
+  }
+
   test(`English interview credit history reflows at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });

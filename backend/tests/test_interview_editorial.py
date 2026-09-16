@@ -80,7 +80,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert saved['preview']['cv_data']['summary'] == PROFESSIONAL
     assert any(PROFESSIONAL in str(element) for element in saved['preview']['elements'])
     assert saved['preview']['changes'][0]['evidence_refs'] == ['answer-q']
-    assert saved['preview']['pipeline_version'] == 5
+    assert saved['preview']['pipeline_version'] == 6
     assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert 'generation_attempt' not in saved
@@ -151,26 +151,27 @@ def test_assembly_recovery_requires_complete_current_pipeline(environment, chang
     assert result.json()['preview']['recovered_previous_attempt'] is not changed_profile
 
 
-def test_upgraded_policy_does_not_replay_completed_older_generation_stages(environment):
-    """A version-2 cache cannot bypass version-3 editorial review on retry."""
+@pytest.mark.parametrize('previous_version', [2, 5])
+def test_upgraded_policy_does_not_replay_completed_older_generation_stages(environment, previous_version):
+    """Unfinished older attempts restart under the complete language contract."""
     client, db, user, _ = environment
     session = setup_answer(client, db)
     outputs = [(draft_for_answer(), USAGE), (editorial(draft_for_answer()), USAGE), (VERIFIED, USAGE)]
     # Keep every paid stage cached by failing only deterministic assembly. This
     # recreates an old attempt identity without depending on obsolete prompts.
-    with patch.object(editorial_service, 'PIPELINE_VERSION', 2), \
+    with patch.object(editorial_service, 'PIPELINE_VERSION', previous_version), \
          patch.object(service, '_gpt', side_effect=outputs), \
          patch.object(interviews, 'generate_resume', side_effect=HTTPException(422, {'message': 'Sprawdź szablon.'})):
         legacy = generate(client, session)
     assert legacy.status_code == 200 and legacy.json()['phase'] == 'review'
     row = db.get(InterviewSession, session['id'], populate_existing=True)
-    assert row.state['generation_attempt']['version'] == 2
+    assert row.state['generation_attempt']['version'] == previous_version
     before = deepcopy(service.interview_profile(db, row))
     with patch.object(service, '_gpt', side_effect=outputs) as provider:
         upgraded = generate(client, legacy.json())
     assert upgraded.status_code == 200, upgraded.text
     assert provider.call_count == 3
-    assert upgraded.json()['preview']['pipeline_version'] == 5
+    assert upgraded.json()['preview']['pipeline_version'] == 6
     assert upgraded.json()['preview']['recovered_previous_attempt'] is False
     assert upgraded.json()['answers'] == session['answers']
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == before

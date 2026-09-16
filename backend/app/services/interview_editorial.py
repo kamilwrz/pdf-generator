@@ -12,9 +12,10 @@ from app.services import interview_service as service
 from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY
 from app.services.scoped_ai import preserves_protected_tokens
 
-# A new generation must not replay stages prepared under the older policy.
-# Saved previews remain readable; new attempts use the concise unit policy.
-PIPELINE_VERSION = 5
+# Restart unfinished attempts under the complete output-language contract.
+# Reusing a pre-upgrade attempt could pair its reservation key with a changed
+# prompt hash after interruption. Existing saved previews remain readable.
+PIPELINE_VERSION = 6
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(
