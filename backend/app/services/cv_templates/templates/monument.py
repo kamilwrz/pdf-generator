@@ -71,7 +71,9 @@ def _gen_monument(cv: dict) -> list[dict]:
         def continuation_top(self) -> float:
             return 72.0
 
-    name = _compact_text(cv.get("name"), 32)
+    # Preserve the complete identity; width fitting owns the photo clearance
+    # and wraps only after reaching the shared minimum display size.
+    name = str(cv.get("name") or "")
     title = _compact_text(cv.get("title"), 52)
     # The portrait frame follows the masthead geometry visible in the editor:
     # 80pt wide with a 3:4-like vertical measure. A real uploaded photo covers

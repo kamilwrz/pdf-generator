@@ -220,7 +220,9 @@ def _gen_slate(cv: dict) -> list[dict]:
     # (see `tag_masthead_identity` below) instead of baking `.upper()` into the
     # stored content, so the masthead identity manager can toggle case without
     # losing the original-case name.
-    name = _compact_text(cv.get("name"), 30)
+    # Identity text is complete; managed name fitting handles long surnames
+    # in the editor and PDF renderer without truncating the candidate's name.
+    name = str(cv.get("name") or "")
     title = _compact_text(cv.get("title"), 48)
     contact_fs, contact_icon = 7.8, 11.0
     # Accent glyphs on white paper (slate white glyphs would vanish). The

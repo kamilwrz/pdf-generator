@@ -166,6 +166,25 @@ _CANONICAL_POLISH_TITLES = {
     "driving_license": "PRAWO JAZDY",
 }
 
+# Letter-spacing repair must restore the source phrase, not translate it into
+# the Polish fallback. These phrases mirror the supported non-Polish aliases.
+_NON_POLISH_SOURCE_TITLES = {
+    title.replace(" ", "").casefold(): title
+    for title in (
+        "PROFESSIONAL SUMMARY", "PROFESSIONAL PROFILE", "SUMMARY OF QUALIFICATIONS",
+        "SUMMARY", "ABOUT ME", "WORK EXPERIENCE", "EMPLOYMENT HISTORY",
+        "PROFESSIONAL EXPERIENCE", "CAREER HISTORY", "BERUFSERFAHRUNG",
+        "EDUCATION", "EDUCATIONAL BACKGROUND", "ACADEMIC BACKGROUND", "AUSBILDUNG",
+        "SKILLS", "COMPUTER SKILLS", "IT SKILLS", "EXPERTISE", "CORE COMPETENCIES",
+        "SPECIALIZATIONS", "SPECIALISATIONS", "CONTACT DETAILS", "CONTACT",
+        "REFERENCES", "RECOMMENDATIONS", "LANGUAGES", "LANGUAGE", "SPRACHEN",
+        "CERTIFICATIONS", "CERTIFICATES", "COURSES", "COURSES AND TRAINING", "TRAINING",
+        "PROJECTS", "SELECTED PROJECTS", "HOBBY", "INTERESTS", "AWARDS", "HONORS",
+        "HONOURS", "PUBLICATIONS", "VOLUNTEERING", "VOLUNTEER EXPERIENCE",
+        "DRIVING LICENCE", "DRIVING LICENSE",
+    )
+}
+
 
 def _fold(value: Any) -> str:
     """Return an accent-free alphanumeric key used only for comparisons."""
@@ -235,6 +254,8 @@ def _source_title(text: str, kind: str) -> str:
     if not letter_spaced:
         return collapsed.upper()
     compact = _fold(collapsed)
+    if compact in _NON_POLISH_SOURCE_TITLES:
+        return _NON_POLISH_SOURCE_TITLES[compact]
     if kind == "skills" and compact.startswith("specjalizac"):
         return "SPECJALIZACJE"
     if kind == "skills" and compact.startswith("umiejetnos"):
@@ -1494,7 +1515,7 @@ def ground_cv_data_from_source(
 
     The model still handles flexible record schemas and classification. Source
     geometry owns fields whose boundaries are unambiguous: professional
-    summary prose, named skills/specialisation lists, language rows, and
+    source headings, summary prose, named skills/specialisation lists, language rows, and
     reference records. This prevents prompt examples or neighbouring columns
     from replacing facts.
 
@@ -1505,6 +1526,26 @@ def ground_cv_data_from_source(
     grounded = deepcopy(dict(model_data))
     source_grounded_fields: list[str] = []
     sections = [section for page in pages for section in page.get("sections") or []]
+
+    # Extraction creates a new document, so recognized source headings outrank
+    # model translations. Existing saved documents never cross this boundary.
+    # Do not guess among multiple distinct sections of the same kind.
+    labels = dict(grounded.get("labels") or {}) if isinstance(grounded.get("labels"), Mapping) else {}
+    restored_labels = False
+    for kind in ("summary", "experience", "education"):
+        titles = {
+            _collapse(section.get("title"))
+            for section in sections
+            if section.get("kind") == kind and _collapse(section.get("title"))
+        }
+        if len(titles) == 1:
+            title = next(iter(titles))
+            if labels.get(kind) != title:
+                labels[kind] = title
+                restored_labels = True
+    if restored_labels:
+        grounded["labels"] = labels
+        source_grounded_fields.append("labels")
 
     summary = next(
         (_prose(section.get("body_lines") or []) for section in sections if section.get("kind") == "summary"),
@@ -1621,7 +1662,19 @@ def ground_cv_data_from_source(
         grounded["skills"] = next_skills
         source_grounded_fields.append("skills")
         labels = dict(grounded.get("labels") or {}) if isinstance(grounded.get("labels"), Mapping) else {}
-        labels["skills"] = skill_groups[0]["category"] if len(skill_groups) == 1 else "UMIEJĘTNOŚCI"
+        # A single source parent owns its nested categories. Separate source
+        # skill families need one synthetic parent in the document language;
+        # never reuse a child category or infer the language from the UI.
+        if len(skill_groups) == 1:
+            labels["skills"] = skill_groups[0]["category"]
+        elif len(skill_sections) == 1:
+            labels["skills"] = skill_sections[0]["title"]
+        else:
+            labels["skills"] = (
+                "SKILLS"
+                if _collapse(grounded.get("language")).casefold() in {"en", "english"}
+                else "UMIEJĘTNOŚCI"
+            )
         grounded["labels"] = labels
 
     certification_sections = [
@@ -1794,5 +1847,33 @@ def ground_cv_data_from_source(
             })
             grounded["extra_sections"] = extras
             source_grounded_fields.append("references")
+
+    # Flexible extra-section bodies remain model-owned. When their kind maps
+    # to exactly one source heading, its wording is equally unambiguous and
+    # must not retain a translated model title (for example PROJECTS -> PROJEKTY).
+    restored_extra_titles = False
+    extra_sections = grounded.get("extra_sections") or []
+    for extra in extra_sections:
+        if not isinstance(extra, dict):
+            continue
+        # Several model sections of the same kind may have authored titles.
+        # A single source heading does not establish which one it belongs to.
+        if sum(
+            isinstance(candidate, Mapping) and candidate.get("kind") == extra.get("kind")
+            for candidate in extra_sections
+        ) != 1:
+            continue
+        titles = {
+            _collapse(section.get("title"))
+            for section in sections
+            if section.get("kind") == extra.get("kind") and _collapse(section.get("title"))
+        }
+        if len(titles) == 1:
+            title = next(iter(titles))
+            if extra.get("title") != title:
+                extra["title"] = title
+                restored_extra_titles = True
+    if restored_extra_titles:
+        source_grounded_fields.append("extra_section_titles")
 
     return grounded, source_grounded_fields

@@ -29,7 +29,7 @@ const COLUMN_KEYS = [
 // hydration regressions that pure in-memory hide/show tests cannot observe.
 const EXTRA_KEYS = [
   "zIndex", "isSelected", "isMove", "contactChannel", "contactBandId", "contactBand",
-  "textTransform", "mastheadRole", "mastheadBandId", "mastheadIdentity",
+  "textTransform", "mastheadRole", "mastheadBandId", "mastheadIdentity", "nameFit",
   "appearanceTemplateId", "appearanceSettings", "appearanceTypographyRole",
   "appearanceBaseFontSize", "appearanceBaseLineHeight", "placeholder", "starterPlaceholder",
   "starterSectionKey", "cvDataBindings", "lineHeight", "letterSpacing",

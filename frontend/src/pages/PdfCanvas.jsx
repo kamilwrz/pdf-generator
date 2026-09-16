@@ -125,7 +125,7 @@ import { findRequiredCvNameElement, hasRequiredCvName } from '../utils/requiredC
 import { nanoid } from 'nanoid';
 import { materializeElementSpecs } from '../utils/materializeElementSpecs';
 import { markContentElementsEnter } from '../utils/canvasEnter';
-import { normalizeCommittedDocumentSnapshot } from '../utils/documentSnapshotCommit';
+import { matchesAutomaticNameFitSnapshot, normalizeCommittedDocumentSnapshot } from '../utils/documentSnapshotCommit';
 import { preserveSavedTextLayouts } from '../utils/savedTextLayout';
 /**
  * CV editor page: canvas, toolbars, dialogs, explicit saves and guest drafts.
@@ -643,7 +643,23 @@ export function EditorController() {
   });
   const confirmDiscardActiveEdits = dirtyGuard.confirmDiscard;
   const allowNextNavigation = dirtyGuard.allowNextNavigation;
-  const markDocumentClean = dirtyGuard.markClean;
+  const cleanNameFitSnapshotRef = useRef(null);
+  const markCleanSignature = dirtyGuard.markClean;
+  const markDocumentClean = useCallback((signature) => {
+    // Preserve the exact confirmed snapshot, including a save that completed
+    // while newer edits were being made. Later font fitting may repair only
+    // this graph, never reinterpret newer user input as already saved.
+    cleanNameFitSnapshotRef.current = JSON.parse(signature);
+    markCleanSignature(signature);
+  }, [markCleanSignature]);
+  useLayoutEffect(() => {
+    const baseline = cleanNameFitSnapshotRef.current;
+    if (!baseline || persistedDocumentSignature(baseline) === documentSignature) return;
+    if (matchesAutomaticNameFitSnapshot(baseline, persistedSnapshot)) {
+      cleanNameFitSnapshotRef.current = persistedSnapshot;
+      markCleanSignature(documentSignature);
+    }
+  }, [documentSignature, persistedSnapshot, markCleanSignature]);
 
   /**
    * Commit a complete document replacement through one synchronous boundary.
@@ -654,6 +670,9 @@ export function EditorController() {
    * Callers must finish dirty/stale checks before invoking this function.
    */
   const commitDocumentSnapshot = useCallback((input, options = {}) => {
+    // A document replacement without a clean baseline must not inherit the
+    // previous document's permission for automatic font-layout repairs.
+    cleanNameFitSnapshotRef.current = null;
     const snapshot = normalizeCommittedDocumentSnapshot(input, {
       preserveSavedLayout: options.preserveSavedLayout !== false,
     });

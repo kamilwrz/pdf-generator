@@ -1157,6 +1157,19 @@
       "default": null,
       "title": "Mastheadidentity"
     },
+    "nameFit": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Namefit"
+    },
     "appearanceTemplateId": {
       "anyOf": [
         {

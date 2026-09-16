@@ -502,6 +502,8 @@ export default function CanvasElements({ elements, spreadSide = null }) {
         <>
           <Text
             elementId={element.element_id}
+            nameFit={element.nameFit}
+            lineHeight={element.lineHeight}
             fontSize={element.fontSize}
             fontFamily={element.fontFamily}
             color={element.color}

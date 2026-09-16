@@ -1,5 +1,5 @@
 /**
- * Resolve textarea soft-wraps with the browser's own shaping engine.
+ * Resolve textarea and fitted masthead-name wraps with the browser's shaping engine.
  *
  * ReportLab embeds the same font files as the canvas, but it does not apply
  * Chromium's kerning and shaping decisions. A width tolerance can repair one
@@ -164,7 +164,7 @@ async function loadElementFonts(element, documentRef) {
 }
 
 /**
- * Return Chromium-authored line records for one textarea element.
+ * Return Chromium-authored line records for a textarea or fitted masthead name.
  *
  * The mirror is detached from the canvas transform, so its CSS-pixel width is
  * the stored element width regardless of the editor's current zoom or page.
@@ -174,7 +174,7 @@ export function resolveTextareaBrowserLines(
   element,
   documentRef = typeof document === "undefined" ? null : document,
 ) {
-  if (!documentRef?.body || element?.category !== "textarea") return null;
+  if (!documentRef?.body || (element?.category !== "textarea" && !element?.nameFit)) return null;
 
   const content = String(element.content ?? "");
   const width = finiteNumber(element.width, 0);
@@ -294,7 +294,7 @@ export function resolveTextareaBrowserLines(
 }
 
 /**
- * Add transient browser line records to every renderable textarea.
+ * Add transient browser line records to textareas and fitted masthead names.
  *
  * The function is fail-open by design: unsupported/test environments keep the
  * original elements so ReportLab's calibrated wrapper remains a compatible
@@ -307,7 +307,7 @@ export async function resolveBrowserTextLayouts(
 ) {
   if (!Array.isArray(elements) || !documentRef?.body) return elements;
   const fontReady = await Promise.all(elements.map(async (element) => {
-    if (element?.category !== "textarea" || element.deleted) return false;
+    if ((element?.category !== "textarea" && !element?.nameFit) || element.deleted) return false;
     try {
       return await loadElementFonts(element, documentRef);
     } catch {
@@ -322,7 +322,7 @@ export async function resolveBrowserTextLayouts(
   }
 
   return elements.map((element, index) => {
-    if (element?.category !== "textarea" || element.deleted) return element;
+    if ((element?.category !== "textarea" && !element?.nameFit) || element.deleted) return element;
     if (!fontReady[index]) return element;
     try {
       const resolvedLines = resolveTextareaBrowserLines(element, documentRef);

@@ -1,7 +1,8 @@
 import { editorHint } from "../../../i18n/editorHints.js";
 import { useTranslation } from "react-i18next";
 /**
- * Single-line text element: select, drag, contentEditable edit.
+ * Point-text element: select, drag, contentEditable edit. Managed masthead
+ * names may use a bounded multiline box while retaining the first baseline.
  * `fixedToPage` chrome (e.g. page numbers) is non-interactive.
  *
  * Unlike Textarea, this component uses one <p> for display and edit and does
@@ -54,6 +55,8 @@ function Text({
     selectAllOnEdit,
     textTransform,
     mastheadRole,
+    nameFit,
+    lineHeight,
     editorHoverOutline,
 }) {
     useTranslation();
@@ -111,6 +114,17 @@ function Text({
         left,
         top,
         ...(hasAlignmentFrame ? { width: frameWidth, textAlign: align } : {}),
+        // Keep the first line on the point-text baseline. Additional lines use
+        // persisted document leading; this is identical in view and edit mode
+        // and never replaces the contentEditable node or truncates the name.
+        ...(nameFit ? {
+            width: frameWidth,
+            whiteSpace: "pre-wrap",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+            lineHeight: `${lineHeight}px`,
+            marginTop: -Number(lineHeight) / 2,
+        } : {}),
         zIndex,
         ...(fixedToPage ? { pointerEvents: "none" } : {}),
     };
@@ -238,7 +252,7 @@ function Text({
             suppressContentEditableWarning
             spellCheck={false}
             tabIndex={fixedToPage ? -1 : 0}
-            className={`${classes.textElement} ${skillChipPlaceholder ? classes.skillChipPlaceholder : ""} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
+            className={`${classes.textElement} ${nameFit ? classes.fittedName : ""} ${skillChipPlaceholder ? classes.skillChipPlaceholder : ""} ${editorHoverOutline ? classes.editorHoverOutline : ""} ${isEditing ? classes.editing : ""} ${isSelected && !isMove ? classes.selectedElement : ""} ${isMove ? classes.movingElement : ""}`}
             style={style}
             onClick={(e) => {
                 const intent = resolveTextClickIntent({

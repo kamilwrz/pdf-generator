@@ -614,6 +614,7 @@ class PDF_Generator:
         self, left, top, fontFamily, fontSize, color, content,
         bold=False, italic=False, underline=False, runs=None,
         textTransform=None, width=None, align="left", letterSpacing=0.0,
+        nameFit=None, lineHeight=None, height=None, resolvedLines=None,
     ):
         """Render one editable single-line text element.
 
@@ -621,8 +622,28 @@ class PDF_Generator:
         positive ``width`` and horizontal ``align`` are provided, the string is
         positioned inside that frame using the exact font variant and tracking
         used for drawing. This is the export counterpart of the canvas text
-        alignment frame used by editable Cadenza section headings.
+        alignment frame used by editable Cadenza section headings. Managed
+        masthead names may wrap at their minimum size; their first baseline
+        remains identical to historical single-line text so neighbouring
+        masthead elements do not jump when fitting becomes active.
         """
+        if isinstance(nameFit, dict) and width is not None and float(width) > 0:
+            # Reuse the validated browser-line and styled-textarea renderer,
+            # but translate its box top to preserve renderText's baseline.
+            # This shares Unicode wrapping, inline marks and measured advances
+            # without applying the textarea's different first-line origin to
+            # a saved point-text name. All later lines use the same line step.
+            line_height = float(lineHeight or float(fontSize) * 1.2)
+            measure_font, _, _ = self._resolve_font(fontFamily, bold, italic)
+            ascent, descent = getAscentDescent(measure_font, float(fontSize))
+            textarea_baseline = (line_height - (ascent - descent)) / 2.0 + ascent
+            adjusted_top = float(top) + float(fontSize) * 0.34 - textarea_baseline
+            return self.renderTextarea(
+                left, adjusted_top, width, float(height or 0), fontFamily,
+                fontSize, color, content, line_height, letterSpacing,
+                bold, italic, underline, align, False, True, runs,
+                textTransform, resolvedLines,
+            )
         # Display-and-render casing (Phase 3 masthead identity). Uppercasing here
         # keeps the STORED content original-case so the toggle is reversible, while
         # the drawn glyphs match the canvas. Uppercase preserves character count, so
@@ -1450,6 +1471,12 @@ class PDF_Generator:
         preserved. ``image_resolver(src)`` returns a local path ReportLab
         can read. ``watermark=True`` exercises the retired compatibility-only
         overlay; product callers always pass ``False`` for every plan."""
+        # Imports are local because the fallback shares this renderer's exact
+        # registered font metrics. It returns isolated repaired elements only
+        # for legacy names; modern browser-fitted geometry remains untouched.
+        from app.services.masthead_name_fit import fit_legacy_masthead_names
+
+        elements = fit_legacy_masthead_names(elements, page_width=getattr(self, "page_w", 595.0))
         by_page = {}
         by_id = {}
         for element in elements:
@@ -1477,6 +1504,10 @@ class PDF_Generator:
                         getattr(element, "width", None),
                         getattr(element, "align", "left") or "left",
                         getattr(element, "letterSpacing", 0.0) or 0.0,
+                        getattr(element, "nameFit", None),
+                        getattr(element, "lineHeight", None),
+                        getattr(element, "height", None),
+                        getattr(element, "resolvedLines", None),
                     )
                 elif category == "textarea":
                     self.renderTextarea(

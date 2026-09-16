@@ -46,6 +46,9 @@ export function hydratePersistedCanvasElement(element = {}) {
     mastheadRole: extra.mastheadRole,
     mastheadBandId: extra.mastheadBandId,
     mastheadIdentity: extra.mastheadIdentity,
+    // The effective size alone cannot restore a name after shortening, and
+    // dropping extraHeight would shift the masthead again on every reopen.
+    nameFit: extra.nameFit,
     appearanceTemplateId: extra.appearanceTemplateId,
     appearanceSettings: extra.appearanceSettings,
     appearanceTypographyRole: extra.appearanceTypographyRole,

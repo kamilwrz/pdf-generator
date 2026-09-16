@@ -509,7 +509,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             [entry["city"] for entry in cv_data["experience"]],
             ["Warszawa", "Amsterdam"],
         )
-        self.assertEqual(usage["source_grounded_fields"], ["experience_cities"])
+        self.assertEqual(usage["source_grounded_fields"], ["labels", "experience_cities"])
 
     def test_conflicting_pipe_rows_do_not_guess_an_experience_city(self):
         """Repeated role/employer pairs must agree before overriding the model."""
@@ -868,7 +868,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(references["items"][1]["title"], "Manager Julia Oleszko")
         self.assertEqual(
             usage["source_grounded_fields"],
-            ["summary", "skills", "references"],
+            ["labels", "summary", "skills", "references"],
         )
         rendered_content = "\n".join(
             str(element.get("content") or "")
@@ -926,7 +926,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         )
         self.assertEqual(
             usage["source_grounded_fields"],
-            ["summary", "experience_titles", "skills"],
+            ["labels", "summary", "experience_titles", "skills"],
         )
         rendered_content = "\n".join(
             str(element.get("content") or "")
@@ -935,7 +935,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertIn("education. I possess practical knowledge", rendered_content)
         self.assertIn("Soft Skills", rendered_content)
         self.assertIn("Research and IT", rendered_content)
-        self.assertNotIn("WORK EXPERIENCE", rendered_content)
+        self.assertEqual(rendered_content.count("WORK EXPERIENCE"), 1)
 
     def test_plain_pdf_skill_labels_are_restored_as_nested_groups(self):
         """Bullet structure must recover categories after font-weight flattening."""
@@ -1094,7 +1094,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
             ["Art Direction", "Visual Storytelling", "Adobe Photoshop"],
         )
         self.assertEqual(grounded["languages"], ["Angielski - C1"])
-        self.assertEqual(fields, ["summary", "skills", "languages"])
+        self.assertEqual(fields, ["labels", "summary", "skills", "languages"])
 
     def test_horizontal_language_grid_keeps_all_source_languages(self):
         """Adjacent language cells must not be lost as separate page lanes."""
@@ -1350,7 +1350,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         )
         self.assertEqual(
             usage["source_grounded_fields"],
-            ["summary", "skills", "certifications", "languages"],
+            ["labels", "summary", "skills", "certifications", "languages"],
         )
 
     def test_centered_headings_keep_flat_skills_and_remove_unsupported_licence(self):
@@ -1456,6 +1456,7 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertEqual(
             usage["source_grounded_fields"],
             [
+                "labels",
                 "summary",
                 "education_descriptions",
                 "skills",
@@ -1532,6 +1533,161 @@ class CloudflareCvExtractionTests(unittest.TestCase):
         self.assertIs(client, openai_client.return_value)
         self.assertEqual(model, ai_service.CLOUDFLARE_TEXT_MODEL)
         self.assertEqual(provider, "cloudflare")
+
+
+def _heading_language_pdf_bytes(language: str) -> bytes:
+    """Create source headings and nested skills with reliable native geometry."""
+    headings = (
+        ["PROFESSIONAL PROFILE", "EMPLOYMENT HISTORY", "EDUCATION", "SKILLS", "SELECTED PROJECTS"]
+        if language == "English"
+        else ["PROFIL ZAWODOWY", "HISTORIA ZATRUDNIENIA", "EDUKACJA", "UMIEJETNOSCI", "PROJEKTY"]
+    )
+    document = fitz.open()
+    page = document.new_page()
+    lines = [
+        ("ALEX EXAMPLE", True),
+        (headings[0], True),
+        ("Authored profile describing practical engineering experience.", False),
+        (headings[1], True),
+        ("Developer | Example Company | London", False),
+        ("2020 - 2026", False),
+        (headings[2], True),
+        ("Example University", False),
+        (headings[3], True),
+        ("Backend", True),
+        ("- Python", False),
+        ("Frontend", True),
+        ("- React", False),
+        (headings[4], True),
+        ("Portfolio project", False),
+    ]
+    for index, (text, bold) in enumerate(lines):
+        page.insert_text((36, 45 + index * 24), text, fontsize=11, fontname="hebo" if bold else "helv")
+    data = document.tobytes()
+    document.close()
+    return data
+
+
+class ImportedHeadingLanguageTests(unittest.TestCase):
+    def test_native_import_restores_source_headings_independently_of_ui_language(self):
+        """A translated provider response cannot replace visible source titles."""
+        from app.core.localisation import ui_language
+        from app.services.cv_generator import _GENERATORS
+
+        for language, expected in (
+            ("English", ["PROFESSIONAL PROFILE", "EMPLOYMENT HISTORY", "EDUCATION", "SKILLS", "SELECTED PROJECTS"]),
+            ("Polish", ["PROFIL ZAWODOWY", "HISTORIA ZATRUDNIENIA", "EDUKACJA", "UMIEJETNOSCI", "PROJEKTY"]),
+        ):
+            for interface_language in ("en", "pl"):
+                with self.subTest(document=language, interface=interface_language):
+                    client = MagicMock()
+                    client.chat.completions.create.return_value = _response({
+                        "name": "Alex Example",
+                        "language": language,
+                        "summary": "Provider summary",
+                        "experience": [{"title": "Developer", "company": "Example Company", "period": "2020 - 2026", "bullets": []}],
+                        "education": [{"school": "Example University", "degree": "Engineering", "period": "2017 - 2020"}],
+                        "skills": ["Provider skill"],
+                        "labels": dict.fromkeys(("summary", "experience", "education", "skills"), "Wrong translated heading"),
+                        "extra_sections": [{
+                            "kind": "projects",
+                            "title": "Wrong translated heading",
+                            "items": [{"title": "Portfolio project", "bullets": []}],
+                        }],
+                    })
+                    token = ui_language.set(interface_language)
+                    try:
+                        with patch.object(ai_service, "_provider_settings", return_value=(client, ai_service.CLOUDFLARE_TEXT_MODEL, "cloudflare")):
+                            cv_data, usage = ai_service.extract_cv_data(_heading_language_pdf_bytes(language))
+                    finally:
+                        ui_language.reset(token)
+
+                    self.assertEqual(cv_data["language"], language)
+                    self.assertEqual([cv_data["labels"][key] for key in ("summary", "experience", "education", "skills")], expected[:4])
+                    self.assertEqual([group["category"] for group in cv_data["skills"]], ["Backend", "Frontend"])
+                    self.assertEqual(cv_data["custom_sections"][0]["title"], expected[4])
+                    self.assertEqual(usage["extraction_mode"], "text")
+                    for template_id in _GENERATORS:
+                        with self.subTest(template=template_id):
+                            rendered = "\n".join(str(element.get("content") or "") for element in generate_resume(template_id, cv_data)).casefold()
+                            for heading in expected:
+                                self.assertIn(heading.casefold(), rendered)
+                            self.assertNotIn("wrong translated heading", rendered)
+
+    def test_vision_import_requests_and_preserves_original_heading_language(self):
+        """Scans share the source-language prompt and preserve model OCR titles."""
+        from app.core.localisation import ui_language
+
+        for language, labels, project_title in (
+            ("English", {"summary": "PROFESSIONAL PROFILE", "experience": "EMPLOYMENT HISTORY", "education": "EDUCATION", "skills": "SKILLS"}, "SELECTED PROJECTS"),
+            ("Polish", {"summary": "PROFIL ZAWODOWY", "experience": "HISTORIA ZATRUDNIENIA", "education": "EDUKACJA", "skills": "UMIEJĘTNOŚCI"}, "PROJEKTY"),
+        ):
+            for interface_language in ("en", "pl"):
+                with self.subTest(document=language, interface=interface_language):
+                    client = MagicMock()
+                    client.chat.completions.create.return_value = _response({
+                        "name": "Alex Example",
+                        "language": language,
+                        "labels": labels,
+                        "skills": [{"category": "Backend", "items": ["Python"]}, {"category": "Frontend", "items": ["React"]}],
+                        "extra_sections": [{"kind": "projects", "title": project_title, "items": [{"title": "Portfolio", "bullets": []}]}],
+                    })
+                    token = ui_language.set(interface_language)
+                    try:
+                        with patch.object(ai_service, "_provider_settings", return_value=(client, ai_service.CLOUDFLARE_VISION_MODEL, "cloudflare")):
+                            cv_data, usage = ai_service.extract_cv_data(_pdf_bytes())
+                    finally:
+                        ui_language.reset(token)
+
+                    prompt = client.chat.completions.create.call_args.kwargs["messages"][1]["content"][0]["text"]
+                    self.assertIn("Zachowaj oryginalny język treści CV, etykiet i tytułów dodatkowych sekcji", prompt)
+                    self.assertIn("nagłówków widocznych na obrazie", prompt)
+                    self.assertNotIn("zawsze po polsku", prompt)
+                    self.assertNotIn("tytuły dodatkowych sekcji zwracaj po polsku", prompt)
+                    self.assertNotIn("labels.skills = 'UMIEJĘTNOŚCI'", prompt)
+                    self.assertEqual(cv_data["labels"], labels)
+                    self.assertEqual(cv_data["custom_sections"][0]["title"], project_title)
+                    self.assertEqual(usage["extraction_mode"], "vision")
+
+    def test_letter_spaced_source_headings_keep_their_language(self):
+        """Repair typography without replacing English phrases with Polish ones."""
+        from app.services.cv_source_layout import _heading_kind, _source_title
+
+        for source, expected in (
+            ("P R O F E S S I O N A L  P R O F I L E", "PROFESSIONAL PROFILE"),
+            ("W O R K  E X P E R I E N C E", "WORK EXPERIENCE"),
+            ("E D U C A T I O N", "EDUCATION"),
+            ("S K I L L S", "SKILLS"),
+            ("S E L E C T E D  P R O J E C T S", "SELECTED PROJECTS"),
+            ("L A N G U A G E S", "LANGUAGES"),
+            ("W Y K S Z T A L C E N I E", "WYKSZTAŁCENIE"),
+            ("U M I E J E T N O S C I", "UMIEJĘTNOŚCI"),
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(_source_title(source, _heading_kind(source)), expected)
+
+    def test_separate_skill_families_get_parent_in_document_language(self):
+        """A synthetic parent must not copy one of the source family titles."""
+        for language, expected in (("English", "SKILLS"), ("Polish", "UMIEJĘTNOŚCI")):
+            with self.subTest(language=language):
+                grounded, _fields = ai_service.ground_cv_data_from_source(
+                    {"language": language, "labels": {"skills": "Wrong translated heading"}},
+                    [{"sections": [
+                        {"kind": "skills", "title": "COMPUTER SKILLS", "body_lines": [{"text": "- Python"}]},
+                        {"kind": "skills", "title": "EXPERTISE", "body_lines": [{"text": "- Leadership"}]},
+                    ]}],
+                )
+                self.assertEqual(grounded["labels"]["skills"], expected)
+
+    def test_ambiguous_extra_sections_keep_individual_model_titles(self):
+        """One recognized source heading cannot identify two model sections."""
+        titles = ["OPEN SOURCE PROJECTS", "PERSONAL PROJECTS"]
+        grounded, fields = ai_service.ground_cv_data_from_source(
+            {"extra_sections": [{"kind": "projects", "title": title, "items": []} for title in titles]},
+            [{"sections": [{"kind": "projects", "title": "PROJECTS", "body_lines": []}]}],
+        )
+        self.assertEqual([section["title"] for section in grounded["extra_sections"]], titles)
+        self.assertNotIn("extra_section_titles", fields)
 
 
 if __name__ == "__main__":

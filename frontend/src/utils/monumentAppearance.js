@@ -346,7 +346,9 @@ export function applyMonumentTextSize(
       return source;
     }
     const role = source.appearanceTypographyRole || typographyRole(source);
-    const baseFontSize = Number(source.appearanceBaseFontSize ?? source.fontSize);
+    // Automatic name fitting must not become the M-preset baseline. Keep the
+    // user's display-size intent even when a long name currently renders at 14pt.
+    const baseFontSize = Number(source.appearanceBaseFontSize ?? source.nameFit?.baseFontSize ?? source.fontSize);
     const hasLineHeight = Number.isFinite(Number(source.lineHeight));
     const baseLineHeight = hasLineHeight
       ? Number(source.appearanceBaseLineHeight ?? source.lineHeight)

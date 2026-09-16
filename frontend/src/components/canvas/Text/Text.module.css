@@ -47,6 +47,18 @@
     border-radius: var(--canvas-hover-radius, 2px);
 }
 
+/* Fitted names have real multiline boxes around the original baseline. Their
+   hover chrome follows those bounds instead of the zero-height text fallback. */
+.fittedName.editorHoverOutline:not(.editing)::after {
+    top: calc(-1 * var(--canvas-hover-padding, 4px));
+    height: calc((100% + 2 * var(--canvas-hover-padding, 4px)) * var(--canvas-hover-scale, 1));
+}
+
+.textElement.fittedName[data-placeholder]:empty {
+    padding-top: 0;
+    min-width: 0;
+}
+
 /* Cancel page zoom only for hover, preventing browser rounding from thickening
    its real 1px border without changing the separate edit outline. */
 .editorHoverOutline:not(.editing)::after {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { createCanvasTextWidthMeasurer, measureTextareaHeight } from '../utils/textareaHeight';
 import { reflowTextareaHeight } from '../utils/textareaReflow';
@@ -95,6 +95,8 @@ import {
 import { useElementSelectionDrag } from './useElementSelectionDrag';
 import { ENDPOINTS } from '../services/api';
 import { TEMPLATES } from '../templates';
+import { applyMastheadNameFontIntent, fitMastheadNames } from '../utils/mastheadNameFit';
+import { resolveTextareaBrowserLines } from '../utils/browserTextLayout';
 
 /**
  * Core canvas state hook for the A4 CV editor.
@@ -156,6 +158,39 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
   const canvasAreaRef = useRef(null);
 
   const [A4_Elements, setA4_Elements] = useState([]);
+  const nameWidthMeasurerRef = useRef(null);
+  const fitNameLayout = useCallback((elements) => {
+    if (!elements.some((element) => element.category === 'text' && element.mastheadRole === 'name')) return elements;
+    nameWidthMeasurerRef.current ??= createCanvasTextWidthMeasurer();
+    return fitMastheadNames(elements, {
+      measureTextWidth: nameWidthMeasurerRef.current,
+      measureLines: resolveTextareaBrowserLines,
+      spacing: flowSpacingRef.current,
+      createId: nanoid,
+    });
+  }, []);
+  // Every mutation path (typing, paste, settings, case, presets, AI, load and
+  // undo) converges here. Commit before paint to avoid a frame of overlapping
+  // name/photo pixels. Keeping the original state setter preserves existing
+  // history and persistence transactions, including legacy-load normalization.
+  useLayoutEffect(() => {
+    const fitted = fitNameLayout(A4_Elements);
+    if (fitted !== A4_Elements) setA4_Elements(fitted);
+  }, [A4_Elements, fitNameLayout]);
+  useEffect(() => {
+    let cancelled = false;
+    const refit = () => {
+      if (!cancelled) setA4_Elements(fitNameLayout);
+    };
+    // A newly selected family may load after the first fit. Re-evaluate against
+    // the loaded face, without reseeding the editable node or moving its caret.
+    document.fonts?.ready.then(refit);
+    document.fonts?.addEventListener('loadingdone', refit);
+    return () => {
+      cancelled = true;
+      document.fonts?.removeEventListener('loadingdone', refit);
+    };
+  }, [fitNameLayout]);
   const [A4_Elements_deleted, setA4_Elements_deleted] = useState([]);
   // Last loaded template slug (e.g. "monument"). Template-aware editor
   // operations use it to preserve the active document contract; blank canvases
@@ -1811,7 +1846,7 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
           ) {
             return element;
           }
-          const next = { ...element, ...dataObject };
+          const next = applyMastheadNameFontIntent(element, dataObject);
           if ("content" in dataObject) {
             next.content = sanitizeTextContent(dataObject.content);
             if (
@@ -1937,7 +1972,7 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
           const diameter = dataObject.width ?? dataObject.height;
           return { ...element, ...dataObject, width: diameter, height: diameter };
         }
-        return { ...element, ...dataObject };
+        return applyMastheadNameFontIntent(element, dataObject);
       });
       if ("page" in dataObject) {
         return finalizeDocumentPages(next, { collapseEmpty: true });
