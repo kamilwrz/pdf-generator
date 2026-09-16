@@ -1,6 +1,6 @@
 /** Generate a small public dictionary and a deferred workspace dictionary. */
 import { readFile, writeFile, rename } from 'node:fs/promises';
-const publicModules = ['pages/Hero/Hero.jsx', 'pages/Hero/HeroTemplateShowcase.jsx', 'pages/Site/PublicPages.jsx', 'pages/Site/PrivacyPage.jsx', 'components/common/SiteLayout/SiteLayout.jsx', 'components/common/SiteLayout/SitePrimitives.jsx', 'components/common/ErrorBoundary/ErrorBoundary.jsx', 'templates/index.js', 'utils/templateLayouts.js', 'utils/planPresentation.js', 'services/api.js', 'App.jsx'];
+const publicModules = ['pages/Hero/Hero.jsx', 'pages/Hero/InterviewDemo.jsx', 'pages/Hero/HeroTemplateShowcase.jsx', 'pages/Site/PublicPages.jsx', 'pages/Site/PrivacyPage.jsx', 'components/common/SiteLayout/SiteLayout.jsx', 'components/common/SiteLayout/SitePrimitives.jsx', 'components/common/ErrorBoundary/ErrorBoundary.jsx', 'templates/index.js', 'utils/templateLayouts.js', 'utils/planPresentation.js', 'services/api.js', 'App.jsx'];
 const publicKeys = new Set();
 for (const module of publicModules) {
   const source = await readFile(new URL(`../src/${module}`, import.meta.url), 'utf8');

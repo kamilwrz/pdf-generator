@@ -24,6 +24,7 @@ import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
 import HeroTemplateShowcase from "./HeroTemplateShowcase";
+import InterviewDemo from "./InterviewDemo";
 import { SiteHeader, SiteFooter } from "../../components/common/SiteLayout/SiteLayout";
 import { wakeBackend } from "../../services/api";
 import { getAccessToken, getEditorPath } from "../../utils/authSession";
@@ -155,18 +156,7 @@ export default function Hero() {
                     <p className={classes.accountNote}>{uiText("public:hero.interviewAccess")}</p>
                     <CtaLink to="/help#wywiad" variant="link">{uiText("public:hero.seeHowInterviewsWork")}</CtaLink>
                 </div>
-                {/* An illustrative answer supplies every detail in the resulting text.
-                    This is educational copy, never a generated result or a testimonial. */}
-                <figure className={classes.interviewExample}>
-                    <figcaption>{uiText("public:hero.interviewExampleLabel")}</figcaption>
-                    <dl>
-                        <div><dt>{uiText("public:hero.exampleSourceLabel")}</dt><dd>{uiText("public:hero.exampleSource")}</dd></div>
-                        <div><dt>{uiText("public:hero.exampleQuestionLabel")}</dt><dd>{uiText("public:hero.exampleQuestion")}</dd></div>
-                        <div><dt>{uiText("public:hero.exampleAnswerLabel")}</dt><dd>{uiText("public:hero.exampleAnswer")}</dd></div>
-                        <div className={classes.exampleResult}><dt>{uiText("public:hero.exampleResultLabel")}</dt><dd>{uiText("public:hero.exampleResult")}</dd></div>
-                    </dl>
-                    <p>{uiText("public:hero.exampleNote")}</p>
-                </figure>
+                <InterviewDemo />
             </section>
 
             <section id="szablony" className={classes.templatesSection}>

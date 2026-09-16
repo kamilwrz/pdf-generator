@@ -1909,7 +1909,8 @@
     "careerProfilePage.refreshSource": "Refresh CV details",
     "careerProfilePage.saveBeforeEditor": "Save your notes before opening the editor. Changing the source keeps unsaved notes.",
     "careerProfilePage.noteConflict": "Notes changed in another window. Your text is still here. Copy it before loading the saved notes.",
-    "careerProfilePage.loadSavedNotes": "Load saved notes and discard local changes"
+    "careerProfilePage.loadSavedNotes": "Load saved notes and discard local changes",
+    "hero.exampleResultLabel": "Content for the new CV"
   },
   "documents": {
     "modalPdfs.couldNotLoadTheSelectedPdf": "Could not load the selected PDF!",

@@ -1933,7 +1933,8 @@
     "careerProfilePage.refreshSource": "Odśwież dane z CV",
     "careerProfilePage.saveBeforeEditor": "Zapisz notatki przed przejściem do edytora. Zmiana źródła zachowa niezapisane notatki.",
     "careerProfilePage.noteConflict": "Notatki zmieniły się w innym oknie. Twój tekst pozostał tutaj. Skopiuj go przed wczytaniem zapisanych notatek.",
-    "careerProfilePage.loadSavedNotes": "Wczytaj zapisane notatki i odrzuć lokalne zmiany"
+    "careerProfilePage.loadSavedNotes": "Wczytaj zapisane notatki i odrzuć lokalne zmiany",
+    "hero.exampleResultLabel": "Treść do nowego CV"
   },
   "documents": {
     "modalPdfs.couldNotLoadTheSelectedPdf": "Nie udało się wczytać wybranego PDF!",

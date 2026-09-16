@@ -351,7 +351,7 @@ Both complete dictionaries in `frontend/src/i18n/locales/pl.json` and `en.json` 
 
 Implementation (whole-module ranges, including `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` and `InterviewPage`):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342.
 - `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13.
@@ -376,7 +376,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–543, `InterviewFlow`.
@@ -1753,6 +1753,9 @@ The hero uses a split editorial layout with three perspective CV previews and sh
 
 The Studio section explains PDF import, direct editing and fitting to one page. A separate Interview section uses a labelled source → question → answer → result example. Every detail in the result comes from the illustrative answer. It sends no request and consumes no credits. The registry-driven gallery retains real template samples, keyboard links and a static reduced-motion grid.
 
+The right-hand example now uses `InterviewDemo` (`frontend/src/pages/Hero/InterviewDemo.jsx`, lines 1–83) and its adjacent CSS module. The left-hand copy and entry links are unchanged. Three selectable scenes show a question, a word-by-word sample answer, and a proposal to review. Playback starts in view, runs once, pauses offscreen, and supports pause, resume and replay. Manual selection stops automatic advancement; reduced motion uses static scenes with manual controls. Sample data never reaches an API, storage or PDF output. Scene durations are reading intervals, not AI performance claims. English and Polish copy live in the existing locale dictionaries; `frontend/scripts/generate-locale-bundles.mjs` includes the component in its public-module registry so guests receive all demo messages without loading workspace translations. No dependency, backend, database or deployment change is required. Native buttons retain focus and 44px targets; inactive scenes are hidden from assistive technology and grid sizing reserves room for the longest scene. `InterviewDemo.runtime.test.jsx` covers playback and reduced motion; `frontend/e2e/interview-demo.spec.js` covers keyboard access and 390/834/1280/1920px plus a 640px zoom-equivalent viewport. Run `npm run test:runtime -- src/pages/Hero/InterviewDemo.runtime.test.jsx` and `npm run test:e2e -- e2e/interview-demo.spec.js --project=desktop-chromium` from `frontend/`. [W3C Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide) explains why the demonstration has persistent playback controls.
+
+
 Implementation and copy regressions: `frontend/src/templates/index.js` (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx` (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`); `frontend/src/pages/Site/PrivacyPage.jsx` (`PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx` (`Hero`); `frontend/src/utils/planPresentation.js`; the ten `frontend/src/utils/*Appearance.js` palette registries (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx` (`SiteFooter`); `frontend/src/pages/Login/Login.jsx` (`Login`); and `frontend/src/pages/Register/Register.jsx` (`Register`). `frontend/src/templates/index.test.js` rejects missing template detail copy and the removed jargon; `frontend/src/utils/appearanceCopy.test.js` applies the same rule to all 60 palette taglines. `frontend/e2e/site-architecture.spec.js` verifies named template CTAs, Pro gating, keyboard focus, privacy controls, and no horizontal overflow at 390, 640, 834, 1280, and 1920 CSS pixels.
 
 The shorter privacy strip describes account-bound documents and import history. Placeholder social, terms, and contact destinations remain absent; the shared footer links to the published `/privacy` policy. Four native disclosure questions cover Free, accounts, import, and Pro renewal; Free links to the existing pricing limits. [MDN: details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) explains the native disclosure behaviour used here.
@@ -1784,7 +1787,7 @@ Implementation:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, component `StartChooser` — three primary cards (`onNew`, `onImport`, entitlement-aware interview link) plus secondary saved-document and legacy-recovery actions
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–454 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, three columns on wide screens, two columns with a full-width third choice on tablets, and one column on compact screens, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
 - `frontend/src/App.jsx`, lines 53–73, functions `StartRoute` and `CreateCvRoute` — resolves generic `/app/new` to `start=choose` for an account and `start=new` for a guest or an explicit template; `/app/import` remains directed
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
 - `frontend/src/utils/startChooser.js`, lines 30–46, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx`, lines 253–265 and 1110–1135, component `EditorController` — consumes the `choose` intent, keeps the chooser ahead of automatic template selection, and wires new/import/documents/recovery actions while omitting editor chrome
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — a new A4 setup is generated directly; legacy browser drafts require the explicit recovery action
@@ -1798,7 +1801,7 @@ Tests:
 
 Implementation (Topbar / landing entry points):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/pages/Hero/Hero.module.css`, lines 1–944 — Swiss tokens, responsive hero, `.copyExample`, `.finalCta`, focus-visible, and reduced motion.
 - `frontend/src/pages/Hero/Hero.test.js`, lines 1–47 — account and Pro boundaries, starts and CTA events, canonical plans, accessible gallery and FAQ.
 - `frontend/src/utils/authSession.js`, function `getEditorPath` — builds `/cvstudio/guest` or `/cvstudio/{username}` (plus optional `?start=` and the setup-only `template` hint)
@@ -3036,7 +3039,7 @@ Implementation:
 - `backend/app/api/routes/billing.py`, lines 49–106 (`get_plans`, `select_plan`) and 147–214 (`admin_set_user_plan`) — product plan selection plus the exact-account, secret-protected support path
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 22–175, component `PlanSelectModal` — accessible two-card picker with loading, fallback, current, pending, success, and error states
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–352, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–342, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
 - `frontend/src/templates/index.js`, lines 19–33, registry `TEMPLATES` — three shipped Free element packs and six metadata-only, server-materialized Pro entries
 - `frontend/src/hooks/useEntitlements.js`, lines 3–49, hook `useEntitlements`
 
@@ -4093,7 +4096,7 @@ Pełne słowniki `frontend/src/i18n/locales/pl.json` i `en.json` są źródłem 
 
 Implementacja (zakresy całych modułów obejmujące `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` i `InterviewPage`):
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342.
 - `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13.
@@ -4118,7 +4121,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–543, `InterviewFlow`.
@@ -5484,6 +5487,9 @@ Hero ma dzielony układ redakcyjny z trzema podglądami CV w perspektywie i wsp�
 
 Sekcja Studio opisuje import PDF, edycję bezpośrednią i dopasowanie do jednej strony. Osobna sekcja Wywiadu pokazuje podpisany przykład: źródło → pytanie → odpowiedź → wynik. Każdy szczegół wyniku pochodzi z przykładowej odpowiedzi. Sekcja nie wysyła żądań i nie zużywa kredytów. Galeria z rejestru zachowuje rzeczywiste przykłady szablonów, linki dostępne klawiaturą i statyczną siatkę przy ograniczeniu ruchu.
 
+Przykład po prawej korzysta teraz z `InterviewDemo` (`frontend/src/pages/Hero/InterviewDemo.jsx`, linie 1–83) i sąsiedniego modułu CSS. Tekst oraz linki po lewej pozostają bez zmian. Trzy wybierane sceny pokazują pytanie, przykładową odpowiedź odsłanianą słowo po słowie i propozycję do sprawdzenia. Pokaz rozpoczyna się w widoku, odtwarza raz, zatrzymuje poza ekranem oraz pozwala wstrzymać, wznowić i odtworzyć ponownie. Ręczny wybór zatrzymuje automatyczne przechodzenie; ograniczenie ruchu udostępnia statyczne sceny z ręczną nawigacją. Przykładowe dane nie trafiają do API, pamięci trwałej ani PDF. Czasy scen służą czytaniu i nie obiecują szybkości AI. Teksty EN/PL znajdują się w istniejących słownikach; `frontend/scripts/generate-locale-bundles.mjs` uwzględnia komponent w rejestrze modułów publicznych, aby goście otrzymywali wszystkie teksty pokazu bez ładowania tłumaczeń edytora. Brak zmian zależności, backendu, bazy i wdrożenia. Natywne przyciski zachowują fokus i cele 44px; nieaktywne sceny są ukryte przed technologiami asystującymi, a siatka rezerwuje miejsce na najdłuższą scenę. `InterviewDemo.runtime.test.jsx` sprawdza odtwarzanie i ograniczenie ruchu; `frontend/e2e/interview-demo.spec.js` sprawdza klawiaturę i 390/834/1280/1920px oraz widok 640px odpowiadający powiększeniu. Uruchom w `frontend/`: `npm run test:runtime -- src/pages/Hero/InterviewDemo.runtime.test.jsx` i `npm run test:e2e -- e2e/interview-demo.spec.js --project=desktop-chromium`. [W3C Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide) wyjaśnia potrzebę stałych kontrolek odtwarzania pokazu.
+
+
 Implementacja i regresje treści: `frontend/src/templates/index.js` (`TEMPLATES`); `frontend/src/pages/Site/PublicPages.jsx` (`TemplatesPage`, `TemplatePage`, `PricingPage`, `HelpPage`); `frontend/src/pages/Site/PrivacyPage.jsx` (`PrivacyPage`); `frontend/src/pages/Hero/Hero.jsx` (`Hero`); `frontend/src/utils/planPresentation.js`; dziesięć rejestrów palet `frontend/src/utils/*Appearance.js` (`*_PALETTES`); `frontend/src/components/common/SiteLayout/SiteLayout.jsx` (`SiteFooter`); `frontend/src/pages/Login/Login.jsx` (`Login`); oraz `frontend/src/pages/Register/Register.jsx` (`Register`). `frontend/src/templates/index.test.js` odrzuca brak treści szczegółów szablonu i usunięty żargon; `frontend/src/utils/appearanceCopy.test.js` stosuje tę samą zasadę do wszystkich 60 opisów palet. `frontend/e2e/site-architecture.spec.js` sprawdza nazwane CTA szablonów, blokadę Pro, fokus klawiatury, kontrole prywatności i brak poziomego overflow przy szerokościach 390, 640, 834, 1280 i 1920 pikseli CSS.
 
 Krótszy pasek prywatności opisuje przypisanie dokumentów do konta i historię importu. Nadal nie ma pozornych linków do profili społecznościowych, regulaminu ani formularza kontaktu; wspólna stopka prowadzi do opublikowanej polityki `/privacy`. Cztery natywne rozwijane pytania dotyczą planu Darmowego, konta, importu i odnawiania Pro; odpowiedź o planie Darmowym prowadzi do istniejących limitów cennika. [MDN: details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) opisuje użyte tu natywne rozwijanie.
@@ -5515,7 +5521,7 @@ Implementacja:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, komponent `StartChooser` — trzy główne karty (`onNew`, `onImport`, link wywiadu zależny od uprawnień) oraz drugorzędne akcje dokumentów i recovery legacy
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–454 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, trzema kolumnami na szerokim ekranie, dwiema z trzecią kartą na całą szerokość na tablecie i jedną na małym ekranie, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
 - `frontend/src/App.jsx`, linie 53–73, funkcje `StartRoute` i `CreateCvRoute` — rozstrzyga ogólne `/app/new` jako `start=choose` dla konta i `start=new` dla gościa lub jawnego szablonu; `/app/import` pozostaje skierowany
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–71, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
 - `frontend/src/utils/startChooser.js`, linie 30–46, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx`, linie 253–265 i 1110–1135, komponent `EditorController` — zużywa intencję `choose`, utrzymuje chooser przed automatycznym wyborem szablonu i podpina nowe/import/dokumenty/recovery bez montowania chrome edytora
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — nowe A4 jest generowane bezpośrednio; starszy szkic przeglądarki wymaga jawnej akcji recovery
@@ -5529,7 +5535,7 @@ Testy:
 
 Implementacja:
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/pages/Hero/Hero.module.css`, linie 1–944 — tokeny Swiss, responsywne hero, `.copyExample`, `.finalCta`, focus-visible i ograniczenie ruchu.
 - `frontend/src/pages/Hero/Hero.test.js`, linie 1–47 — granice konta i Pro, starty i zdarzenia CTA, kanoniczne plany, dostępna galeria i FAQ.
 - `frontend/src/utils/authSession.js`, funkcja `getEditorPath` — buduje `/cvstudio/guest` albo `/cvstudio/{username}` (plus opcjonalne `?start=` i parametr `template` tylko dla konfiguracji)
@@ -6757,7 +6763,7 @@ Support produkcyjny może przypisać `free` lub `pro` przez `POST /billing/admin
 - `backend/app/api/routes/billing.py`, linie 49–106 (`get_plans`, `select_plan`) i 147–214 (`admin_set_user_plan`) — wybór planu w produkcie oraz chroniona sekretem ścieżka supportu dla dokładnego konta
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 22–175, komponent `PlanSelectModal` — dostępny modal dwóch planów ze stanami ładowania, fallbacku, planu bieżącego, operacji, sukcesu i błędu
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–352, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–342, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
 - `frontend/src/templates/index.js`, linie 19–33, rejestr `TEMPLATES` — trzy wysyłane pakiety elementów Free i sześć metadata-only, server-materialized wpisów Pro
 - `frontend/src/hooks/useEntitlements.js`, linie 3–49, hook `useEntitlements`
 

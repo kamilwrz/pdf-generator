@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readPresentationSourceSync as readFileSync } from "../../../scripts/read-presentation-source.mjs";
 
 const source = readFileSync(new URL("./Hero.jsx", import.meta.url), "utf8");
+const demo = readFileSync(new URL("./InterviewDemo.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("./Hero.module.css", import.meta.url), "utf8");
 
 describe("landing product positioning", () => {
@@ -25,11 +26,11 @@ describe("landing product positioning", () => {
     assert.match(source, /if \(getAccessToken\(\)\) return getEditorPath\(\{ start \}\)/);
   });
 
-  it("uses canonical plan limits and distinguishes the static AI example", () => {
+  it("uses canonical plan limits and distinguishes the illustrative AI example", () => {
     assert.match(source, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(source, /PRO_PLAN_HIGHLIGHTS\.map/);
-    assert.match(source, /Przykład rozmowy i jej efektu/);
-    assert.match(source, /bez dopisywania osiągnięć/);
+    assert.match(demo, /Przykład rozmowy i jej efektu/);
+    assert.match(demo, /bez dopisywania osiągnięć/);
     assert.match(source, /Import nie kopiuje wyglądu oryginału/);
     assert.doesNotMatch(source, /href="#"/);
   });
