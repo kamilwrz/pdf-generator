@@ -1693,7 +1693,10 @@
     "answerHelp.confirmHint": "Check the complete answer. By saving it, you confirm that the tasks and responsibilities described match your experience.",
     "answerHelp.confirmSave": "Confirm and save answer",
     "credits.operation.answer-help": "Answer suggestion",
-    "credits.operation.answer-help-verify": "Answer suggestion check"
+    "credits.operation.answer-help-verify": "Answer suggestion check",
+    "requirements.current": "Discussing now",
+    "requirements.position": "Requirement {{number}} of {{total}}",
+    "requirements.analysis": "Offer analysis summary"
   },
   "errors": {
     "errorBoundary.couldNotDisplayTheEditor": "Could not display the editor",

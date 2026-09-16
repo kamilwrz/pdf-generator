@@ -1717,7 +1717,10 @@
     "answerHelp.confirmHint": "Sprawdź całą odpowiedź. Zapisując ją, potwierdzasz, że opisane czynności i zakres odpowiedzialności są zgodne z Twoim doświadczeniem.",
     "answerHelp.confirmSave": "Potwierdzam i zapisuję odpowiedź",
     "credits.operation.answer-help": "Propozycja odpowiedzi",
-    "credits.operation.answer-help-verify": "Sprawdzenie propozycji odpowiedzi"
+    "credits.operation.answer-help-verify": "Sprawdzenie propozycji odpowiedzi",
+    "requirements.current": "Teraz omawiamy",
+    "requirements.position": "Wymaganie {{number}} z {{total}}",
+    "requirements.analysis": "Podsumowanie analizy oferty"
   },
   "errors": {
     "errorBoundary.couldNotDisplayTheEditor": "Nie udało się wyświetlić edytora",

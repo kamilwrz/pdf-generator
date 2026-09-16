@@ -1,4 +1,5 @@
 import InterviewStages from './InterviewStages';
+import InterviewRequirements from './InterviewRequirements';
 import { useMessageState, messageRef, messageOf } from '../../../i18n/messageState.js';
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
@@ -26,7 +27,6 @@ import InterviewAnswerHelp from './InterviewAnswerHelp';
 import classes from './Interview.module.css';
 
 const languageLabels = { get pl() { return uiText("ai:aiAssistant.polish"); }, get en() { return uiText("ai:aiAssistant.english"); }, get de() { return uiText("ai:aiAssistant.german"); }, get fr() { return uiText("ai:aiAssistant.french"); }, get es() { return uiText("ai:aiAssistant.spanish"); }, get uk() { return uiText("ai:aiAssistant.ukrainian"); }, get it() { return uiText("ai:aiAssistant.italian"); }, get nl() { return uiText("ai:aiAssistant.dutch"); } };
-const statuses = { get matched() { return uiText("interview:interviewFlow.confirmed"); }, get partial() { return uiText("interview:interviewFlow.toClarify"); }, get unknown() { return uiText("interview:interviewFlow.noInformation"); }, get gap() { return uiText("interview:interviewFlow.confirmedLackOfExperience"); } };
 
 export default function InterviewFlow({ sessionId, initialSource = null, currentSource = null, mode = 'create', onClose, sourceChanged = false, onSourceRefreshed, onCreditsChanged }) {
   useTranslation();
@@ -401,7 +401,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     {session && !legacy && <>
       {(activePanel === 'conversation' || reviewing) && <p className={classes.step}>{session.phase === 'clarification' ? session.question ? uiText("interview:interviewFlow.clarificationOf", { value0: (clarified + 1), value1: (clarificationTotal) }) : uiText("interview:interviewFlow.clarificationsRemaining", { count: session.pending_clarifications?.length || 0 }) : discoveryProgress} {uiText("interview:interviewFlow.cvLanguage")} {languageLabels[session.language]} · {isolated ? uiText("interview:interviewFlow.thisCvOnlyAccountProfileExcluded") : uiText("interview:interviewFlow.accountProfile")}</p>}
       {session.generation_feedback?.length > 0 && !session.preview && <InterviewReviewNotice legacy />}
-      {activePanel === 'conversation' && session.requirements.length > 0 && <details><summary>{uiText("ai:aiAssistant.jobRequirements")}</summary><ul className={classes.requirements}>{session.requirements.map((req, index) => <li key={index}><strong>{statuses[req.status]}</strong> — {req.text}</li>)}</ul></details>}
+      {activePanel === 'conversation' && <InterviewRequirements requirements={session.requirements} question={clarificationQuestion ? null : session.question} />}
       {reviewing ? <><FactEditor isolated={isolated} facts={facts} onChange={setFacts} disabled={busy} onEditingChange={setFactEditing} /><p className={classes.hint}>{needsFactSave ? (isolated ? uiText("interview:interviewFlow.continuingWillSaveInformationInThisInterview") : uiText("interview:interviewFlow.continuingWillSaveInformationInYourCareer")) : uiText("interview:interviewFlow.allInformationIsSaved")}</p><div className={classes.actions}><button className={classes.primary} disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={() => goTo(reviewDestination)}>{reviewDestination === 'conversation' ? uiText("interview:interviewFlow.continueToInterview") : uiText("interview:interviewFlow.continueToCvPreparation")}</button>{reviewDestination !== 'conversation' && <button disabled={busy || factEditing || facts.some((f) => !f.text.trim())} onClick={() => goTo('conversation')}>{uiText("interview:interviewFlow.backToInterview")}</button>}</div></> : <>
         {activePanel === 'conversation' && <>
         {session.phase === 'clarification' && !session.question && <div className={classes.progress}>
@@ -457,7 +457,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             </div>
           </details>
         </div>}
-        {session.question && !clarificationQuestion && <div className={classes.question}>{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
+        {session.question && !clarificationQuestion && <div className={classes.question}><InterviewRequirements requirements={session.requirements} question={session.question} focused />{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
           <p className={classes.hint} id={`answer-help-${session.question.id}`}>{uiText("interview:interviewFlow.answerInYourOwnWordsWhenPreparing")}</p>
           {session.question.follow_up_to && <p className={classes.hint}>{uiText("interview:interviewFlow.aFollowUpToAnEarlierAnswer")}</p>}
           <label>{uiText("interview:factEditor.yourAnswer")}<textarea ref={answerField} rows={5} maxLength={4000} value={answer} onChange={(event) => changeAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}${assistedAnswer?.questionId === session.question.id ? ` answer-confirm-${session.question.id}` : ''}`} /></label>

@@ -31,6 +31,12 @@ The standalone `/app/interview` and `/app/interview/:sessionId` routes and the e
 
 The credit receipt wraps latest charge, interview total and available account balance into a compact summary. During work or a failed receipt refresh it retains the last settled charge with an explicit status. Empty history has no disclosure; saving guidance remains visible. Loading headings name the operation directly, for example “Saving your answer”. Neither progress nor timing is simulated.
 
+### Offer requirements during the interview
+
+The shared `InterviewRequirements` component (`frontend/src/components/ai/Interview/InterviewRequirements.jsx`, lines 1–38) presents the saved analysis as numbered rows with textual status badges and counts. Its scoped CSS module uses central design tokens. The currently discussed requirement is matched by `question.entry_id` to the stable requirement ID and quoted in full immediately above the question, even when the list is collapsed. Missing or unrelated IDs show no guessed context. Counts describe the saved analysis, not a live reassessment after each answer. Both the editor assistant and standalone interview use this component; no requests, credit charges, stored facts or PDF content change.
+
+The native disclosure supports keyboard activation and visible focus. Labels and long requirements wrap at compact widths and 200% text size, without animation. `InterviewRequirements.runtime.test.jsx` verifies ID matching, question changes and missing context; `frontend/e2e/interview-requirements.spec.js` covers Polish/English, 390/834/1280/1920px, keyboard collapse, current-row identification and reduced motion. [MDN details documentation](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) explains the native disclosure used here.
+
 ### Implementation and verification
 
 The affected states include intake with and without optional notes, source review and unsaved changes, ordinary and assisted answers, round completion, factual clarification, preparation, result, pending operations, errors/retries and saved responses. Components reuse `DESIGN.md` tokens, native disclosures and the existing desktop stage buttons/compact selector. Focus, 44px targets, disabled actions, 200% reflow and reduced motion apply to both hosts. All controls stay outside the document and PDF tree.
@@ -3754,6 +3760,12 @@ Samodzielne strony `/app/interview` i `/app/interview/:sessionId` oraz asystent 
 6. Sprawdź wynik i zapisz osobne CV. Nadal obowiązują ochrona źródła, weryfikacja faktów, dopasowanie układu, bezpłatne porównanie szablonów i edycja podglądu.
 
 Rozliczenie kredytów mieści ostatni koszt, sumę wywiadu i dostępne saldo konta w krótkim, zawijanym podsumowaniu. Podczas operacji lub błędu odświeżenia zachowuje ostatni rozliczony koszt z jawnym statusem. Pusta historia nie ma rozwijanej sekcji; informacja o bezpłatnym zapisie pozostaje widoczna. Nagłówki oczekiwania nazywają operację wprost, np. „Zapisujemy odpowiedź”. Postęp i czas nie są symulowane.
+
+### Wymagania oferty podczas wywiadu
+
+Wspólny komponent `InterviewRequirements` (`frontend/src/components/ai/Interview/InterviewRequirements.jsx`, linie 1–38) przedstawia zapisaną analizę jako numerowane wiersze z tekstowymi oznaczeniami statusu i licznikami. Jego moduł CSS korzysta z centralnych tokenów projektu. Aktualnie omawiane wymaganie jest dobierane przez zgodność `question.entry_id` ze stałym identyfikatorem wymagania i cytowane w całości bezpośrednio nad pytaniem, również przy zwiniętej liście. Brak lub niepowiązany identyfikator nie powoduje zgadywania kontekstu. Liczniki opisują zapisaną analizę, a nie ponowną ocenę po każdej odpowiedzi. Komponent działa w asystencie edytora i samodzielnym wywiadzie; nie zmienia żądań, opłat, zapisanych faktów ani treści PDF.
+
+Natywne rozwinięcie obsługuje klawiaturę i widoczny fokus. Etykiety oraz długie wymagania zawijają się na wąskich ekranach i przy tekście powiększonym do 200%, bez animacji. `InterviewRequirements.runtime.test.jsx` sprawdza dopasowanie identyfikatorów, zmianę pytań i brak kontekstu; `frontend/e2e/interview-requirements.spec.js` obejmuje języki polski/angielski, szerokości 390/834/1280/1920px, zwijanie klawiaturą, oznaczenie aktualnego wiersza i ograniczenie ruchu. [Dokumentacja MDN details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details) opisuje użyty natywny mechanizm rozwijania.
 
 ### Implementacja i weryfikacja
 
