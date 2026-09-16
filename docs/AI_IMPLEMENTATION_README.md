@@ -159,11 +159,11 @@ The lack of an automatic cross-provider fallback is intentional. A Cloudflare ou
 
 | Assistant work | Default model | Reasoning | Service tier | Completion budget |
 |---|---|---|---|---:|
-| All assistant actions | `gpt-5.6-terra` | `high` | Standard | 16,000 |
+| All assistant actions | `gpt-5.6-luna` | `high` | Standard | 16,000 |
 
-The routing helpers are [`_model_for_action`](../backend/app/services/ai_assistant_service.py#L61) and [`_reasoning_effort_for_action`](../backend/app/services/ai_assistant_service.py#L73), lines 61–82.
+The routing helpers are [`_model_for_action`](../backend/app/services/ai_assistant_service.py#L68) and [`_reasoning_effort_for_action`](../backend/app/services/ai_assistant_service.py#L80), lines 68–87.
 
-The local pricing sheet is code, not a live billing API. It must be reviewed when providers change prices. Terra uses the Standard sheet for assistant actions. The USD→PLN conversion remains configurable through `USD_TO_PLN` and defaults to `4.0`. See [`openai_pricing.py`](../backend/app/services/openai_pricing.py#L1) and [`cloudflare_pricing.py`](../backend/app/services/cloudflare_pricing.py#L1).
+The local pricing sheet is code, not a live billing API. It must be reviewed when providers change prices. Luna uses the Standard sheet for assistant actions. The USD→PLN conversion remains configurable through `USD_TO_PLN` and defaults to `4.0`. See [`openai_pricing.py`](../backend/app/services/openai_pricing.py#L1) and [`cloudflare_pricing.py`](../backend/app/services/cloudflare_pricing.py#L1).
 
 ## Feature catalogue
 
@@ -648,7 +648,7 @@ The route reserves a conservative ceiling before calling the provider, then sett
 
 Key functions:
 
-- [`assistant_reservation_cost_pln`](../backend/app/services/ai_assistant_service.py#L83), lines 83–99.
+- [`assistant_reservation_cost_pln`](../backend/app/services/ai_assistant_service.py#L80), lines 83–99.
 - [`_reconcile_pending_ai_reservations`](../backend/app/services/entitlements.py#L925), lines 925–999.
 - [`reserve_ai_credits`](../backend/app/services/entitlements.py#L1001), lines 1001–1123.
 - [`settle_ai_reservation`](../backend/app/services/entitlements.py#L1338), lines 1338–1398.
@@ -750,7 +750,7 @@ All credentials are backend-only. Never expose them through Vite variables or br
 | `CV_EXTRACT_TEXT_MAX_COMPLETION_TOKENS` | No | `32000` | Native-text final-output headroom |
 | `CV_EXTRACT_JSON_MAX_COMPLETION_TOKENS` | No | `8000` | JSON fallback budget |
 | `CV_EXTRACT_VISION_MAX_COMPLETION_TOKENS` | No | `8000` | Vision budget |
-| `AI_ASSISTANT_MODEL` | No | `gpt-5.6-terra` | Assistant model |
+| `AI_ASSISTANT_MODEL` | No | `gpt-5.6-luna` | Assistant model |
 | `AI_ASSISTANT_REASONING_EFFORT` | No | `high` | Assistant reasoning effort |
 | `USD_TO_PLN` | No | `4.0` | Local cost-to-credit conversion |
 
