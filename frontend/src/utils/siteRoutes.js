@@ -21,7 +21,7 @@ export function getDocumentPath(id) {
 
 /** Only known application destinations may survive authentication. */
 export function safeReturnTo(value) {
-  if (['/app', DOCUMENTS_PATH, '/app/account', '/app/import', '/app/new', '/app/career-profile', '/app/interview', '/app/tailor'].includes(value)) return value;
+  if (['/app', DOCUMENTS_PATH, '/app/account', '/app/import', '/app/new', '/app/career-profile', '/app/assistant', '/app/interview', '/app/tailor'].includes(value)) return value;
   if (typeof value === 'string' && /^\/app\/tailor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) return value;
   if (typeof value === 'string' && /^\/app\/interview\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) return value;
   if (typeof value === 'string' && value.startsWith(`${DOCUMENTS_PATH}/`)) {

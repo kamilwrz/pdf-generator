@@ -11,6 +11,7 @@ async function signIn(page) {
 for (const width of [390, 834, 1280, 1920]) {
   test(`interview can be discovered through pricing and help at ${width}px`, async ({ page }) => {
     const api = await installMockApi(page);
+    await page.route('**/api/tailoring', route => route.fulfill({ json: { items: [] } }));
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/pricing');
@@ -41,6 +42,7 @@ for (const width of [390, 834, 1280, 1920]) {
 
 test('Pro users get direct entry points and canonical interview benefits in the picker', async ({ page }) => {
   const api = await installMockApi(page);
+    await page.route('**/api/tailoring', route => route.fulfill({ json: { items: [] } }));
   await signIn(page);
   await page.goto('/app/documents');
   await expect(page.getByRole('heading', { name: 'Asystent CV', exact: true })).toBeVisible();
@@ -76,6 +78,7 @@ for (const state of ['free', 'unavailable']) {
 for (const width of [390, 1280]) {
   test(`landing, Pro registration and account start explain the interview at ${width}px`, async ({ page }) => {
     const api = await installMockApi(page);
+    await page.route('**/api/tailoring', route => route.fulfill({ json: { items: [] } }));
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');

@@ -16,12 +16,12 @@ export function HeroNote({ icon, label, title, children }) {
   return <><div className={classes.noteHeading}><SiteMarker>{icon}</SiteMarker><span>{label}</span><FiArrowUpRight aria-hidden="true" /></div><strong className={classes.noteTitle}>{title}</strong><div className={classes.noteBody}>{children}</div></>;
 }
 
-/** Presents a workspace workflow with one explicit entry and visible plan terms.
+/** Presents one assistant mode under its parent feature heading, with plan terms.
  * Callers own entitlement decisions; rendering a choice never starts AI work.
  */
 export function WorkflowChoice({ id, icon, title, description, note, to, action }) {
   return <article className={classes.workflowChoice} aria-labelledby={id}>
-    <div className={classes.workflowHeading}><SiteMarker>{icon}</SiteMarker><h2 id={id}>{title}</h2></div>
+    <div className={classes.workflowHeading}><SiteMarker>{icon}</SiteMarker><h3 id={id}>{title}</h3></div>
     <p>{description}</p>
     <div className={classes.workflowAction}><p>{note}</p><Link className={classes.secondary} to={to}>{action}<FiArrowRight aria-hidden="true" /></Link></div>
   </article>;

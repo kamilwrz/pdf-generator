@@ -9,5 +9,11 @@ import classes from '../../components/ai/Interview/Interview.module.css';
 export default function InterviewPage() {
   useTranslation();
   const { sessionId } = useParams();
-  return <SiteLayout workspace compact dense title={uiText("interview:interviewPage.cvThroughAnInterview")} eyebrow={uiText("interview:interviewPage.interviewPro")}><div className={classes.interviewWorkspace}><InterviewFlow key={sessionId || 'new'} sessionId={sessionId} /></div></SiteLayout>;
+  // Saved sessions can originate from either mode; do not relabel a resumed
+  // tailoring conversation as general improvement before its data is loaded.
+  const mode = uiText(sessionId ? 'documents:documentsPage.savedConversation' : 'public:hero.openInterview');
+  return <SiteLayout workspace compact dense title={uiText("interview:interviewPage.cvThroughAnInterview")} eyebrow={uiText("interview:interviewPage.interviewPro")}
+    breadcrumbs={[{ label: uiText('public:siteLayout.interview'), to: '/app/assistant' }, { label: mode }]}>
+    <div className={classes.interviewWorkspace}><InterviewFlow key={sessionId || 'new'} sessionId={sessionId} /></div>
+  </SiteLayout>;
 }

@@ -23,7 +23,9 @@ const steps = ['source', 'offer', 'questions', 'review', 'download'];
 export default function TailoringPage() {
   const { flowId } = useParams();
   useTranslation();
-  return <SiteLayout workspace={Boolean(getAccessToken())} compact title={t('tailoring:title')} intro={t('tailoring:intro')}>
+  return <SiteLayout workspace={Boolean(getAccessToken())} compact title={t('tailoring:title')} intro={t('tailoring:intro')}
+    eyebrow={t('public:siteLayout.interview')}
+    breadcrumbs={[{ label: t('public:siteLayout.interview'), to: '/app/assistant' }, { label: t('tailoring:title') }]}>
     {!getAccessToken() ? <section className={styles.panel}>
       <h2>{t('tailoring:guestTitle')}</h2><p>{t('tailoring:price')}</p><p>{t('tailoring:accountNeeded')}</p>
       <div className={ui.actions}><Link className={ui.primary} to="/register?returnTo=%2Fapp%2Ftailor">{t('tailoring:createAccount')}</Link><Link className={ui.secondary} to="/login?returnTo=%2Fapp%2Ftailor">{t('public:siteLayout.signIn')}</Link></div>

@@ -206,19 +206,25 @@
 .tab[aria-selected='true'] { border-bottom-color: var(--color-ink); color: var(--color-ink); }
 .tab:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
-/* Equivalent workspace workflows share headings, reading space and action
-   baselines; the entire panel stays informational rather than a nested link. */
-.workflowChoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); margin-bottom: var(--space-8); }
-.workflowChoice { display: flex; flex-direction: column; min-width: 0; padding: var(--space-6); border: 1px solid var(--color-border); background: var(--color-paper); }
+/* The two modes share a single feature boundary and subordinate headings.
+   Dividers retain that grouping when the choices stack on compact screens. */
+.assistant { margin-bottom: var(--space-8); border: 1px solid var(--color-border); background: var(--color-paper); }
+.assistantHeading { padding: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.assistantHeading h2 { margin: 0; font-size: 1.5rem; line-height: 1.25; letter-spacing: -.02em; }
+.assistantHeading p { margin: var(--space-2) 0 0; max-width: 72ch; color: var(--color-muted); }
+.workflowChoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.workflowChoice { display: flex; flex-direction: column; min-width: 0; padding: var(--space-6); }
+.workflowChoice + .workflowChoice { border-left: 1px solid var(--color-border); }
 .workflowHeading { display: flex; align-items: center; gap: var(--space-4); }
-.workflowHeading h2 { margin: 0; font-size: 1.5rem; line-height: 1.25; letter-spacing: -.02em; }
+.workflowHeading h3 { margin: 0; font-size: 1.125rem; line-height: 1.25; }
 .workflowChoice > p { margin: var(--space-4) 0 var(--space-6); max-width: 60ch; }
 .workflowAction { margin-top: auto; }
 .workflowAction p { margin: 0 0 var(--space-4); color: var(--color-muted); font-size: .875rem; line-height: 1.55; }
 .workflowAction a { max-width: 100%; }
 @media (max-width: 767px) {
-  .workflowChoices { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
-  .workflowChoice { padding: var(--space-4); }
+  .workflowChoices { grid-template-columns: minmax(0, 1fr); }
+  .assistantHeading, .workflowChoice { padding: var(--space-4); }
+  .workflowChoice + .workflowChoice { border-left: 0; border-top: 1px solid var(--color-border); }
   .workflowAction a { width: 100%; }
 }
 

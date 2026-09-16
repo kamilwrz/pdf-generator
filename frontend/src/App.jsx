@@ -22,6 +22,7 @@ const Login = workspacePage(() => import('./pages/Login/Login'));
 const Register = workspacePage(() => import('./pages/Register/Register'));
 const Hero = lazy(() => import('./pages/Hero/Hero'));
 const DocumentsPage = workspacePage(() => import('./pages/Site/DocumentsPage'));
+const AssistantPage = workspacePage(() => import('./pages/Site/AssistantPage'));
 const AccountPage = workspacePage(() => import('./pages/Site/AccountPage'));
 const CareerProfilePage = workspacePage(() => import('./pages/Site/CareerProfilePage'));
 const InterviewPage = workspacePage(() => import('./pages/Site/InterviewPage'));
@@ -87,6 +88,7 @@ const router = createBrowserRouter([
   { path: "/cvstudio/:workspace", element: <EditorRoute />, errorElement: <RouteErrorPage /> },
   { path: "/app", element: <Navigate to="/app/documents" replace />, errorElement: <RouteErrorPage /> },
   { path: "/app/documents", element: <RequireSession><DocumentsPage /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/app/assistant", element: <RequireSession><AssistantPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/documents/:documentId", element: <EditorRoute />, errorElement: <RouteErrorPage /> },
   { path: "/app/account", element: <RequireSession><AccountPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/career-profile", element: <RequireSession><CareerProfilePage /></RequireSession>, errorElement: <RouteErrorPage /> },

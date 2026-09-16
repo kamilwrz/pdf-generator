@@ -2430,11 +2430,13 @@
     "modalPdfs.openDownloadAndDeleteSavedProjects": "Open, download and delete saved projects.",
     "modalPdfs.planAllowance": "Plan allowance",
     "documentsPage.everythingInOnePlace": "EVERYTHING IN ONE PLACE",
-    "documentsPage.cvHelp": "Help with your CV",
     "documentsPage.assistantDescription": "Answer questions about your work. CV Assistant helps you describe your experience clearly and specifically.",
     "documentsPage.assistantPlan": "Improving content requires Pro and uses AI credits.",
     "documentsPage.tailoringDescription": "Add your CV and a job advert. The assistant helps prepare a CV for that application.",
-    "documentsPage.tailoringPlan": "Add your details on Free, within import limits. AI tailoring requires Pro and credits."
+    "documentsPage.tailoringPlan": "Add your details on Free, within import limits. AI tailoring requires Pro and credits.",
+    "documentsPage.assistantIntro": "Choose how it can help: describe your experience more clearly or tailor your CV to a specific job advert.",
+    "documentsPage.chooseAssistantMode": "How can we help?",
+    "documentsPage.savedConversation": "Saved conversation"
   },
   "account": {
     "planSelectModal.couldNotLoadPlans": "Could not load plans.",

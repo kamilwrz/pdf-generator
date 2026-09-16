@@ -2454,11 +2454,13 @@
     "modalPdfs.openDownloadAndDeleteSavedProjects": "Otwieraj, pobieraj i usuwaj zapisane projekty.",
     "modalPdfs.planAllowance": "Limit planu",
     "documentsPage.everythingInOnePlace": "WSZYSTKO W JEDNYM MIEJSCU",
-    "documentsPage.cvHelp": "Pomoc w przygotowaniu CV",
     "documentsPage.assistantDescription": "Odpowiedz na pytania o swoją pracę. Asystent CV pomoże Ci opisać doświadczenie jasno i konkretnie.",
     "documentsPage.assistantPlan": "Poprawa treści wymaga Pro i korzysta z kredytów AI.",
     "documentsPage.tailoringDescription": "Dodaj CV i ogłoszenie. Asystent pomoże przygotować wersję CV pod tę rekrutację.",
-    "documentsPage.tailoringPlan": "Dane dodasz na Free, w ramach limitu importów. Dopasowanie z AI wymaga Pro i kredytów."
+    "documentsPage.tailoringPlan": "Dane dodasz na Free, w ramach limitu importów. Dopasowanie z AI wymaga Pro i kredytów.",
+    "documentsPage.assistantIntro": "Wybierz, w czym ma Ci pomóc: lepiej opisać doświadczenie lub dopasować CV do konkretnego ogłoszenia.",
+    "documentsPage.chooseAssistantMode": "W czym Ci pomóc?",
+    "documentsPage.savedConversation": "Zapisana rozmowa"
   },
   "account": {
     "planSelectModal.couldNotLoadPlans": "Nie udało się pobrać planów.",

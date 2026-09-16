@@ -22,6 +22,8 @@ test('document addresses reject malformed and unsafe database IDs', () => {
 test('authentication never follows external, encoded, or unrecognized destinations', () => {
   for (const value of ['https://example.org', '//example.org', '/app/../login', '/app/documents/41?returnTo=https://example.org', '/app/documents/%34%31']) assert.equal(safeReturnTo(value), null);
   assert.equal(safeReturnTo('/app/documents/41'), '/app/documents/41');
+  assert.equal(safeReturnTo('/app/assistant'), '/app/assistant');
+  assert.equal(postAuthPath(new URLSearchParams('returnTo=%2Fapp%2Fassistant')), '/app/assistant');
   assert.equal(postAuthPath(new URLSearchParams('returnTo=%2Fapp%2Fdocuments%2F41')), '/app/documents/41');
 });
 

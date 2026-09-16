@@ -18,7 +18,7 @@ test("landing labels, pricing, and FAQ keep the Free limits explicit", async () 
     assert.ok(pricingStart >= 0 && faqStart > pricingStart && faqEnd > faqStart);
     assert.match(planMarkup, /FREE_PLAN_HIGHLIGHTS\.map/);
     assert.match(planMarkup, /PRO_PLAN_HIGHLIGHTS\.map/);
-    assert.match(planMarkup, /Zacznij bez opłat/);
+    assert.match(planMarkup, /Stwórz CV za darmo/);
     assert.doesNotMatch(planMarkup, /POMOC AI/);
     assert.match(planMarkup, /[Ll]imity znajdziesz w <Link to="\/pricing">cenniku/);
     assert.match(planMarkup, /pomoc AI jest dostępna w Pro/);

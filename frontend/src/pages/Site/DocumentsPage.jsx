@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next';
 /** Standalone library: owned reads, local search, and explicit per-document actions. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiPlus, FiUpload, FiFileText, FiTarget, FiArrowRight, FiDownload } from 'react-icons/fi';
-import { useEntitlements } from '../../hooks/useEntitlements';
-import { WorkflowChoice, SiteMarker } from '../../components/common/SiteLayout/SitePrimitives';
+import { FiPlus, FiUpload, FiFileText, FiArrowRight, FiDownload } from 'react-icons/fi';
+import { SiteMarker } from '../../components/common/SiteLayout/SitePrimitives';
+import AssistantChoices from '../../components/common/SiteLayout/AssistantChoices';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import classes from '../../components/common/SiteLayout/SiteLayout.module.css';
 import SavedImports from './SavedImports';
@@ -27,12 +27,6 @@ export default function DocumentsPage() {
   useTranslation();
   const [tab, setTab] = useState('cvs');
   const locale = getUiLocale();
-  const { entitlements } = useEntitlements();
-  // Only confirmed Pro access opens the assistant. Unknown access keeps a
-  // neutral account check; tailoring intake itself remains available on Free.
-  const canUseAssistant = entitlements?.ai_assistant === true;
-  const assistantAction = canUseAssistant ? uiText('public:hero.openInterview')
-    : entitlements ? uiText('editor:startChooser.explorePro') : uiText('editor:startChooser.checkAccess');
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useMessageState(null);
@@ -90,14 +84,7 @@ export default function DocumentsPage() {
   return <SiteLayout workspace compact title={uiText("public:siteLayout.myDocuments")} eyebrow={uiText("account:accountPage.yourWorkspace")} intro={uiText("documents:documentsPage.returnToASavedCvOrPrepare")}
     heroActions={<><Link className={classes.primary} to={getEditorPath({ start: 'new' })}><FiPlus aria-hidden="true" />{uiText("editor:newCvSetupModal.createANewCv")}</Link><Link className={classes.secondary} to="/app/import"><FiUpload aria-hidden="true" />{uiText("editor:topbar.importPdf")}</Link></>}
     >
-    <section className={classes.workflowChoices} aria-label={uiText('documents:documentsPage.cvHelp')}>
-      <WorkflowChoice id="assistant-choice" icon={<FiFileText />} title={uiText('public:siteLayout.interview')}
-        description={uiText('documents:documentsPage.assistantDescription')} note={uiText('documents:documentsPage.assistantPlan')}
-        to={canUseAssistant ? '/app/interview' : '/app/account'} action={assistantAction} />
-      <WorkflowChoice id="tailoring-choice" icon={<FiTarget />} title={uiText('tailoring:title')}
-        description={uiText('documents:documentsPage.tailoringDescription')} note={uiText('documents:documentsPage.tailoringPlan')}
-        to="/app/tailor" action={uiText('tailoring:title')} />
-    </section>
+    <AssistantChoices />
     <section className={classes.library} aria-label={uiText("public:siteLayout.myDocuments")}>
     <div role="tablist" aria-label={uiText("public:siteLayout.myDocuments")} className={classes.tabs}>
       {['cvs', 'imports'].map((value, index) => <button key={value} id={`library-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls={`library-panel-${value}`} tabIndex={tab === value ? 0 : -1} className={classes.tab} onClick={() => setTab(value)} onKeyDown={(event) => {
