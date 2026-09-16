@@ -8,6 +8,8 @@ Implementation: `DocumentsPage` in `frontend/src/pages/Site/DocumentsPage.jsx`; 
 
 ## CV Assistant naming
 
+The standalone conversation page displays the feature name once as its main heading and uses `PRO` as its plan label. The shared `InterviewFlow` panel labels the conversation stage “Your experience” (“Rozmowa o doświadczeniu” in Polish); review, preparation and result headings retain their stage-specific wording and keyboard focus behavior. The accessible region keeps the CV Assistant name.
+
 The public feature name is **CV Assistant** (Polish: **Asystent CV**). Landing, shared navigation/footer, pricing/help, document/account entries, editor entry points and the conversation screens use this name. Saved sessions are called conversations; action labels describe improving content or tailoring a CV to a job advert. Canonical strings live in `frontend/src/i18n/locales/pl.json` and `en.json`; `generate-locale-bundles.mjs` produces their shell/workspace bundles. Existing `/app/interview`, `/help#wywiad`, translation keys, API identifiers and stored sessions retain their technical names for compatibility. Historical references to Interview in this technical guide refer to the same feature. This is a copy change without new dependencies, API changes or data migration. Existing locale, component and browser tests cover translated labels, entry permissions, recovery and responsive layout.
 
 ## Three goals on the landing page
@@ -3857,6 +3859,8 @@ Notable product facts:
 ---
 
 # Polski
+
+Na stronie rozmowy nazwa „Asystent CV” występuje raz jako główny nagłówek, a etykieta planu brzmi `PRO`. Wspólny panel `InterviewFlow` nazywa etap rozmowy „Rozmowa o doświadczeniu” („Your experience” po angielsku). Nagłówki sprawdzania informacji, przygotowania i wyniku zachowują nazwy etapów oraz obsługę fokusu klawiatury. Region dostępności nadal nosi nazwę Asystent CV.
 
 ## Spójne wejścia do pracy z CV w bibliotece
 
