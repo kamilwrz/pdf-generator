@@ -37,7 +37,10 @@
     --body: var(--font-ui);
     --mono: var(--font-mono);
 
-    overflow: hidden;
+    --landing-gutter: var(--space-8);
+    --landing-section-space: var(--space-24);
+    --landing-column-gap: var(--space-16);
+
     background: var(--paper);
     color: var(--ink-body);
     font-family: var(--body);
@@ -95,35 +98,25 @@
     text-wrap: balance;
 }
 
-/* Pricing keeps its solid ink highlight block. The hero has its own two-level
-   title treatment below so its main heading and supporting promise no longer
-   compete at the same scale. */
-.pricingHeading h2 em {
-    font-style: normal;
-    font-weight: 900;
-    color: var(--paper);
-    background: var(--ink);
-    padding: 0 .16em .04em;
-    -webkit-box-decoration-break: clone;
-    box-decoration-break: clone;
+/* Every section shares the header's content edges. Equal columns keep the
+   mirrored examples, feature list, pricing and FAQ on the same centre axis. */
+.hero, .interviewSection, .templatesSection, .trustStrip,
+.pricingSection, .faqSection, .finalCta {
+    width: min(100%, 1440px);
+    margin-inline: auto;
+    padding: var(--landing-section-space) var(--landing-gutter);
 }
-
-/* Pricing retains its restrained warm baseline; the action-led hero uses a
-   clean ink field without a decorative lower rule. */
-.pricingHeading h2 em {
-    box-shadow: inset 0 -.16em 0 var(--taupe);
-}
+.page > header, .page > footer { padding-inline: var(--landing-gutter); }
+.page h2 { font-size: clamp(1.5rem, 2.5vw, 2.25rem); line-height: 1.1; font-weight: 700; }
+.page section > div, .offerIntro > div { min-width: 0; }
 
 /* ---- Hero --------------------------------------------------------------- */
 
 .hero {
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
-    gap: var(--space-16);
-    max-width: 1440px;
-    margin: 0 auto;
-    padding: var(--space-16) var(--space-12);
+    gap: var(--landing-column-gap);
     background: var(--paper);
 }
 .heroCopy { min-width: 0; max-width: 52ch; text-align: left; }
@@ -156,31 +149,23 @@
 .contentPath:hover strong, .contentPath:focus-visible strong, .sectionLink:hover { text-decoration: underline; text-underline-offset: var(--space-1); }
 .contentPath:active { background: var(--color-surface); }
 .sectionLink { justify-content: flex-start; margin-top: var(--space-4); font-size: var(--text-ui); text-decoration: underline; text-underline-offset: var(--space-1); }
-.interviewSection { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: var(--space-16); padding: var(--space-16) var(--space-12); max-width: 1440px; margin-inline: auto; background: var(--color-canvas); scroll-margin-top: var(--space-16); }
-.interviewSection h2 { margin: 0; font: 700 clamp(2rem, 4vw, 3.5rem)/1.1 var(--font-ui); letter-spacing: -.035em; text-wrap: balance; }
-.interviewLead { margin: var(--space-6) 0; max-width: 48ch; font-size: 1rem; line-height: 1.55; }
+.interviewSection { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--landing-column-gap); background: var(--color-canvas); scroll-margin-top: var(--space-8); }
+.interviewSection h2 { margin: 0; font-family: var(--font-ui); letter-spacing: -.035em; text-wrap: balance; }
+.interviewLead { margin: var(--space-6) 0; max-width: 48ch; font-size: var(--text-body); line-height: 1.55; }
 .interviewSection .textCta { min-height: var(--control-height); margin-top: var(--space-3); }
-@media (max-width: 1024px) { .interviewSection { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); padding: var(--space-12) var(--space-6); } }
-@media (max-width: 767px) { .interviewSection { grid-template-columns: minmax(0, 1fr); padding: var(--space-8) var(--space-4); } }
 
-/* Mirror the example on wide screens; compact reading starts with the heading. */
-.tailoringSection { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); background: var(--color-paper); border-bottom: 1px solid var(--color-border); }
-.tailoringSection > figure { grid-column: 1; grid-row: 1; background: var(--color-canvas); }
-.tailoringCopy { grid-column: 2; grid-row: 1; align-self: center; min-width: 0; }
-@media (max-width: 1024px) {
-    .tailoringSection { grid-template-columns: minmax(0, 1fr); }
-    .tailoringSection > figure, .tailoringCopy { grid-column: auto; grid-row: auto; }
-}
+/* Only placement is mirrored: both sections retain identical column sizes,
+   top alignment, gutters and white example panels. Compact order is semantic. */
+.tailoringSection { background: var(--color-canvas); border-top: 1px solid var(--color-border); }
+.tailoringSection > figure { grid-column: 1; grid-row: 1; }
+.tailoringCopy { grid-column: 2; grid-row: 1; min-width: 0; }
 
 .finalCta {
-    padding: var(--space-16) clamp(24px, 7vw, 112px);
     background: var(--paper);
     text-align: center;
 }
 
 .finalCta h2 {
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    line-height: 1.1;
     margin-bottom: var(--space-8);
 }
 
@@ -194,13 +179,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 11px;
-    min-height: 52px;
-    padding: 14px 22px;
+    gap: var(--space-3);
+    min-height: var(--space-12);
+    padding: var(--space-3) var(--space-6);
     border: 1.5px solid transparent;
     border-radius: 0;
-    font: 600 12px/1.2 var(--body);
-    letter-spacing: .07em;
+    font: 600 var(--text-ui)/1.4 var(--body);
+    letter-spacing: 0;
     text-transform: none;
     text-align: center;
     text-decoration: none;
@@ -292,29 +277,16 @@
 .heroTrust li::before { content: ''; width: var(--space-1); height: var(--space-1); background: var(--color-accent); }
 .offerSteps .textCta { margin-top: var(--space-3); min-height: var(--control-height); }
 
-/* ---- Shared section horizontal rhythm ---------------------------------- */
-
-.templatesSection,
-.pricingSection,
-.faqSection {
-    padding-right: clamp(24px, 7vw, 112px);
-    padding-left: clamp(24px, 7vw, 112px);
-}
-
 /* ---- Product offer + templates ----------------------------------------- */
 
-.templatesSection {
-    padding-top: clamp(64px, 8vw, 112px);
-    padding-bottom: clamp(84px, 11vw, 150px);
-    background: var(--paper);
-}
+.templatesSection { background: var(--paper); }
 
 .offerIntro {
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(460px, 6fr);
-    gap: clamp(48px, 8vw, 120px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--landing-column-gap);
     align-items: start;
-    margin-bottom: clamp(48px, 6vw, 72px);
+    margin-bottom: var(--space-16);
 }
 
 .offerStatement h2 {
@@ -322,7 +294,6 @@
     flex-direction: column;
     gap: clamp(4px, .45vw, 8px);
     max-width: 650px;
-    font-size: clamp(38px, 4.2vw, 60px);
     line-height: 1;
     text-wrap: initial;
 }
@@ -337,9 +308,9 @@
 
 .offerLead {
     max-width: 480px;
-    margin: 28px 0 0;
+    margin: var(--space-6) 0 0;
     color: var(--ink-body);
-    font: 400 15px/1.65 var(--body);
+    font: 400 var(--text-body)/1.55 var(--body);
 }
 
 .offerSteps {
@@ -376,7 +347,7 @@
     max-width: 520px;
     margin: 8px 0 0;
     color: var(--muted);
-    font: 400 13px/1.6 var(--body);
+    font: 400 var(--text-ui)/1.55 var(--body);
 }
 
 .templateGalleryHeader {
@@ -394,17 +365,14 @@
 }
 
 /*
- * Full-bleed endless strip. Negative side margins cancel the shared section
- * gutters so the track can exit under the viewport edges. Vertical padding
- * leaves room for the hover scale without adding a decorative gradient mask.
+ * The template strip stays within the shared content edges. Vertical padding
+ * leaves room for hover scale while horizontal overflow stays inside the strip.
  */
 .templateMarquee {
     --marquee-gap: clamp(14px, 1.6vw, 22px);
     --marquee-card-width: clamp(168px, 17vw, 228px);
 
     overflow: hidden;
-    margin-right: calc(-1 * clamp(24px, 7vw, 112px));
-    margin-left: calc(-1 * clamp(24px, 7vw, 112px));
     padding: 18px 0 28px;
 }
 
@@ -514,21 +482,22 @@
 
 .trustStrip {
     display: grid;
-    grid-template-columns: minmax(260px, .9fr) minmax(0, 1.1fr);
-    gap: clamp(30px, 6vw, 84px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--landing-column-gap);
     align-items: center;
-    padding: clamp(44px, 6vw, 64px) clamp(24px, 7vw, 112px);
     background: var(--beige);
     border-top: 1px solid var(--ink);
     border-bottom: 1px solid var(--ink);
 }
 
 .trustHeading h2 {
-    font-size: clamp(26px, 2.9vw, 38px);
     line-height: 1.06;
 }
 
 .trustPoints {
+    margin: 0;
+    padding: 0;
+    list-style: none;
     display: grid;
     gap: 0;
     border-top: 1px solid var(--line);
@@ -545,14 +514,12 @@
 /* ---- Pricing (light section, black card highlights the Pro tier) -------- */
 
 .pricingSection {
-    padding-top: clamp(84px, 11vw, 150px);
-    padding-bottom: clamp(84px, 11vw, 150px);
     background: var(--paper);
 }
 
 .pricingHeading {
     max-width: 760px;
-    margin-bottom: 52px;
+    margin-bottom: var(--space-12);
 }
 
 .pricingHeading h2 {
@@ -560,7 +527,6 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
-    font-size: clamp(36px, 4.2vw, 60px);
     line-height: 1.08;
 }
 
@@ -586,9 +552,7 @@
 .pricingGrid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(var(--space-8), 5vw, var(--space-16));
-    max-width: 1040px;
-    margin-inline: auto;
+    gap: var(--landing-column-gap);
 }
 
 .priceCard {
@@ -597,7 +561,7 @@
     flex-direction: column;
     min-width: 0;
     min-height: 480px;
-    padding: clamp(26px, 3vw, 40px);
+    padding: var(--space-8);
     border: 1px solid var(--ink);
     background: var(--paper);
     color: var(--ink-body);
@@ -688,6 +652,8 @@
 }
 
 .priceCard ul {
+    padding-inline: 0;
+    list-style: none;
     display: grid;
     gap: 0;
     flex: 1;
@@ -747,30 +713,13 @@
 
 .faqSection {
     display: grid;
-    grid-template-columns: minmax(230px, .55fr) minmax(500px, 1.45fr);
-    gap: clamp(40px, 8vw, 120px);
-    padding-top: clamp(84px, 11vw, 150px);
-    padding-bottom: clamp(84px, 11vw, 150px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--landing-column-gap);
     background: var(--beige);
 }
 
-/* Reverse the editorial balance on wide screens: the questions lead from the
-   left while the heading becomes a quiet right-side signpost. Source order
-   stays heading-first for screen readers and narrow layouts. */
-.faqSection > :first-child {
-    order: 2;
-    align-self: start;
-}
-
-.faqSection h2 {
-    font-size: clamp(32px, 3.4vw, 50px);
-    line-height: 1.02;
-}
-
-.faqList {
-    order: 1;
-    border-top: 1px solid var(--ink);
-}
+.faqSection > :first-child { align-self: start; }
+.faqList { border-top: 1px solid var(--ink); }
 
 .faqList details {
     padding: 0;
@@ -814,7 +763,7 @@
     margin: 0;
     padding: 0 28px 24px 0;
     color: var(--ink-body);
-    font: 400 13px/1.7 var(--body);
+    font: 400 var(--text-ui)/1.55 var(--body);
 }
 
 /* ---- Footer ------------------------------------------------------------- */
@@ -822,63 +771,30 @@
 
 /* ---- Responsive --------------------------------------------------------- */
 
-@media (max-width: 1120px) {
-    .faqSection {
-        gap: 58px;
-    }
-}
-
 @media (max-width: 1024px) {
-    .hero { grid-template-columns: minmax(0, 1fr); gap: var(--space-12); padding: var(--space-12) var(--space-6); }
-
-    .offerIntro {
-        grid-template-columns: 1fr;
-        gap: 48px;
-    }
+    .page { --landing-gutter: var(--space-6); --landing-section-space: var(--space-16); --landing-column-gap: var(--space-8); }
+    .hero, .interviewSection, .offerIntro, .trustStrip, .faqSection { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+    .tailoringSection > figure, .tailoringCopy { grid-column: auto; grid-row: auto; }
 }
 
-@media (max-width: 880px) {
-
-    .trustStrip,
-    .faqSection {
-        grid-template-columns: 1fr;
-    }
-
-    .faqSection > :first-child,
-    .faqList {
-        order: initial;
-    }
-
-    .pricingGrid {
-        grid-template-columns: 1fr;
-        gap: var(--space-12);
-        max-width: 550px;
-    }
-
-    .priceCard {
-        min-height: auto;
-    }
-
+@media (max-width: 767px) {
+    .page { --landing-gutter: var(--space-4); --landing-section-space: var(--space-12); }
+    .pricingGrid { grid-template-columns: minmax(0, 1fr); }
+    .priceCard { min-height: auto; padding: var(--space-6); }
 }
 
 @media (max-width: 620px) {
 
-    .hero { padding: var(--space-8) var(--space-4); }
     .heroActions { display: grid; grid-template-columns: 1fr; }
     .heroActions a { width: 100%; }
 
     .offerIntro {
-        gap: 40px;
-        margin-bottom: 64px;
-    }
-
-    .offerStatement h2 {
-        font-size: clamp(36px, 10vw, 50px);
+        gap: var(--space-8);
+        margin-bottom: var(--space-12);
     }
 
     .offerLead {
-        margin-top: 22px;
-        font-size: 14px;
+        margin-top: var(--space-6);
     }
 
     .offerSteps li {
@@ -955,6 +871,7 @@
     }
 }
 
-@media (max-width: 767px) {
-    .hero { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
-}
+
+.trustPoints li, .priceCard li { display: flex; align-items: flex-start; gap: var(--space-3); font-size: var(--text-ui); line-height: 1.55; }
+.trustPoints svg, .priceCard li svg { flex-shrink: 0; margin-top: var(--space-1); }
+.pricingHeading h2 em { font-style: normal; color: var(--color-accent); }
