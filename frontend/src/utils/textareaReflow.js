@@ -806,6 +806,21 @@ export function reflowTextareaHeight(
     return { elements, pageCount: Math.max(1, ...elements.map(pageOf)), changed: false };
   }
 
+  // Fixed mastheads (including Vellum/Aurelia/Cadenza) have no identityLayout
+  // descriptor. Their name fitter owns coupled placement; a title measurement
+  // must only update its box. Letting it enter the record packer below treats
+  // the preceding name as a record mate and stacks the title over that name on
+  // edit entry. Keep a line for empty guidance and preserve all authored origins.
+  if (target.mastheadRole) {
+    const height = Math.max(number(target.lineHeight, number(target.fontSize, 1)), nextHeight);
+    const changed = height !== target.height;
+    return {
+      elements: changed ? elements.map((element) => element === target ? { ...element, height } : element) : elements,
+      pageCount: Math.max(1, ...elements.map(pageOf)),
+      changed,
+    };
+  }
+
   const oldHeight = elementHeight(target);
   const delta = nextHeight - oldHeight;
   const heightIsUnchanged = Math.abs(delta) < 0.5;

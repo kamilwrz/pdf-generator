@@ -16,6 +16,60 @@ const VIEWPORTS = [
   { width: 640, height: 500 },
 ];
 
+for (const templateId of ["vellum", "aurelia", "cadenza"]) {
+  test(`${templateId}: empty job-title focus preserves masthead placement`, async ({ page }) => {
+    test.setTimeout(120_000);
+    const template = TEST_TEMPLATES.find((item) => item.id === templateId);
+    let serial = 0;
+    const elements = materializeElementSpecs(template.elements, () => `title-entry-${++serial}`);
+    const name = elements.find((element) => element.mastheadRole === "name");
+    const title = elements.find((element) => element.mastheadRole === "title");
+    for (const [element, placeholder] of [[name, "Imię i nazwisko"], [title, "Tytuł zawodowy"]]) {
+      Object.assign(element, { content: "", placeholder, starterPlaceholder: true });
+    }
+    const api = await installMockApi(page, {
+      savedDocument: { ...SAVED_DOCUMENT, template_id: templateId, cv_data: null },
+      savedElements: persistedRows(elements),
+    });
+    await page.route("**/template-assets/**", async (route) => {
+      const asset = new URL(route.request().url()).pathname.split("/template-assets/")[1];
+      await route.fulfill({ body: await readFile(new URL(`../../backend/template_assets/${asset}`, import.meta.url)), contentType: "image/png" });
+    });
+    await page.addInitScript(() => {
+      localStorage.setItem("token", "local-playwright-token");
+      localStorage.setItem("username", "Kamil");
+      localStorage.setItem("cvstudio.uiLanguage", "pl");
+    });
+    await page.goto(`/app/documents/${SAVED_DOCUMENT.id}`);
+    const field = (element) => page.locator(`[id="${element.element_id}"]`);
+    await expect(field(name)).toBeVisible({ timeout: 30_000 });
+    await page.evaluate(() => document.fonts.ready);
+    const tracked = elements.filter((element) => element.page === 1 && element !== title);
+    const geometry = () => Promise.all(tracked.map((element) => authoredGeometry(field(element))));
+    const before = await geometry();
+    for (const viewport of VIEWPORTS) {
+      await page.setViewportSize(viewport);
+      await page.emulateMedia({ reducedMotion: viewport.width === 1280 ? "no-preference" : "reduce" });
+      // Match the wizard's initial name edit followed by a direct title click.
+      await field(name).focus();
+      await field(name).press("F2");
+      await field(title).click();
+      await expect(field(title)).toBeFocused();
+      await expect.poll(geometry).toEqual(before);
+      for (const value of ["Analityk", ""]) {
+        await field(title).fill(value);
+        await expect.poll(geometry).toEqual(before);
+      }
+      await field(title).press("Escape");
+      await expect.poll(geometry).toEqual(before);
+      expect((await authoredGeometry(field(title))).top).toBe(title.top);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    await page.screenshot({ path: test.info().outputPath("stable-title-entry.png") });
+    api.assertHermetic();
+  });
+}
+
 function persistedRows(elements) {
   const columns = new Set([
     "element_id", "category", "page", "left", "top", "width", "height", "content",

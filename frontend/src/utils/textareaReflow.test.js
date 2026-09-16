@@ -2,6 +2,35 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { iconicDrawTop } from "./iconAlignment.js";
 import { reflowTextareaHeight } from "./textareaReflow.js";
+import { vellumTemplate } from "../templates/vellum.js";
+import { aureliaTemplate } from "../templates/aurelia.js";
+import { cadenzaTemplate } from "../templates/cadenza.js";
+
+for (const [id, template] of [["vellum", vellumTemplate], ["aurelia", aureliaTemplate], ["cadenza", cadenzaTemplate]]) {
+  test(`${id}: measuring the job title cannot repack the masthead as a body record`, () => {
+    const elements = structuredClone(template).map((element, index) => ({
+      ...element, element_id: `title-focus-${index}`,
+    }));
+    const title = elements.find((element) => element.mastheadRole === "title");
+    // Empty starter entry and changed text both pass through this boundary.
+    // Force a real height change so the generic lane packer cannot short-circuit.
+    for (const content of ["", "Senior analyst"]) {
+      const source = elements.map((element) => element === title ? { ...element, content } : element);
+      for (const height of [0, title.height + 1, title.height + 12]) {
+        const result = reflowTextareaHeight(source, title.element_id, height, 842, { pageTop: 66, bottomMargin: 72 });
+        for (const element of source) {
+          const actual = result.elements.find((item) => item.element_id === element.element_id);
+          if (element.element_id === title.element_id) {
+            assert.equal(actual.top, title.top);
+            assert.ok(actual.height >= title.lineHeight);
+          } else {
+            assert.deepEqual(actual, element);
+          }
+        }
+      }
+    }
+  });
+}
 
 const textarea = (overrides = {}) => ({
   element_id: "textarea",
