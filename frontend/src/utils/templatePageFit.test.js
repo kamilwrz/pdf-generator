@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   findFitAcrossTypography,
+  applyTemplateTypography,
   supportsSmallTypographyFit,
 } from "./templatePageFit.js";
 
@@ -24,6 +25,10 @@ function packAt({ regularThreshold, smallThreshold }) {
 }
 
 describe("findFitAcrossTypography", () => {
+  it("leaves unsupported templates and size identifiers unavailable", () => {
+    assert.equal(applyTemplateTypography({ elements: regular, templateId: 'unknown', textSizeId: 'L' }), null);
+    assert.equal(applyTemplateTypography({ elements: regular, templateId: 'linden', textSizeId: 'XXL' }), null);
+  });
   it("covers every public template with an explicit S transaction", () => {
     assert.ok(publicTemplateIds.length > 0);
     for (const templateId of publicTemplateIds) {

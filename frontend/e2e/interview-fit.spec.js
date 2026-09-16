@@ -16,15 +16,19 @@ for (const width of [390, 834, 1280, 1920]) {
     const result = await page.evaluate(async (data) => {
       const { prepareInterviewFit } = await import('/src/utils/interviewFit.js');
       const { resolveBrowserTextLayouts } = await import('/src/utils/browserTextLayout.js');
+      const { measureDocumentPageFills } = await import('/src/utils/layoutDensity.js');
       const fitted = await prepareInterviewFit({ template_id: 'linden', spacing_px: {},
         preview: { ...data, fit: { allow_shorten: false } } });
       const measured = await resolveBrowserTextLayouts(fitted.elements);
-      return { ...fitted, fields: measured.filter(el => el.category === 'textarea'
+      return { ...fitted, fills: measureDocumentPageFills(fitted.elements, 2), fields: measured.filter(el => el.category === 'textarea'
         && !el.fixedToPage && !['masthead', 'masthead-anchor', 'record-overlay', 'section-chrome', 'sidebar-chrome'].includes(el.flowRole))
         .map(el => ({ id: el.element_id, page: el.page, height: el.height,
           expected: Math.ceil(el.resolvedLines.length * el.lineHeight), content: el.content })) };
     }, fixture);
     expect(result.fields.length).toBeGreaterThan(10);
+    expect(result.fills[0]).toBeGreaterThan(.98);
+    expect(result.fills[0] - result.fills[1]).toBeGreaterThan(.4);
+    expect(result.spacing_px.section).toBeGreaterThan(spacing.section);
     for (const field of result.fields) expect(field.height, field.id).toBe(field.expected);
 
     // Reopen the exact fitted geometry through the saved-document route. Focus
@@ -37,6 +41,11 @@ for (const width of [390, 834, 1280, 1920]) {
     const node = page.locator(`[id="${field.id}"]`);
     await expect(node).toBeVisible({ timeout: 25_000 });
     await expect(node).toHaveCSS('height', `${field.expected}px`);
+    if (width === 1920) {
+      await page.getByRole('button', { name: 'Włącz widok dwóch stron', exact: true }).click();
+      await page.screenshot({ path: '../tmp/interview-first-page-filled.png', fullPage: true });
+      await page.getByRole('button', { name: 'Wyłącz widok dwóch stron', exact: true }).click();
+    }
     await node.click();
     await expect(node).toHaveAttribute('contenteditable', 'true');
     await expect(node).toHaveCSS('height', `${field.expected}px`);
@@ -87,7 +96,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
             // The browser must never rewrite or lose a flowing element while
             // fitting. The server tests independently enforce this boundary.
             for (const original of fixture.elements.filter(e => !e.fixedToPage)) {
-              expect(body.elements.find(e => e.element_id === original.element_id)?.content).toEqual(original.content);
+      expect(body.elements.find(e => e.element_id === original.element_id)?.content).toEqual(original.content);
             }
             if (language === 'pl' && width === 1280) writeFileSync('../tmp/interview-fit-measured.json', JSON.stringify(body));
             // Commit succeeds but its response never reaches the browser. The
@@ -158,5 +167,39 @@ test('after shorter verified prose, the same template collapses two pages to one
   expect(Math.max(...result.elements.map(el => el.page || 1))).toBe(1);
   for (const original of data.elements.filter(el => !el.fixedToPage)) {
     expect(result.elements.find(el => el.element_id === original.element_id)?.content).toBe(original.content);
+  }
+});
+
+test('larger template typography can fill page one without moving its records or adding pages', async ({ page }) => {
+  await installMockApi(page);
+  await page.goto('/');
+  const result = await page.evaluate(async (data) => {
+    const { prepareInterviewFit } = await import('/src/utils/interviewFit.js');
+    const { applyTemplateTypography } = await import('/src/utils/templatePageFit.js');
+    const { measureDocumentPageFills } = await import('/src/utils/layoutDensity.js');
+    const { applyFitPack } = await import('/src/utils/fitToPages.js');
+    const { resolveBrowserTextLayouts } = await import('/src/utils/browserTextLayout.js');
+    const { createCanvasTextWidthMeasurer } = await import('/src/utils/textareaHeight.js');
+    // Start from the supported compact font. The complete long CV still needs
+    // two pages, so finalisation should recover readable type when it fits.
+    let id = 0;
+    const small = applyTemplateTypography({ elements: data.elements, templateId: 'linden', textSizeId: 'S',
+      spacing: {}, createId: () => `large-type-test-${++id}`, measureTextWidth: createCanvasTextWidthMeasurer() });
+    const source = (await resolveBrowserTextLayouts(small)).map(el => el.category === 'textarea' && el.resolvedLines?.length
+      && !el.fixedToPage && el.flowRole !== 'masthead'
+      ? { ...el, height: Math.ceil(el.resolvedLines.length * el.lineHeight) } : el);
+    const packed = applyFitPack(source, {}, 842);
+    const fitted = await prepareInterviewFit({ template_id: 'linden', spacing_px: {},
+      preview: { ...data, elements: small, fit: { allow_shorten: false } } });
+    return { ...fitted, source: packed, fills: measureDocumentPageFills(fitted.elements, 2) };
+  }, fixture);
+  expect(Math.max(...result.elements.map(el => el.page || 1))).toBe(2);
+  expect(result.fills[0]).toBeGreaterThan(.98);
+  expect(result.elements.some(el => el.category === 'textarea'
+    && el.fontSize > result.source.find(before => before.element_id === el.element_id)?.fontSize)).toBe(true);
+  for (const before of result.source.filter(el => !el.fixedToPage)) {
+    const after = result.elements.find(el => el.element_id === before.element_id);
+    expect(after.content).toBe(before.content);
+    expect(after.page).toBeLessThanOrEqual(before.page);
   }
 });

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { completeInterviewFit, prepareInterviewFit, measureFitBudget, balanceInterviewPages } from './interviewFit.js';
+import { readFileSync } from 'node:fs';
+import { completeInterviewFit, prepareInterviewFit, measureFitBudget, fillInterviewPages } from './interviewFit.js';
+import { applyFitPack } from './fitToPages.js';
+import { applyFlowSpacing } from './sectionStructure.js';
+import { measureDocumentPageFills } from './layoutDensity.js';
+import { contentMaxPage } from './structureOperation.js';
 
 const field = { path: '/summary', value: 'Report preparation', evidence_refs: ['source'] };
 const body = { category: 'textarea', element_id: 'body', content: field.value, page: 1, top: 100, height: 400 };
@@ -38,9 +43,52 @@ test('does not run paid steps after unmount, on clarification, or for finished p
   }
 });
 
-test('single-page balance preserves the complete document', () => {
+test('single-page filling preserves the complete document', () => {
   const elements = [body];
-  assert.equal(balanceInterviewPages(elements, {}), elements);
+  assert.equal(fillInterviewPages(elements, {}).elements, elements);
+});
+
+const fixture = JSON.parse(readFileSync(new URL('../../e2e/fixtures/interview-fit.json', import.meta.url), 'utf8'));
+const spacing = { stack: 4, record: 10, section: 21, after_rule: 8 };
+
+test('reclaims artificial page-break whitespace and fills page one without draining its records', () => {
+  // Reproduce the former balancing pass: the fake larger bottom margin
+  // unnecessarily moves a complete experience record onto page two.
+  const balanced = applyFlowSpacing(fixture.elements, spacing, 842, { bottomMargin: 240 });
+  const before = structuredClone(balanced);
+  const packed = applyFitPack(balanced, spacing, 842);
+  const result = fillInterviewPages(balanced, spacing);
+  const fills = measureDocumentPageFills(result.elements, 2);
+  assert.equal(contentMaxPage(result.elements), 2);
+  assert.ok(fills[0] > .98, `First-page fill: ${fills[0]}`);
+  assert.ok(fills[0] - fills[1] > .4, 'A shorter final page is allowed');
+  assert.ok(result.spacing.section > spacing.section, 'Use larger gaps when they fit');
+  for (const original of packed.filter(el => !el.fixedToPage)) {
+    const saved = result.elements.find(el => el.element_id === original.element_id);
+    assert.equal(saved.content, original.content);
+    assert.ok(saved.page <= original.page, original.element_id);
+  }
+  assert.deepEqual(balanced, before, 'Trials must not mutate the source');
+  assert.deepEqual(applyFitPack(result.elements, result.spacing, 842), result.elements, 'Saved geometry matches its rhythm');
+});
+
+test('fills continuation pages in order without adding a page or splitting a record', () => {
+  const long = fixture.elements.map(el => el.bulletList ? { ...el, height: el.height * 2 } : el);
+  const packed = applyFitPack(long, spacing, 842);
+  assert.ok(contentMaxPage(packed) >= 3);
+  const result = fillInterviewPages(long, spacing);
+  assert.equal(contentMaxPage(result.elements), contentMaxPage(packed));
+  const groups = new Map();
+  for (const original of packed.filter(el => !el.fixedToPage)) {
+    const saved = result.elements.find(el => el.element_id === original.element_id);
+    assert.equal(saved.content, original.content);
+    assert.ok(saved.page <= original.page);
+    if (!saved.flowGroup) continue;
+    const pages = groups.get(saved.flowGroup) || new Set();
+    pages.add(saved.page);
+    groups.set(saved.flowGroup, pages);
+  }
+  for (const pages of groups.values()) assert.equal(pages.size, 1);
 });
 
 test('unavailable browser fonts preserve the server layout without paid shortening', async () => {

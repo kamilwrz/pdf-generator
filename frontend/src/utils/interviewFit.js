@@ -3,11 +3,10 @@
  * Trials never touch React, history, answers or autosave. The server publishes
  * one verified content/geometry snapshot and owns all paid iteration limits.
  */
-import { findTemplateFitForTarget } from './templatePageFit.js';
-import { applyFitPack } from './fitToPages.js';
-import { COMPACT_FLOW_SPACING, normalizeFlowSpacing } from './flowSpacing.js';
+import { applyTemplateTypography, findTemplateFitForTarget } from './templatePageFit.js';
+import { applyFitPack, buildSpacingLadder } from './fitToPages.js';
+import { COMPACT_FLOW_SPACING, normalizeFlowSpacing, scaleFlowSpacing } from './flowSpacing.js';
 import { contentMaxPage, reconcileDocumentPages } from './structureOperation.js';
-import { applyFlowSpacing } from './sectionStructure.js';
 import { measureDocumentPageFills } from './layoutDensity.js';
 import { createCanvasTextWidthMeasurer } from './textareaHeight.js';
 import { resolveBrowserTextLayouts } from './browserTextLayout.js';
@@ -69,27 +68,76 @@ function finishPack(elements, spacing, createId) {
   return reconcileDocumentPages(applyFitPack(elements, spacing, 842), createId, { collapseEmpty: true }).elements;
 }
 
-/** Spread whole records over the same number of pages, preserving authored order.
- * Earlier page breaks are tried using the structural packer's keep-together
- * rules. This changes geometry only; no whitespace is inserted into CV prose.
- */
-export function balanceInterviewPages(elements, spacing, createId = idFactory(elements)) {
-  const pages = contentMaxPage(elements);
-  if (pages < 2) return elements;
-  const imbalance = (list) => {
-    const fills = measureDocumentPageFills(list, pages);
-    return Math.max(...fills) - Math.min(...fills);
-  };
-  let best = elements;
-  let score = imbalance(best);
-  if (score <= .20) return best;
-  for (let extra = 24; extra <= 240; extra += 24) {
-    const trial = applyFlowSpacing(elements, spacing, 842, { bottomMargin: 72 + extra });
-    if (contentMaxPage(trial) !== pages) continue;
-    const nextScore = imbalance(trial);
-    if (nextScore < score - .03) { best = trial; score = nextScore; }
+function preservesPageAssignments(elements, reference) {
+  const pages = new Map(reference.filter(el => !el.fixedToPage).map(el => [el.element_id, Number(el.page) || 1]));
+  const ids = new Set(elements.map(el => el.element_id));
+  return contentMaxPage(elements) <= contentMaxPage(reference)
+    && [...pages.keys()].every(id => ids.has(id))
+    && elements.every(el => el.fixedToPage || (Number(el.page) || 1) <= pages.get(el.element_id));
+}
+
+function fillsEarlierPages(candidate, current) {
+  const pages = contentMaxPage(current);
+  if (contentMaxPage(candidate) < pages) return true;
+  const next = measureDocumentPageFills(candidate, pages);
+  const before = measureDocumentPageFills(current, pages);
+  // Compare in reading order, never by the difference between pages. A sparse
+  // final page must not win by taking a complete record off the first page.
+  for (let page = 0; page < pages; page += 1) {
+    if (Math.abs(next[page] - before[page]) > .001) return next[page] > before[page];
   }
-  return reconcileDocumentPages(best, createId, { collapseEmpty: true }).elements;
+  return false;
+}
+
+const clipsFlowText = (elements) => elements.some(el => flowText(el) && Number(el.top) + Number(el.height) > BOTTOM + 1);
+
+/** Fill earlier pages to their real bottom margin before using later pages.
+ * Repack whole records first, then try up to eleven spacing rhythms within
+ * the editor's supported 1.3 expansion. Reject any expansion that pushes
+ * existing content to a later page. The final page may remain shorter.
+ * Returns the matching elements/spacing snapshot without changing the input;
+ * one-page documents retain their successful page-reduction layout.
+ */
+export function fillInterviewPages(elements, spacing, createId = idFactory(elements)) {
+  let best = { elements, spacing: normalizeFlowSpacing(spacing) };
+  if (contentMaxPage(elements) < 2) return best;
+  best.elements = finishPack(elements, best.spacing, createId);
+  const packed = best.elements;
+  if (contentMaxPage(packed) < 2) return best;
+  const seen = new Set();
+  for (const rhythm of buildSpacingLadder(best.spacing, scaleFlowSpacing(best.spacing, 1.3))) {
+    const key = JSON.stringify(rhythm);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const trial = finishPack(packed, rhythm, createId);
+    if (preservesPageAssignments(trial, packed) && !clipsFlowText(trial) && fillsEarlierPages(trial, best.elements)) {
+      best = { elements: trial, spacing: rhythm };
+    }
+  }
+  return best;
+}
+
+/** Reclaim multi-page whitespace with the template's own larger type sizes.
+ * Every candidate starts from the same successful fit, is browser-measured,
+ * and keeps its earlier-page content. Missing metrics discard that candidate.
+ * Paid shortening budgets are calculated before this free finishing pass.
+ */
+async function expandInterviewLayout(layout, templateId, createId, measureTextWidth) {
+  let best = fillInterviewPages(layout.elements, layout.spacing, createId);
+  if (contentMaxPage(best.elements) < 2) return best;
+  const packed = finishPack(layout.elements, layout.spacing, createId);
+  const fontSizes = new Map(packed.filter(flowText).map(el => [el.element_id, Number(el.fontSize) || 0]));
+  for (const textSizeId of ['M', 'L', 'XL']) {
+    const resized = applyTemplateTypography({ elements: packed, templateId, textSizeId,
+      spacing: layout.spacing, createId, measureTextWidth });
+    if (!resized || resized.some(el => flowText(el) && Number(el.fontSize) < fontSizes.get(el.element_id))) continue;
+    const measured = await measure(resized);
+    if (!measured) continue;
+    const trial = fillInterviewPages(measured, layout.spacing, createId);
+    if (preservesPageAssignments(trial.elements, packed) && !clipsFlowText(trial.elements)
+      && fillsEarlierPages(trial.elements, best.elements)) best = trial;
+  }
+  return best;
 }
 
 async function measure(elements) {
@@ -141,11 +189,13 @@ export async function prepareInterviewFit(session) {
   const budget = measureFitBudget(probe.elements, eligible, Math.max(1, target), session.evidence_profile?.facts || []);
   const canShorten = target >= 1 && preview.fit.allow_shorten && !preview.fit.stop_reason
     && budget.required_reduction > 0 && budget.required_reduction <= .30;
-  const elements = balanceInterviewPages(best.elements, best.spacing, createId);
+  // Do not let presentation expansion inflate a later shortening estimate.
+  // Only the final free commit needs the more spacious multi-page layout.
+  if (!canShorten) best = await expandInterviewLayout(best, session.template_id, createId, measureTextWidth);
+  const { elements } = best;
   // Overflow can be caused by a record too large for any page, even when the
   // nominal page count fits. Leave the server baseline available for recovery.
-  const clipped = elements.some(el => flowText(el) && Number(el.top) + Number(el.height) > BOTTOM + 1);
-  if (clipped) throw new Error(uiText('interview:fit.layoutError'));
+  if (clipsFlowText(elements)) throw new Error(uiText('interview:fit.layoutError'));
   return { action: canShorten ? 'shorten' : 'finish', elements, spacing_px: best.spacing,
     target_pages: Math.max(1, target), ...budget };
 }

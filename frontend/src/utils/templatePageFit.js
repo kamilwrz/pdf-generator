@@ -21,7 +21,7 @@ import { applyVellumTextSizeLayout } from "./vellumTypographyLayout.js";
 
 const SMALL_TEXT_SIZE_ID = "S";
 
-const smallTypographyLayouts = new Map([
+const typographyLayouts = new Map([
   ["atrium", applyAtriumTextSizeLayout],
   ["aurelia", applyAureliaTextSizeLayout],
   ["cadenza", applyCadenzaTextSizeLayout],
@@ -43,7 +43,7 @@ const smallTypographyLayouts = new Map([
  * @returns {boolean}
  */
 export function supportsSmallTypographyFit(templateId) {
-  return smallTypographyLayouts.has(templateId);
+  return typographyLayouts.has(templateId);
 }
 
 function createProbeIdFactory(elements) {
@@ -73,8 +73,23 @@ function createProbeIdFactory(elements) {
 export function applyTemplateSmallTypography({
   elements, templateId, spacing, pageHeight = 842, createId, measureTextWidth = null,
 }) {
-  const applySmallTypography = smallTypographyLayouts.get(templateId);
-  return applySmallTypography ? applySmallTypography(elements, SMALL_TEXT_SIZE_ID, {
+  return applyTemplateTypography({
+    elements, templateId, textSizeId: SMALL_TEXT_SIZE_ID, spacing, pageHeight, createId, measureTextWidth,
+  });
+}
+
+/**
+ * Apply an existing template size transaction without changing its identity.
+ * Interview finalisation can reclaim unused space with M/L/XL after the
+ * page-reduction search. Callers must measure wrapping before accepting it.
+ * Returns new geometry, or null for an unsupported template/preset; no state,
+ * history or persistence is changed here.
+ */
+export function applyTemplateTypography({
+  elements, templateId, textSizeId, spacing, pageHeight = 842, createId, measureTextWidth = null,
+}) {
+  const applyTypography = typographyLayouts.get(templateId);
+  return applyTypography && ['S', 'M', 'L', 'XL'].includes(textSizeId) ? applyTypography(elements, textSizeId, {
     spacing, pageHeight, createId: createId ?? createProbeIdFactory(elements), measureTextWidth,
   }) : null;
 }
