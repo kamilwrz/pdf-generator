@@ -64,6 +64,8 @@
 
     /* Geometry and interaction sizing. */
     --radius-panel: 0;
+    /* Illustrative product demos use a softer frame; document paper stays square. */
+    --radius-preview: 12px;
     --radius-control: 2px;
     --radius-pill: 999px;
     /* Rounded A4 action chrome is the scoped exception in DESIGN.md. */

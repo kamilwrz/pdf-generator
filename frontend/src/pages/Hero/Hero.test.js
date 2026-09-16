@@ -35,15 +35,15 @@ describe("landing product positioning", () => {
     assert.doesNotMatch(source, /href="#"/);
   });
 
-  it("retains accessible gallery copies, native FAQ, anchors, and motion fallback", () => {
-    assert.match(source, /aria-hidden=\{copy === 1 \? true : undefined\}/);
-    assert.match(source, /tabIndex=\{copy === 1 \? -1 : undefined\}/);
-    assert.match(source, /\{TEMPLATE_COUNT\}/);
+  it("retains a manually browsed gallery, native FAQ, anchors, and motion fallback", () => {
+    assert.match(source, /aria-controls="landing-template-gallery"/);
+    assert.doesNotMatch(source, /templateMarquee|\[0, 1\]\.map/);
+    assert.match(source, /TEMPLATE_COUNT/);
     assert.equal((source.match(/<details(?: open)?>/g) || []).length, 7);
     for (const anchor of ["wywiad", "dopasowanie", "szablony", "privacy", "cennik", "final-cta-title"]) {
       assert.ok(source.includes('id="' + anchor + '"'));
     }
     assert.match(styles, /prefers-reduced-motion: reduce/);
-    assert.match(styles, /\.templateMarqueeTrack\s*\{[^}]*animation: none;/s);
+    assert.match(styles, /\.templateGallery\s*\{[^}]*scroll-behavior: auto;/s);
   });
 });

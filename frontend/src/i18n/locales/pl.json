@@ -2030,6 +2030,8 @@
     "hero.clickAnyDescriptionAndStartTypingFont": "Edytuj tekst bezpośrednio na stronie A4. Zmieniaj czcionki, kolory, odstępy i kolejność sekcji, obserwując efekt.",
     "hero.chooseYourCvSAppearance": "Wybierz wygląd swojego CV",
     "hero.galleryOfCvTemplates": "Galeria {{value0}} szablonów CV",
+    "hero.previousTemplates": "Poprzednie szablony",
+    "hero.nextTemplates": "Następne szablony",
     "hero.chooseATemplateAndCreateACv": "Wybierz szablon i stwórz CV",
     "hero.yourCvIsNotPublic": "Twoje CV nie jest publiczne.",
     "hero.signInToReturnToYourSaved": "Do zapisanych CV i zdjęć wrócisz po zalogowaniu na swoje konto.",

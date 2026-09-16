@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
  * retain direct A4 setup. Anonymous CTA activity is not buffered or sent as
  * analytics.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
@@ -90,6 +90,55 @@ function CtaLink({ to, variant = "primary", children }) {
             <ArrowIcon />
         </Link>
     );
+}
+
+/**
+ * A manually browsed template rail. Native scrolling keeps touch and keyboard
+ * navigation available; controls reflect the measured rail after every resize.
+ * Failed previews retain their A4 space and usable destination link.
+ */
+function TemplateGallery() {
+    const rail = useRef(null);
+    const [edges, setEdges] = useState({ start: true, end: false });
+    const [failedImages, setFailedImages] = useState({});
+
+    useEffect(() => {
+        const node = rail.current;
+        const measure = () => setEdges({
+            start: node.scrollLeft <= 1,
+            end: node.scrollLeft + node.clientWidth >= node.scrollWidth - 1,
+        });
+        const observer = new ResizeObserver(measure);
+        observer.observe(node);
+        node.addEventListener('scroll', measure, { passive: true });
+        measure();
+        return () => { observer.disconnect(); node.removeEventListener('scroll', measure); };
+    }, []);
+
+    const move = (direction) => {
+        // CSS owns smooth scrolling so reduced-motion changes apply immediately.
+        rail.current.scrollBy({ left: direction * rail.current.clientWidth * 0.8 });
+    };
+
+    return <>
+        <div className={classes.templateGalleryHeader}>
+            <p id="template-gallery-title" className={classes.templateGalleryLabel}>{uiText("public:hero.chooseYourCvSAppearance")}</p>
+            <div className={classes.galleryControls}>
+                <button type="button" aria-label={uiText('public:hero.previousTemplates')} aria-controls="landing-template-gallery" aria-disabled={edges.start} onClick={() => !edges.start && move(-1)}><ArrowIcon /></button>
+                <button type="button" aria-label={uiText('public:hero.nextTemplates')} aria-controls="landing-template-gallery" aria-disabled={edges.end} onClick={() => !edges.end && move(1)}><ArrowIcon /></button>
+            </div>
+        </div>
+        <div ref={rail} id="landing-template-gallery" className={classes.templateGallery} role="region" aria-labelledby="template-gallery-title" aria-description={uiText("public:hero.galleryOfCvTemplates", { value0: TEMPLATE_COUNT })}>
+            {TEMPLATE_PREVIEWS.map((template) => <Link key={template.id} to={`/templates/${template.id}`} className={classes.templateCard}>
+                <div className={classes.templatePreview}>
+                    {failedImages[template.image]
+                        ? <span>{uiText('public:publicPages.couldNotLoadThePreview')}</span>
+                        : <img src={template.image} alt={uiText("public:hero.cvTemplate", { value0: template.name })} loading="lazy" onError={() => setFailedImages(current => ({ ...current, [template.image]: true }))} />}
+                </div>
+                <span><b>{template.name}</b><ArrowIcon /></span>
+            </Link>)}
+        </div>
+    </>;
 }
 
 export default function Hero() {
@@ -217,52 +266,7 @@ export default function Hero() {
                     </ul>
                 </div>
 
-                <div className={classes.templateGalleryHeader}>
-                    <p id="template-gallery-title" className={classes.templateGalleryLabel}>{uiText("public:hero.chooseYourCvSAppearance")}</p>
-                </div>
-                {/*
-                  Endless right→left marquee of every template mockup. The track
-                  is duplicated so translateX(-50%) loops without a seam. Hover
-                  (or keyboard focus) pauses the animation and scales the card.
-                */}
-                <div
-                    className={classes.templateMarquee}
-                    role="region"
-                    aria-labelledby="template-gallery-title"
-                    aria-description={uiText("public:hero.galleryOfCvTemplates", { value0: (TEMPLATE_COUNT) })}
-                    style={{
-                        // ~3.2s per card keeps the strip readable as the registry grows.
-                        ["--marquee-duration"]: `${Math.max(36, TEMPLATE_COUNT * 3.2)}s`,
-                    }}
-                >
-                    <div className={classes.templateMarqueeTrack}>
-                        {[0, 1].map((copy) => (
-                            <div
-                                key={copy}
-                                className={classes.templateMarqueeGroup}
-                                aria-hidden={copy === 1 ? true : undefined}
-                            >
-                                {TEMPLATE_PREVIEWS.map((template) => (
-                                    <Link
-                                        key={`${copy}-${template.id}`}
-                                        to={`/templates/${template.id}`}
-                                        className={classes.templateCard}
-                                        tabIndex={copy === 1 ? -1 : undefined}
-                                    >
-                                        <img
-                                            src={template.image}
-                                            alt={copy === 0 ? uiText("public:hero.cvTemplate", { value0: (template.name) }) : ""}
-                                            loading="lazy"
-                                        />
-                                        <span>
-                                            <b>{template.name}</b>
-                                        </span>
-                                    </Link>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <TemplateGallery />
                 <CtaLink to="/templates" variant="link">{uiText("public:hero.chooseATemplateAndCreateACv")}</CtaLink>
             </section>
 
@@ -288,9 +292,11 @@ export default function Hero() {
                 </div>
                 <div className={classes.pricingGrid}>
                     <article className={classes.priceCard}>
-                        <p className={classes.planName}>{uiText("public:hero.free")}</p>
-                        <p className={classes.planPrice}>0 <small>{uiText("account:planSelectModal.pln")}</small></p>
-                        <p className={classes.planSummary}>{uiText("public:hero.oneSavedCvFullManualEditingAnd")}</p>
+                        <div className={classes.planHeader}><h3 className={classes.planName}>{uiText("public:hero.free")}</h3></div>
+                        <div className={classes.planIntro}>
+                            <p className={classes.planPrice}>0 <small>{uiText("account:planSelectModal.pln")}</small></p>
+                            <p className={classes.planSummary}>{uiText("public:hero.oneSavedCvFullManualEditingAnd")}</p>
+                        </div>
                         <ul>
                             {FREE_PLAN_HIGHLIGHTS.map((feature) => (
                                 <li key={feature}><CheckIcon />{feature}</li>
@@ -300,11 +306,15 @@ export default function Hero() {
                         <p className={classes.planFootnote}>{uiText("public:hero.noCardRequiredThePlanHasNo")}</p>
                     </article>
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
-                        <span className={classes.popularTag}>{uiText("public:hero.withAiAssistance")}</span>
-                        <p className={classes.planName}>Pro</p>
-                        <p className={classes.planPrice}>59 <small>{uiText("account:planSelectModal.pln")}</small></p>
-                        <p className={classes.planSummary}>{uiText("public:hero.workOnYourWritingWithAiAnd")}</p>
-                        <p className={classes.planPeriod}>{uiText("public:hero.daysOfFullAccess")}</p>
+                        <div className={classes.planHeader}>
+                            <h3 className={classes.planName}>Pro</h3>
+                            <span className={classes.popularTag}>{uiText("public:hero.withAiAssistance")}</span>
+                        </div>
+                        <div className={classes.planIntro}>
+                            <p className={classes.planPrice}>59 <small>{uiText("account:planSelectModal.pln")}</small></p>
+                            <p className={classes.planSummary}>{uiText("public:hero.workOnYourWritingWithAiAnd")}</p>
+                            <p className={classes.planPeriod}>{uiText("public:hero.daysOfFullAccess")}</p>
+                        </div>
                         <ul>
                             {PRO_PLAN_HIGHLIGHTS.map((feature) => (
                                 <li key={feature}><CheckIcon />{feature}</li>

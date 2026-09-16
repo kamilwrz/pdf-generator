@@ -2006,6 +2006,8 @@
     "hero.clickAnyDescriptionAndStartTypingFont": "Edit text directly on the A4 page. Change fonts, colours, spacing and section order, and see the result as you work.",
     "hero.chooseYourCvSAppearance": "Choose your CV's appearance",
     "hero.galleryOfCvTemplates": "Gallery of {{value0}} CV templates",
+    "hero.previousTemplates": "Previous templates",
+    "hero.nextTemplates": "Next templates",
     "hero.chooseATemplateAndCreateACv": "Choose a template and create a CV",
     "hero.yourCvIsNotPublic": "Your CV is not public.",
     "hero.signInToReturnToYourSaved": "Sign in to return to your saved CVs and photos.",
