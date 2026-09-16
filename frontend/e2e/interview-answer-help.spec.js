@@ -50,7 +50,11 @@ async function openInterview(page, {
   const facts = [{ id: 'source-role-0', text: 'Obsługa zgłoszeń klientów.', kind: 'fact',
     path: '/experience/0/bullets/0', source: 'document:41' }];
   const question = { id: QUESTION_ID, topic: 'responsibilities', entry_id: '/experience/0', angle: 'overview',
-    text: 'Jakie czynności wykonywałaś przy obsłudze zgłoszeń?',
+    // Temporal clauses describe the work context, not a request for a date.
+    // Server regressions verify eligibility for this contextual wording.
+    text: language === 'en'
+      ? 'What were the main steps you followed when handling a customer case?'
+      : 'Jakie kroki wykonywałaś, kiedy obsługiwałaś zgłoszenie klienta?',
     reason: 'Doprecyzujemy zakres obowiązków w Example Services.', context: 'Example Services',
     ...(eligible ? { answer_help_available: true } : {}),
   };
@@ -243,17 +247,21 @@ test('failed suggestion can be retried without clearing the answer or saving it'
   expectSourceIsolation(flow);
 });
 
-test('reopening saved help neither generates it again nor applies it', async ({ page }) => {
-  const flow = await openInterview(page, { cached: true });
-  await expect(page.getByRole('button', { name: copy.pl.use, exact: true })).toBeVisible();
+for (const language of ['pl', 'en']) {
+test(`reopening saved narrative help neither generates it again nor applies it ${language}`, async ({ page }) => {
+  const flow = await openInterview(page, { cached: true, language });
+  await expect(page.getByRole('heading', { name: flow.question.text, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: copy[language].use, exact: true })).toBeVisible();
   await expect(flow.answer).toHaveValue('');
   expect(flow.posts).toEqual([]);
   await page.reload();
-  await expect(page.getByRole('button', { name: copy.pl.use, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: flow.question.text, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: copy[language].use, exact: true })).toBeVisible();
   await expect(flow.answer).toHaveValue('');
   expect(flow.posts).toEqual([]);
   expectSourceIsolation(flow);
 });
+}
 
 test('hiding pending help keeps the request locked and caches its late response without reopening', async ({ page }) => {
   const flow = await openInterview(page, { holdHelp: true });

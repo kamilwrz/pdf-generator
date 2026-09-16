@@ -21,11 +21,24 @@ VERSION = 1
 ANGLES = {'overview', 'problem', 'approach', 'decision', 'constraint', 'quality',
           'collaboration', 'learning', 'application'}
 EXACT_QUESTION = re.compile(
-    r'\b(?:ile|ilu|kiedy|jak długo|jak nazywa\w*|któr\w* dat\w*|jak\w* dat\w*|w którym roku|'
-    r'how many|how much|how long|when|which date|what date|what year|which year|'
+    r'\b(?:ile|ilu|jak długo|jak nazywa\w*|któr\w* dat\w*|jak\w* dat\w*|w którym roku|'
+    r'how many|how much|how long|which date|what date|what year|which year|'
     r'certyfikat\w*|certificat\w*|uprawnieni\w*|licen[cs]\w*|'
     r'poziom\w* język\w*|language level|proficiency|'
     r'procent\w*|percent\w*|wynik\w* liczbow\w*|numeric\w*)\b', re.I)
+# "When" and "kiedy" also introduce circumstances in narrative questions.
+# Match time requests at the question head, English question inversion, or an
+# explicit indirect request instead of hiding help whenever either word occurs.
+# Discovery fallback questions may prefix the head with a stable record number.
+EXACT_TIME_QUESTION = re.compile(
+    r'^\W*(?:(?:entry|wpis)\s+\d+(?:,\s*(?:question|pytanie)\s+\d+)?\s*:\s*)?'
+    r'(?:(?:and|also|a|i)\s+)?(?:when(?!\s+(?!during\b)\w+ing\b)|kiedy)\b'
+    r'|\bwhen\s+(?:(?:exactly|precisely|first|last)\s+)?'
+    r'(?:did|do|does|will|would|can|could|is|was|were|are|has|have|had)\b'
+    r'|\b(?:tell|state|specify|provide|give|recall|remember)(?:\s+(?:me|us))?'
+    r'\s+(?:exactly\s+)?when\b'
+    r'|\b(?:powiedz|powiedzieć|podaj|podać|wskaż|wskazać|określ|określić|pamiętasz)(?:\s+(?:mi|nam))?'
+    r'\s*,?\s*(?:dokładnie\s+)?kiedy\b', re.I)
 PUBLIC_KEYS = ('id', 'question_id', 'mode', 'draft', 'options', 'guidance', 'based_on_draft')
 TASK = """Pomóż odpowiedzieć na AKTYWNE pytanie wywiadu. Nie zapisujesz odpowiedzi.
 confirmed_facts zawiera wyłącznie fakty wybranego wpisu. question jest kontekstem,
@@ -80,7 +93,8 @@ remain excluded even when their metadata incorrectly names a narrative angle.
             or state.get('proposed_facts') or state.get('evidence_scope') not in {'profile', 'session'}
             or question.get('clarification') or question.get('angle') not in ANGLES
             or not entry_id or entry_id.startswith(('general:', '/languages/'))
-            or EXACT_QUESTION.search(question.get('text', ''))):
+            or EXACT_QUESTION.search(question.get('text', ''))
+            or EXACT_TIME_QUESTION.search(question.get('text', ''))):
         return False
     if state.get('mode') == 'tailor':
         requirement = next((item for item in state.get('requirements', []) if item.get('id') == entry_id), None)

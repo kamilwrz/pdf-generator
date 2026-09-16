@@ -135,6 +135,16 @@ def test_alternative_answers_do_not_accept_help_or_charge_again(environment, sta
 @pytest.mark.parametrize('question', [
     {'clarification': True}, {'angle': 'proficiency'}, {'angle': 'outcome'}, {'angle': 'contribution'},
     {'text': 'Ile raportów sprawdzano?'}, {'text': 'When did you start this job?'},
+    {'text': 'When exactly did you start this job?'}, {'text': 'Kiedy rozpoczęła się ta praca?'},
+    {'text': 'When during the year did you start this job?'},
+    {'text': 'Entry 2, question 1: When did you start this job?'},
+    {'text': 'Wpis 2, pytanie 1: Kiedy rozpoczęła się ta praca?'},
+    {'text': 'Could you tell me when you started this job?'},
+    {'text': 'Czy możesz podać, kiedy rozpoczęła się ta praca?'},
+    {'text': 'What steps did you follow, and when did you start each one?'},
+    {'text': 'How long did you work in this role?'},
+    {'text': 'Which date did you start this role?'},
+    {'text': 'What certification did this role require?'},
     {'entry_id': 'general:experience'}, {'entry_id': '/languages/0'}, {'entry_id': None},
 ])
 def test_exact_or_unsupported_questions_never_call_ai(environment, question):
@@ -144,6 +154,34 @@ def test_exact_or_unsupported_questions_never_call_ai(environment, question):
     with patch.object(service, '_gpt') as provider:
         assert help_request(client, session).status_code == 422
         provider.assert_not_called()
+
+
+@pytest.mark.parametrize('text', [
+    'What were the main steps you followed when handling a KYC case as a KYC Senior Analyst at Sample Bank?',
+    'How did you check the reports when supporting documents were missing?',
+    'What did you do when you found inconsistent information?',
+    'When reviewing a report, how did you check its source documents?',
+    'Jak wyglądało sprawdzanie raportu, kiedy brakowało dokumentów?',
+    'Jak wyglądało sprawdzanie raportu, gdy brakowało dokumentów?',
+    'Wpis 2: Jak wyglądało sprawdzanie raportu, kiedy brakowało dokumentów?',
+    'Entry 2, question 1: What did you do when supporting documents were missing?',
+])
+def test_narrative_circumstances_keep_help_available_for_generation_and_resume(environment, text):
+    client, db, _, _ = environment
+    session = prepared(client, db, text=text)
+    assert session['question']['answer_help_available'] is True
+    with patch.object(service, '_gpt', side_effect=provider_results(proposals(session, options=True))) as provider:
+        response = help_request(client, session)
+        assert response.status_code == 200, response.text
+        saved = response.json()
+        assert saved['answer_help']['mode'] == 'options'
+        state = deepcopy(db.get(InterviewSession, session['id'], populate_existing=True).state)
+        resumed = client.get(f"/ai/interviews/{session['id']}").json()
+        assert resumed['question']['answer_help_available'] is True
+        assert resumed['answer_help'] == saved['answer_help']
+        assert resumed['revision'] == saved['revision']
+        assert db.get(InterviewSession, session['id'], populate_existing=True).state == state
+        assert provider.call_count == 2
 
 
 @pytest.mark.parametrize('damage', ['number', 'reference', 'duplicate', 'mixed_mode', 'placeholder'])

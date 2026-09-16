@@ -42,6 +42,8 @@ Answer help always provides a usable hint after an eligible request: a checked d
 
 **Suggest an answer** is available for eligible questions about duties, tasks and responsibilities in the shared standalone and embedded interview. It uses the selected record's confirmed information and relevant saved answers, plus the current unsaved answer draft. For tailoring, the scope is the active partially evidenced requirement: its confirmed citations can span roles while preserving their original attribution. Other candidates' profiles, unrelated roles and a job advert cannot become evidence for the suggested answer.
 
+Narrative questions keep this action when “when” or “kiedy” describes the context of the work, for example “What were the main steps you followed when handling a KYC case?”. Previously, a keyword-only date check hid the whole help panel for such questions. The server now distinguishes these clauses from requests for a date or period; exact dates, counts and qualifications remain ineligible. Eligibility is recalculated when a saved interview is read, so an affected active question can show its matching saved suggestion again without another paid request. The [Python regular-expression reference](https://docs.python.org/3/library/re.html) explains the contextual matching primitives used by this check. Backend regressions cover narrative generation, free cached reads and preserved exact-fact exclusions; the PL/EN browser cases cover suggestion visibility and reload.
+
 1. Generate either a grounded draft or possible activities for the documented role. Activities appear as unchecked checkboxes. Exact factual questions, language levels and clarification decisions do not expose this action.
 2. Review the labelled draft or select only activities that match your experience. **Use suggestion** / **Use selected tasks** appends text to the answer field. It neither saves facts nor advances the interview. Existing text is retained; an insertion exceeding 4,000 characters is rejected without truncation.
 3. Edit the complete answer, then select **Confirm and save answer**. The existing answer transaction stores it with explicit AI-assistance provenance in the chosen evidence store. Ordinary typed answers keep their ordinary Save action. Clearing an assisted answer removes its marker; information review is blocked while an assisted draft awaits confirmation so local fact edits cannot invalidate its source.
@@ -56,7 +58,7 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 
 | File | Verified lines and symbols |
 | --- | --- |
-| `backend/app/services/interview_answer_help.py` | 1–254; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
+| `backend/app/services/interview_answer_help.py` | 1–268; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `AnswerHelpWrite, AnswerHelpProposal, AnswerHelpVerification, AnswerWrite` |
 | `backend/app/api/routes/interviews.py` | 1–656; `help_interview_answer, answer_interview` |
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
@@ -64,9 +66,9 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–543; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
-| `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
+| `backend/tests/test_interview_answer_help.py` | 1–420; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
-| `frontend/e2e/interview-answer-help.spec.js` | 1–344; `Playwright` |
+| `frontend/e2e/interview-answer-help.spec.js` | 1–352; `Playwright` |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; `Playwright: preview and loading` |
 | `frontend/e2e/interviews.spec.js` | 1–223; `Playwright: standalone and embedded interview` |
 
@@ -3728,6 +3730,8 @@ Pomoc po kwalifikującym się żądaniu zawsze dostarcza użyteczną podpowiedź
 
 **Zaproponuj odpowiedź** jest dostępne przy kwalifikujących się pytaniach o obowiązki, zadania i zakres odpowiedzialności we wspólnym wywiadzie samodzielnym i osadzonym w asystencie. Korzysta z potwierdzonych informacji wybranego wpisu, powiązanych zapisanych odpowiedzi i bieżącego niezapisanego szkicu. Przy dopasowaniu zakresem jest bieżące częściowo poparte wymaganie: wskazane potwierdzone źródła mogą obejmować kilka ról, zachowując pierwotne przypisanie faktów. Profile innych kandydatów, niezwiązane role i treść oferty nie stają się dowodami dla proponowanej odpowiedzi.
 
+Pytania opisowe zachowują tę akcję, gdy „when” lub „kiedy” opisuje kontekst pracy, np. „Jakie kroki wykonywano, kiedy obsługiwano sprawę KYC?”. Wcześniej sprawdzanie dat oparte wyłącznie na słowach kluczowych ukrywało przy takich pytaniach cały panel pomocy. Serwer odróżnia teraz takie zdania od pytań o datę lub okres; dokładne daty, liczby i kwalifikacje nadal nie kwalifikują się do pomocy. Dostępność jest ponownie obliczana przy odczycie zapisanego wywiadu, więc aktywne pytanie dotknięte błędem może ponownie pokazać pasującą zapisaną propozycję bez kolejnego płatnego żądania. [Dokumentacja wyrażeń regularnych Pythona](https://docs.python.org/3/library/re.html) wyjaśnia mechanizmy dopasowania kontekstu używane przez to sprawdzenie. Regresje backendu obejmują generowanie przy pytaniach opisowych, bezpłatny odczyt zapisanej pomocy i zachowanie wykluczeń dokładnych faktów; przypadki przeglądarkowe PL/EN sprawdzają widoczność propozycji i odświeżenie.
+
 1. Wygeneruj szkic oparty na informacjach albo możliwe czynności dla udokumentowanej roli. Czynności mają domyślnie niezaznaczone pola wyboru. Pytania o dokładne fakty, poziomy języków i decyzje doprecyzowania nie pokazują tej akcji.
 2. Sprawdź podpisany szkic albo zaznacz wyłącznie czynności zgodne z doświadczeniem. **Użyj propozycji** / **Użyj wybranych czynności** dopisuje tekst do pola odpowiedzi. Nie zapisuje faktów ani nie przechodzi dalej. Własny tekst zostaje zachowany; przekroczenie 4000 znaków blokuje wstawienie bez obcinania treści.
 3. Edytuj całą odpowiedź i wybierz **Potwierdzam i zapisuję odpowiedź**. Istniejąca transakcja odpowiedzi zapisuje ją z jawną informacją o użyciu pomocy AI w wybranym zbiorze danych. Własne odpowiedzi zachowują zwykły przycisk zapisu. Wyczyszczenie odpowiedzi usuwa oznaczenie; przegląd informacji jest zablokowany podczas oczekiwania na potwierdzenie wspomaganego szkicu, aby lokalna edycja faktów nie unieważniła jego źródła.
@@ -3742,7 +3746,7 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 
 | Plik | Zweryfikowane linie i symbole |
 | --- | --- |
-| `backend/app/services/interview_answer_help.py` | 1–254; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
+| `backend/app/services/interview_answer_help.py` | 1–268; `answer_help_available, generate_answer_help, confirmed_answer_assistance` |
 | `backend/app/schemas/interview_schema.py` | 1–254; `AnswerHelpWrite, AnswerHelpProposal, AnswerHelpVerification, AnswerWrite` |
 | `backend/app/api/routes/interviews.py` | 1–656; `help_interview_answer, answer_interview` |
 | `backend/app/services/interview_service.py` | 1–659; `session_payload, paid_model` |
@@ -3750,9 +3754,9 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
 | `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–543; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
-| `backend/tests/test_interview_answer_help.py` | 1–382; `pytest` |
+| `backend/tests/test_interview_answer_help.py` | 1–420; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
-| `frontend/e2e/interview-answer-help.spec.js` | 1–344; `Playwright` |
+| `frontend/e2e/interview-answer-help.spec.js` | 1–352; `Playwright` |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; `Playwright: preview and loading` |
 | `frontend/e2e/interviews.spec.js` | 1–223; `Playwright: standalone and embedded interview` |
 
