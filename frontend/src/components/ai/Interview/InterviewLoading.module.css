@@ -1,7 +1,7 @@
 /* A named indeterminate operation, never simulated server progress. */
 .loading { border-block: 1px solid var(--color-border); background: var(--color-paper); padding-block: var(--space-6); }
 .body { min-width: 0; }
-.loading .body h3 { font: 700 1.5rem/1.25 var(--font-ui); margin-bottom: var(--space-3); }
+.loading .body h3 { font: 700 var(--interview-title-size, 1.5rem)/1.4 var(--font-ui); margin-bottom: var(--space-3); }
 .body p { max-width: 65ch; }
 .track { overflow: hidden; height: var(--space-1); background: var(--color-surface); margin-top: var(--space-4); }
 .track span { display: block; height: 100%; width: 35%; background: var(--color-accent); animation: travel 2s ease-in-out infinite alternate; }

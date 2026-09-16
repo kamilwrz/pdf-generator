@@ -7,11 +7,11 @@
 .flow textarea { resize: vertical; }
 .flow button, .flow a { font: 600 .875rem/1.4 var(--font-ui); }
 .flow button, .link { display: inline-flex; align-items: center; justify-content: center; min-height: var(--control-height); padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); background: var(--color-paper); color: var(--interview-ink); border-radius: var(--radius-control); cursor: pointer; text-decoration: none; }
-.flow button:hover, .link:hover { background: var(--color-surface); }
+.flow button:hover:not(:disabled), .link:hover { background: var(--color-surface); }
 .flow button:active:not(:disabled), .link:active { background: var(--color-canvas); }
 .flow button:disabled { opacity: .55; cursor: not-allowed; }
 .flow button.primary { color: var(--color-paper); background: var(--interview-ink); border-color: var(--interview-ink); }
-.flow button.primary:hover { background: var(--color-accent); }
+.flow button.primary:hover:not(:disabled) { background: var(--color-accent); }
 .flow button.primary:active:not(:disabled) { background: var(--interview-ink); }
 .flow :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .flow fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
@@ -35,17 +35,17 @@
 .interviewWorkspace { max-width: 1120px; margin-inline: auto; }
 
 /* The interview exposes one working stage; profile management keeps its own layout. */
-.interview { container: interview / inline-size; border: 1px solid var(--color-border); padding: var(--space-6); }
+.interview { container: interview / inline-size; border: var(--interview-border, 1px solid var(--color-border)); padding: var(--interview-padding, var(--space-6)); }
 .utility { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
 .utility .link { border: 0; padding-inline: 0; font-weight: 400; text-decoration: underline; text-underline-offset: var(--space-1); }
 .utility [aria-disabled='true'] { opacity: .55; cursor: wait; }
-.interview .taskTitle { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.1; letter-spacing: -.02em; margin-bottom: var(--space-4); }
+.interview .taskTitle { font-size: var(--interview-title-size, clamp(1.5rem, 3vw, 2rem)); line-height: 1.1; letter-spacing: -.02em; margin-bottom: var(--space-4); }
 .stages { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-2); margin-bottom: var(--space-6); }
 .stages button { justify-content: flex-start; gap: var(--space-3); text-align: left; }
 .stages button > span { flex-shrink: 0; white-space: nowrap; font: .75rem var(--font-mono); color: var(--color-muted); }
 .stages button[aria-current] { border-bottom: 2px solid var(--color-accent); background: var(--color-canvas); }
 .interview .question { background: var(--color-paper); }
-.interview .question h3 { font-size: 1.5rem; line-height: 1.25; max-width: 56ch; }
+.interview .question h3 { font-size: var(--interview-title-size, 1.5rem); line-height: 1.25; max-width: 56ch; }
 .interview .clarificationQuestion { display: grid; gap: var(--space-4); }
 .clarificationQuestion > header > :last-child { margin-bottom: 0; }
 .decisionLabel, .clarificationPrompt > span { display: block; margin: 0 0 var(--space-2); color: var(--color-muted); font: 600 .75rem/1.25 var(--font-ui); letter-spacing: .06em; text-transform: uppercase; }
@@ -85,5 +85,5 @@
 .flow .compactStages { display: none; margin-top: var(--space-2); }
 .flow summary { min-height: var(--control-height); align-content: center; cursor: pointer; }
 .interview > [role='status']:empty { margin: 0; }
-.flow button, .flow a { font-size: 1rem; }
+.flow button, .flow a { font-size: var(--interview-control-size, 1rem); }
 @container interview (max-width: 720px) { .stages { display: none; } .flow .compactStages { display: grid; } }

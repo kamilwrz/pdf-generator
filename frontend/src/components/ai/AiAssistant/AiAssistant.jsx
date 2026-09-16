@@ -16,6 +16,7 @@ import InterviewFlow from '../Interview/InterviewFlow';
 import { RiSparklingLine as BsStars, RiBriefcaseLine as FaBriefcase, RiChat3Line as FaComments,
     RiFontSize as FaFont, RiMagicLine as FaMagic, RiTranslate2 as FaLanguage,
     RiSearchLine as FaSearch, RiFileList3Line as FaClipboardCheck, RiEditLine, RiScissorsLine,
+    RiArrowRightLine, RiHistoryLine,
     RiCloseLine as IoClose, RiCheckboxCircleLine as MdCheckCircle, RiCloseCircleLine as MdCancel } from 'react-icons/ri';
 import AiChangeReview from '../shared/AiChangeReview';
 import classes from "./AiAssistant.module.css";
@@ -679,9 +680,6 @@ function ChatMessage({
 
     return (
         <div className={`${classes.msgWrap} ${isUser ? classes.msgUser : classes.msgAssistant}`}>
-            {!isUser && (
-                <div className={classes.msgIcon}><BsStars /></div>
-            )}
             <div className={classes.msgBubble}>
                 {/* action label */}
                 {msg.actionLabel && !isUser && (
@@ -694,7 +692,7 @@ function ChatMessage({
                 {visibleText && !hasAudit && msg.corrections?.length > 0 ? <details>
                     <summary>{uiText('ai:task.summary')}</summary><p className={classes.msgText}>{visibleText}</p>
                 </details> : visibleText && !hasAudit ? (
-                    <p className={`${classes.msgText} ${!isUser ? classes.msgTextAssistant : ""}`}>
+                    <p className={classes.msgText}>
                         {visibleText}
                     </p>
                 ) : null}
@@ -1807,7 +1805,7 @@ export default function AiAssistant({ hideLauncher = false }) {
             {(!hideLauncher || isOpen) && <button
                 ref={fabRef}
                 type="button"
-                className={`${classes.fab} ${isLoading ? classes.fabLoading : ""}`}
+                className={classes.fab}
                 onClick={() => {
                     if (isOpen) closeAssistant();
                     else setIsOpen(true);
@@ -1838,11 +1836,8 @@ export default function AiAssistant({ hideLauncher = false }) {
                         {/* header */}
                         <div className={classes.header}>
                             <div className={classes.headerLeft}>
-                                <BsStars className={classes.headerIcon} />
-                                <div>
-                                    <div className={classes.headerTitle}>{uiText("ai:aiAssistant.aiAssistant")}</div>
-
-                                </div>
+                                <BsStars className={classes.headerIcon} aria-hidden="true" />
+                                <h2 className={classes.headerTitle}>{uiText("ai:aiAssistant.aiAssistant")}</h2>
                             </div>
                             <div className={classes.headerRight}>
                                 {entitlements?.limits?.monthly_ai_credits != null && (
@@ -1912,7 +1907,7 @@ export default function AiAssistant({ hideLauncher = false }) {
                                     return <button key={id} ref={id === 'match_job' ? matchJobTriggerRef : undefined}
                                         type="button" className={classes.actionBtn} data-ai-goal={id} data-primary={id === 'check_cv'}
                                         onClick={() => handleGoalAction(id)} disabled={isLoading}>
-                                        <action.icon aria-hidden="true" /><span>{action.label}</span><span aria-hidden="true">→</span>
+                                        <action.icon aria-hidden="true" /><span>{action.label}</span><RiArrowRightLine aria-hidden="true" />
                                     </button>;
                                 })}
                             </div>
@@ -1925,7 +1920,7 @@ export default function AiAssistant({ hideLauncher = false }) {
                                     return <button key={id} data-ai-goal={id} type="button" disabled={isLoading} onClick={() => handleGoalAction(id)}><action.icon aria-hidden="true" />{action.label}</button>;
                                 })}
                             </div>
-                            <button className={classes.historyLink} type="button" onClick={() => setActivePanel('history')}>{uiText('ai:task.history')}</button>
+                            <button className={classes.historyLink} type="button" onClick={() => setActivePanel('history')}><RiHistoryLine aria-hidden="true" />{uiText('ai:task.history')}</button>
                         </section>}
 
                         {/* goal subpanels */}
@@ -1933,12 +1928,12 @@ export default function AiAssistant({ hideLauncher = false }) {
                             {activePanel === "improve_content" && (
                                 <Motion.div
                                     className={classes.subPanel}
-                                    initial={{ height: 0, opacity: 0 }}
+                                    initial={reduceMotion ? false : { height: 0, opacity: 0 }}
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
+                                    transition={{ duration: reduceMotion ? 0 : 0.2 }}
                                 >
-                                    <div className={classes.subPanelTitle}>{uiText("ai:aiAssistant.whatWouldYouLikeToImprove")}</div>
+                                    <h3 className={classes.subPanelTitle}>{uiText("ai:aiAssistant.whatWouldYouLikeToImprove")}</h3>
                                     {/* CV language override for content corrections. Defaults to the detected
                                         language reported by the backend; users can correct a misdetection. */}
                                     <label className={classes.cvLangLabel}>{uiText("ai:aiAssistant.cvLanguage")}<select
@@ -1975,12 +1970,12 @@ export default function AiAssistant({ hideLauncher = false }) {
                             {activePanel === "translate" && (
                                 <Motion.div
                                     className={classes.subPanel}
-                                    initial={{ height: 0, opacity: 0 }}
+                                    initial={reduceMotion ? false : { height: 0, opacity: 0 }}
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
+                                    transition={{ duration: reduceMotion ? 0 : 0.2 }}
                                 >
-                                    <div className={classes.subPanelTitle}>{uiText("ai:aiAssistant.chooseTheTargetLanguage")}</div>
+                                    <h3 className={classes.subPanelTitle}>{uiText("ai:aiAssistant.chooseTheTargetLanguage")}</h3>
                                     <div className={classes.langGrid}>
                                         {TRANSLATE_LANGUAGES.map((lang) => (
                                             <button
