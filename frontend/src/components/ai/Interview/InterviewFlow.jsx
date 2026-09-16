@@ -1,5 +1,6 @@
 import InterviewStages from './InterviewStages';
 import InterviewRequirements from './InterviewRequirements';
+import InterviewQuestionContext from './InterviewQuestionContext';
 import { useMessageState, messageRef, messageOf } from '../../../i18n/messageState.js';
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
@@ -460,7 +461,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             </div>
           </details>
         </div>}
-        {session.question && !clarificationQuestion && <div className={classes.question}><InterviewRequirements requirements={session.requirements} question={session.question} focused />{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
+        {session.question && !clarificationQuestion && <div className={classes.question}><InterviewRequirements requirements={session.requirements} question={session.question} focused /><InterviewQuestionContext question={session.question} facts={profile?.facts} />{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
           <p className={classes.hint} id={`answer-help-${session.question.id}`}>{uiText("interview:interviewFlow.answerInYourOwnWordsWhenPreparing")}</p>
           {session.question.follow_up_to && <p className={classes.hint}>{uiText("interview:interviewFlow.aFollowUpToAnEarlierAnswer")}</p>}
           <label>{uiText("interview:factEditor.yourAnswer")}<textarea ref={answerField} rows={5} maxLength={4000} value={answer} onChange={(event) => changeAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}${assistedAnswer?.questionId === session.question.id ? ` answer-confirm-${session.question.id}` : ''}`} /></label>

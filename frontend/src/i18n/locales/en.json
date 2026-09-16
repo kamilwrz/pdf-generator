@@ -1699,7 +1699,11 @@
     "credits.operation.answer-help-verify": "Answer suggestion check",
     "requirements.current": "Discussing now",
     "requirements.position": "Requirement {{number}} of {{total}}",
-    "requirements.analysis": "Offer analysis summary"
+    "requirements.analysis": "Offer analysis summary",
+    "questionContext.general": "General question",
+    "questionContext.notes": "Additional information",
+    "questionContext.subject": "Question topic",
+    "questionContext.unavailable": "No specific CV entry provided"
   },
   "errors": {
     "errorBoundary.couldNotDisplayTheEditor": "Could not display the editor",

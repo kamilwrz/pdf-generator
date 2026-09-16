@@ -1723,7 +1723,11 @@
     "credits.operation.answer-help-verify": "Sprawdzenie propozycji odpowiedzi",
     "requirements.current": "Teraz omawiamy",
     "requirements.position": "Wymaganie {{number}} z {{total}}",
-    "requirements.analysis": "Podsumowanie analizy oferty"
+    "requirements.analysis": "Podsumowanie analizy oferty",
+    "questionContext.general": "Pytanie ogólne",
+    "questionContext.notes": "Dodatkowe informacje",
+    "questionContext.subject": "Temat pytania",
+    "questionContext.unavailable": "Brak wskazanego wpisu CV"
   },
   "errors": {
     "errorBoundary.couldNotDisplayTheEditor": "Nie udało się wyświetlić edytora",
