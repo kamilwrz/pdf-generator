@@ -158,8 +158,8 @@ Zachowaj kolejność ról, tożsamość rekordów, wszystkie odrębne fakty i po
 Nie usuwaj unikalnego faktu tylko dlatego, że słabo pasuje do oferty. Dopasuj nacisk
 i zwięzłość sformułowania; nie przypisuj faktów do innej roli i nie zmieniaj powiązań
 źródłowych istniejących pól.
-Uzupełnienie z wywiadu włącz do istniejącego opisu tej samej czynności; nie dodawaj
-drugiego punktu powtarzającego zadanie innymi słowami. Odrębne zadania zachowaj osobno.
+Po uzupełnieniu z wywiadu zredaguj opis czynności na nowo, zamiast doklejać wyliczenie.
+Nie powtarzaj tego samego faktu; różne zakresy kontroli można opisać osobnymi punktami.
 W podsumowaniu syntetyzuj kompetencję; przykłady, szczegóły i liczby pozostaw przy roli,
 z której pochodzą. Nie kopiuj całego punktu doświadczenia do podsumowania.
 Nie usuwaj prawdziwego powtarzalnego obowiązku z innej roli tylko z powodu podobieństwa.

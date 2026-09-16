@@ -12,10 +12,10 @@ from app.services import interview_service as service
 from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY, CV_READABILITY_POLICY
 from app.services.scoped_ai import preserves_protected_tokens
 
-# Restart unfinished attempts under the split-aware readability contract.
+# Restart unfinished attempts under the checklist-aware readability contract.
 # Reusing a pre-upgrade attempt could pair its reservation key with a changed
 # prompt hash after interruption. Existing saved previews remain readable.
-PIPELINE_VERSION = 7
+PIPELINE_VERSION = 8
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(
@@ -54,6 +54,10 @@ Independently check readability as well as factual fidelity. Return quality_issu
 with path, exact quote and a concrete reason for each actionable overloaded bullet,
 repetition or filler. Return [] when there is no such defect. Check the complete
 candidate and its confirmed fallback when rejecting a field; do not demand new facts.
+Check long enumerations even within one activity. Name the clauses or review scopes
+that obscure the work; do not accept a checklist merely because it has one verb.
+Equivalent compression is not fact loss. Distinct checks on the same object are not
+duplicates; assess their actual content before returning duplicate_paths.
 For editorial_splits, evaluate fact retention across the WHOLE group, not one fragment
 against the entire original bullet. Check each fragment's responsibility and caveats.
 If any fragment is unsupported or the group loses a fact, reject the original path:

@@ -10,7 +10,21 @@ CV_READABILITY_POLICY = """SHARED CV READABILITY STANDARD
 Use the same standard when writing and auditing CV prose. One bullet should express
 one main responsibility with its useful context or outcome. Separate independent
 activities or process stages when combining them obscures the candidate's work.
-A list of objects checked in ONE activity is not automatically several activities.
+Use a compact action + object + useful context, rather than a transcript or procedure.
+A short list of closely related objects can stay in ONE activity. A long checklist
+of criteria, nested clauses or repeated 'checking/verification/compliance' phrases
+is still overloaded even if it has one main verb and describes only one process.
+First condense redundant wording into a precise equivalent. If distinct details
+still need a long enumeration, split them into coherent, independently readable
+groups where the action's output contract permits bullet splits. Do not create
+one bullet for every checked object or join clauses with semicolons to hide overload.
+An interview follow-up adds evidence; it does not require appending another clause
+to the same bullet. Rewrite the whole point, selecting useful new answer details.
+Preserve the meaning of every distinct original CV fact, not its original wording
+or every explanatory phrase. A shorter umbrella term is valid only if equivalent:
+do not replace a specific check with a broader claim of responsibility/compliance.
+Keep an important tool, recipient, metric, negation or scope limit explicit.
+Splits describing different checks on the same object are not duplicate claims.
 Keep concise, informative bullets unchanged. Do not impose a word count, page count,
 mandatory metric or a stylistic preference as a defect. Remove filler and repeated
 claims within the same role, but preserve distinct facts, tools, qualifications,
@@ -20,6 +34,32 @@ Only report an actionable weakness supported by an exact quote and its context;
 do not cite a short, clear bullet as evidence that another bullet is overloaded.
 Splitting must preserve meaning across the complete group and attach each caveat
 to the activity it limits. It must not introduce ownership, outcomes or chronology.
+
+CALIBRATION EXAMPLES (illustrations only, never evidence about the candidate;
+apply the pattern in the requested language and within the action's allowed scope):
+- Overloaded KYC point: 'Tworzenie i aktualizacja profili KYC klientów indywidualnych
+  i korporacyjnych; weryfikacja kompletności i spójności danych, porównywanie informacji
+  z dostępnych źródeł z danymi klienta oraz weryfikacja beneficjenta rzeczywistego
+  i struktury własnościowej klienta korporacyjnego.'
+  Readable groups: 'Tworzenie i aktualizacja profili KYC klientów indywidualnych
+  i korporacyjnych.' / 'Weryfikacja kompletności i spójności danych klienta przez
+  porównanie z dostępnymi źródłami.' / 'Weryfikacja beneficjenta rzeczywistego
+  i struktury własnościowej klientów korporacyjnych.'
+- Overloaded SAR checklist: 'Weryfikacja jakości raportów SAR pod kątem kompletności
+  i spójności, zgodności opisu podejrzanych transakcji z ustaleniami analizy,
+  poprawności uzasadnienia podejrzenia i oceny ryzyka AML/CFT oraz zgodności
+  z wymogami regulacyjnymi.'
+  Readable groups: 'Kontrola kompletności i spójności raportów SAR oraz zgodności
+  opisu podejrzanych transakcji z ustaleniami analizy.' / 'Weryfikacja uzasadnienia
+  podejrzenia, oceny ryzyka AML/CFT i zgodności raportów SAR z wymogami regulacyjnymi.'
+  These are different review scopes, not duplicate SAR claims. 'Zapewnianie zgodności
+  regulacyjnej' would overstate responsibility and discard the specific checks.
+- Verbose order check: 'Weryfikowałem w SAP i SAP CIC zamówienia klientów na rynku
+  niemieckim, sprawdzając dane dostawy, pozycje zamówienia i ilości w zamówieniu.'
+  One concise point: 'Weryfikowałem w SAP i SAP CIC dane dostawy, pozycje i ilości
+  zamówień klientów z rynku niemieckiego.' No split is needed for this short list.
+- Already concise: 'Analiza transakcji i przygotowywanie raportów SAR dla niemieckiej
+  FIU.' Leave unchanged; do not flag it because a neighbouring bullet is overloaded.
 """
 
 STYLE_INSTRUCTION = """STANDARD REDAKCJI JĘZYKA CV

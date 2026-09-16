@@ -125,6 +125,8 @@ def main() -> None:
         EDITORIAL_POLICY,
         "Wspólny standard jakości języka CV",
         "`STYLE_REVIEW_POLICY` łączy `STYLE_INSTRUCTION`, `STYLE_EXAMPLES` i `FACT_PRESERVATION`. "
+        "`CV_READABILITY_POLICY` jest wspólną rubryką tworzenia i audytu CV: rozróżnia "
+        "krótkie listy od przeciążonych wyliczeń oraz zawiera przykłady redakcji KYC, SAR i SAP. "
         "Cały asystent, zaznaczone fragmenty oraz redakcja po wywiadzie stosują ten sam standard. "
         "`IMPROVE_INSTRUCTION` dodatkowo podkreśla potwierdzony wkład. Skracanie zachowuje własny "
         "zakres redukcji; globalne skracanie pomija przykłady, aby ograniczyć koszt wejścia. "
@@ -160,8 +162,9 @@ def main() -> None:
     parts.append(module_section(
         INTERVIEW_EDITORIAL, "Redakcja i wersjonowanie generowania po wywiadzie",
         "`EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. "
-        "Zwraca pełne `path/value`, zachowuje dowody i zaakceptowane `framing`; "
-        "po walidacji następuje niezależna weryfikacja faktów. Wersja procesu unieważnia "
+        "Zwraca pełne `path/value/additional_points`, zachowuje dowody i zaakceptowane `framing`; "
+        "serwer dopisuje fragmenty podziału do tej samej roli. Niezależna weryfikacja sprawdza "
+        "fakty i czytelność; dopuszcza jedną parę redakcji i kontroli naprawczej. Wersja procesu unieważnia "
         "ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.",
     ))
     # Include imported policies as well as handlers so readers can inspect the

@@ -80,7 +80,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert saved['preview']['cv_data']['summary'] == PROFESSIONAL
     assert any(PROFESSIONAL in str(element) for element in saved['preview']['elements'])
     assert saved['preview']['changes'][0]['evidence_refs'] == ['answer-q']
-    assert saved['preview']['pipeline_version'] == 7
+    assert saved['preview']['pipeline_version'] == 8
     assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert 'generation_attempt' not in saved
@@ -151,9 +151,9 @@ def test_assembly_recovery_requires_complete_current_pipeline(environment, chang
     assert result.json()['preview']['recovered_previous_attempt'] is not changed_profile
 
 
-@pytest.mark.parametrize('previous_version', [2, 5, 6])
+@pytest.mark.parametrize('previous_version', [2, 5, 6, 7])
 def test_upgraded_policy_does_not_replay_completed_older_generation_stages(environment, previous_version):
-    """Unfinished older attempts restart under the complete language contract."""
+    """Unfinished older attempts restart under the current editorial contract."""
     client, db, user, _ = environment
     session = setup_answer(client, db)
     outputs = [(draft_for_answer(), USAGE), (editorial(draft_for_answer()), USAGE), (VERIFIED, USAGE)]
@@ -171,7 +171,7 @@ def test_upgraded_policy_does_not_replay_completed_older_generation_stages(envir
         upgraded = generate(client, legacy.json())
     assert upgraded.status_code == 200, upgraded.text
     assert provider.call_count == 3
-    assert upgraded.json()['preview']['pipeline_version'] == 7
+    assert upgraded.json()['preview']['pipeline_version'] == 8
     assert upgraded.json()['preview']['recovered_previous_attempt'] is False
     assert upgraded.json()['answers'] == session['answers']
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == before
@@ -550,3 +550,73 @@ def test_source_change_during_quality_repair_blocks_publication(environment):
     assert result.status_code == 409, result.text
     assert len(calls) == 4
     assert client.get(f"/ai/interviews/{session['id']}").json()['preview'] is None
+
+
+SAR_CHECKLIST = (
+    'Weryfikacja jakości raportów SAR pod kątem kompletności i spójności, zgodności opisu '
+    'podejrzanych transakcji z ustaleniami analizy, poprawności uzasadnienia podejrzenia '
+    'i oceny ryzyka AML/CFT oraz zgodności z wymogami regulacyjnymi.'
+)
+SAR_GROUPS = [
+    'Kontrola kompletności i spójności raportów SAR oraz zgodności opisu podejrzanych '
+    'transakcji z ustaleniami analizy.',
+    'Weryfikacja uzasadnienia podejrzenia, oceny ryzyka AML/CFT i zgodności raportów SAR '
+    'z wymogami regulacyjnymi.',
+]
+
+
+@pytest.mark.parametrize('mode', ['create', 'enrich', 'tailor'])
+@pytest.mark.parametrize('needs_repair', [False, True])
+def test_single_activity_checklist_policy_reaches_writing_and_verification(environment, mode, needs_repair):
+    """Exercise real assembly and prompt boundaries with a one-verb checklist.
+
+    The mocked reviewer distinguishes two SAR review scopes despite their shared
+    object. This verifies transport and preservation, not live semantic judgement.
+    """
+    from app.services.cv_editorial_policy import CV_READABILITY_POLICY
+
+    client, db, _, _ = environment
+    concise = 'Analiza transakcji i przygotowywanie raportów SAR dla niemieckiej FIU.'
+    other_role = 'Weryfikacja danych dostawy, pozycji i ilości zamówień w SAP i SAP CIC.'
+    session = confirm(client, create(client, mode=mode,
+        job_description='Kontrola raportów SAR' if mode == 'tailor' else '', cv_data={
+            'name': 'Anna Nowak', 'experience': [
+                {'title': 'Analityk AML', 'bullets': [SAR_CHECKLIST, concise]},
+                {'title': 'Specjalista obsługi zamówień', 'bullets': [other_role]},
+            ],
+        }))
+    profile = service.interview_profile(db, db.get(InterviewSession, session['id']))
+    snapshot = deepcopy(profile)
+    draft = {'fields': [{'path': f['path'], 'value': f['text'], 'evidence_refs': [f['id']]}
+                        for f in profile['facts'] if '/bullets/' in f.get('path', '')], 'remaining_gaps': []}
+    edit = editorial(draft)
+    next(f for f in edit['fields'] if f['path'] == AML_PATH).update(
+        value=SAR_GROUPS[0], additional_points=SAR_GROUPS[1:])
+    issue = {'path': AML_PATH, 'quote': SAR_CHECKLIST,
+             'reason': 'Długa lista miesza kontrolę treści raportu z oceną uzasadnienia i wymogów.'}
+    outputs = [(draft, USAGE), (edit, USAGE), (VERIFIED, USAGE)]
+    if needs_repair:
+        outputs = [(draft, USAGE), (editorial(draft), USAGE),
+                   ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (edit, USAGE), (VERIFIED, USAGE)]
+    with patch.object(service, '_gpt', side_effect=outputs) as provider:
+        response = generate(client, session, 1)
+    assert response.status_code == 200, response.text
+    contexts = [json.loads(call.args[1]) for call in provider.call_args_list]
+    assert contexts[0]['readability_standard'] == CV_READABILITY_POLICY
+    assert 'Nie doklejaj kolejnych zdań ani list kryteriów' in contexts[0]['task']
+    for call, context in zip(provider.call_args_list[1:], contexts[1:]):
+        schema = call.kwargs['response_schema']['name']
+        assert CV_READABILITY_POLICY in context['task' if schema == 'editorialreview' else 'quality_task']
+        if schema == 'verification':
+            assert 'Różne zakresy kontroli tego samego obiektu nie są duplikatami' in context['task']
+    checked = contexts[-1]
+    assert checked['editorial_splits'][0]['paths'] == [AML_PATH, '/experience/0/bullets/2']
+    source_refs = next(f['evidence_refs'] for f in draft['fields'] if f['path'] == AML_PATH)
+    assert all(f['evidence_refs'] == source_refs for f in checked['draft']
+               if f['path'] in checked['editorial_splits'][0]['paths'])
+    saved = response.json()
+    assert saved['preview']['cv_data']['experience'][0]['bullets'] == [SAR_GROUPS[0], concise, SAR_GROUPS[1]]
+    assert saved['preview']['cv_data']['experience'][1]['bullets'] == [other_role]
+    assert saved['usage']['cost_pln_estimate'] == pytest.approx(.05 if needs_repair else .03)
+    assert saved['answers'] == session['answers']
+    assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == snapshot
