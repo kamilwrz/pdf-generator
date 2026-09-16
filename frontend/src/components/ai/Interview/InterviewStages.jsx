@@ -2,26 +2,18 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../../../i18n';
 import classes from './Interview.module.css';
 
-/** Both host sizes share the same transition guard; the compact selector adds no new step. */
-export default function InterviewStages({ active, disabled, onSelect }) {
+/** A noninteractive progress list explains the three actions without adding navigation stops. */
+export default function InterviewStages({ active }) {
   useTranslation();
   const stages = [
-    ['facts', t('interview:interviewFlow.yourInformation')],
-    ['conversation', t('interview:interviewFlow.conversationStage')],
-    ['prepare', t('interview:interviewFlow.prepareCv')],
-    ['preview', t('interview:interviewFlow.resultStage')],
+    ['source', t('interview:simple.sourceStep')],
+    ['conversation', t('interview:simple.conversationStep')],
+    ['prepare', t('interview:simple.templateStep')],
   ];
-  return <>
-    <nav className={classes.stages} aria-label={t('interview:interviewFlow.interviewStages')}>
-      {stages.map(([key, label], index) => <button type="button" key={key}
-        aria-current={active === key ? 'step' : undefined} disabled={disabled(key)} onClick={() => onSelect(key)}>
+  return <ol className={classes.stages} aria-label={t('interview:interviewFlow.interviewStages')}>
+      {stages.map(([key, label], index) => <li key={key}
+        aria-current={active === key ? 'step' : undefined}>
         <span>{String(index + 1).padStart(2, '0')}</span>{' '}{label}
-      </button>)}
-    </nav>
-    <label className={classes.compactStages}>{t('ai:task.stages')}
-      <select value={active} disabled={stages.every(([key]) => disabled(key))} onChange={event => onSelect(event.target.value)}>
-        {stages.map(([key, label], index) => <option key={key} value={key} disabled={disabled(key)}>{t('ai:task.stage', { number: index + 1, label })}</option>)}
-      </select>
-    </label>
-  </>;
+      </li>)}
+    </ol>;
 }

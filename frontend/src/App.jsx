@@ -24,7 +24,7 @@ const Hero = lazy(() => import('./pages/Hero/Hero'));
 const DocumentsPage = workspacePage(() => import('./pages/Site/DocumentsPage'));
 const AssistantPage = workspacePage(() => import('./pages/Site/AssistantPage'));
 const AccountPage = workspacePage(() => import('./pages/Site/AccountPage'));
-const CareerProfilePage = workspacePage(() => import('./pages/Site/CareerProfilePage'));
+const ConversationsPage = workspacePage(() => import('./pages/Site/ConversationsPage'));
 const InterviewPage = workspacePage(() => import('./pages/Site/InterviewPage'));
 const TailoringPage = workspacePage(() => import('./pages/Site/TailoringPage'));
 const TemplatesPage = lazy(() => import('./pages/Site/PublicPages').then((module) => ({ default: module.TemplatesPage })));
@@ -91,7 +91,8 @@ const router = createBrowserRouter([
   { path: "/app/assistant", element: <RequireSession><AssistantPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/documents/:documentId", element: <EditorRoute />, errorElement: <RouteErrorPage /> },
   { path: "/app/account", element: <RequireSession><AccountPage /></RequireSession>, errorElement: <RouteErrorPage /> },
-  { path: "/app/career-profile", element: <RequireSession><CareerProfilePage /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/app/conversations", element: <RequireSession><ConversationsPage /></RequireSession>, errorElement: <RouteErrorPage /> },
+  { path: "/app/career-profile", element: <Navigate to="/app/conversations" replace /> },
   { path: "/app/interview", element: <RequireSession><InterviewPage /></RequireSession>, errorElement: <RouteErrorPage /> },
   { path: "/app/tailor", element: <TailoringPage />, errorElement: <RouteErrorPage /> },
   { path: "/app/tailor/:flowId", element: <RequireSession><TailoringPage /></RequireSession>, errorElement: <RouteErrorPage /> },

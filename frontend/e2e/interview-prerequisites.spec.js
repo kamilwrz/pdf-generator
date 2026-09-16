@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { installMockApi } from './support/mockApi.js';
 
 // Explicit manual-creation links must reach setup without asking users to
-// choose the same creation method again. Profile recovery shares the link.
+// choose the same creation method again. Interview source recovery shares the link.
 for (const language of ['pl', 'en']) {
   for (const width of [390, 834, 1280, 1920]) {
     test(`manual creation opens setup directly: ${language} ${width}px`, async ({ page }) => {
@@ -19,7 +19,7 @@ for (const language of ['pl', 'en']) {
       } }));
       await page.route('**/api/ai/interviews**', route => route.fulfill({ json: { items: [], next_offset: null } }));
       const en = language === 'en';
-      for (const path of ['/app/interview', '/app/career-profile', '/app/documents']) {
+      for (const path of ['/app/interview', '/app/documents']) {
         await page.goto(path);
         const link = page.getByRole('link', { name: path === '/app/documents'
           ? en ? 'Create a new CV' : 'Utwórz nowe CV'
@@ -44,7 +44,7 @@ for (const language of ['pl', 'en']) {
 
 for (const language of ['pl', 'en']) {
   for (const width of [390, 834, 1280, 1920]) {
-    test(`source prerequisite in interview and profile: ${language} ${width}px`, async ({ page }) => {
+    test(`source prerequisite in interview: ${language} ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       const api = await installMockApi(page, { documents: [], imports: [] });
@@ -67,7 +67,7 @@ for (const language of ['pl', 'en']) {
       });
       const en = language === 'en';
       const heading = en ? 'Add a CV with your details first' : 'Najpierw dodaj CV z danymi';
-      for (const path of ['/app/interview', '/app/career-profile']) {
+      for (const path of ['/app/interview']) {
         await page.goto(path);
         await expect(page.getByRole('heading', { name: heading })).toBeVisible();
         await expect(page.getByRole('button', { name: en ? 'Start conversation' : 'Rozpocznij rozmowę', exact: true })).toHaveCount(0);
@@ -92,12 +92,7 @@ for (const language of ['pl', 'en']) {
       expect(writes).toHaveLength(0);
       ready = true;
       await page.goto('/app/interview');
-      const selector = page.getByLabel(en ? 'Your CV' : 'Twoje CV');
-      await selector.selectOption('document:30');
-      await expect(page.getByRole('button', { name: en ? 'Start conversation' : 'Rozpocznij rozmowę', exact: true })).toBeEnabled();
-      await expect(page.getByLabel(en ? 'This is my CV — include my career profile' : 'To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
-      await page.goto('/app/career-profile');
-      await expect(page.getByRole('button', { name: /Dodaj informację|Add information/ })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Candidate CV' })).toBeEnabled();
       expect(writes).toHaveLength(0);
       api.assertHermetic();
     });

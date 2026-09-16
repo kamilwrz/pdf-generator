@@ -24,7 +24,7 @@ test("Free presentation exposes the complete usable plan contract", () => {
 test("Pro presentation sells scale and assistance instead of output quality", () => {
     assert.deepEqual(PRO_PLAN_HIGHLIGHTS, [
         "Asystent CV i dopasowanie do ogłoszenia",
-        "Profil zawodowy do wykorzystania w kolejnych CV",
+        "Zapisane rozmowy, do których możesz wrócić",
         "Wszystkie szablony i warianty wyglądu",
         "Nielimitowane projekty, importy i pobrania PDF",
         "Sprawdzanie CV, poprawa języka i tłumaczenia",

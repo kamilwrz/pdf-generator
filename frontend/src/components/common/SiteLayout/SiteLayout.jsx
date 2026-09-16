@@ -18,7 +18,7 @@ export function SiteHeader({ workspace = false, showLanguageSelect = false }) {
   return <header className={classes.header}>
     <Link to="/" className={classes.brand} aria-label={uiText("public:siteLayout.cvStudioHomepage")}><img src="/cv-studio-logo.svg" alt="" /></Link>
     <nav aria-label={uiText("public:siteLayout.mainNavigation")} className={classes.nav}>
-      {workspace ? <><NavLink to="/app/documents">{uiText("public:siteLayout.myDocuments")}</NavLink><NavLink to="/app/career-profile">{uiText("public:siteLayout.careerProfile")}</NavLink><NavLink to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</NavLink></> : <><Link to="/help#wywiad">{uiText("public:siteLayout.interview")}</Link><NavLink to="/templates">{uiText("public:siteLayout.templates")}</NavLink><NavLink to="/pricing">{uiText("public:siteLayout.pricing")}</NavLink></>}
+      {workspace ? <><NavLink to="/app/documents">{uiText("public:siteLayout.myDocuments")}</NavLink><NavLink to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</NavLink></> : <><Link to="/help#wywiad">{uiText("public:siteLayout.interview")}</Link><NavLink to="/templates">{uiText("public:siteLayout.templates")}</NavLink><NavLink to="/pricing">{uiText("public:siteLayout.pricing")}</NavLink></>}
       <NavLink to="/help">{uiText("public:siteLayout.help")}</NavLink>
       {workspace && <Link to="/app/assistant" aria-current={assistantActive ? 'page' : undefined}>{uiText('public:siteLayout.interview')}</Link>}
       {!workspace && <Link to={signedIn ? '/app/documents' : '/login'}>{signedIn ? uiText("public:siteLayout.myDocuments") : uiText("public:siteLayout.signIn")}</Link>}

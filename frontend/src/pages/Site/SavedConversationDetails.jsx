@@ -1,6 +1,6 @@
 import { getUiLocale, t as uiText } from '../../i18n/index.js';
 import { useTranslation } from 'react-i18next';
-import layout from './CareerProfilePage.module.css';
+import layout from './ConversationsPage.module.css';
 import { conversationTitle, conversationMode, conversationDate } from '../../utils/interviewHistory';
 
 function SavedTime({ value }) {

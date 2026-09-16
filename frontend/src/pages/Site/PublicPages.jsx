@@ -82,7 +82,6 @@ export function HelpPage() {
       <ol>
         <li>{uiText("public:publicPages.openCvThroughAnInterviewStartWith")}</li>
         <li>{uiText("public:publicPages.answerInEnglishOneQuestionAtA")}</li>
-        <li>{uiText("public:publicPages.editCollectedInformationIfNeededThenContinue")}</li>
         <li>{uiText("public:publicPages.chooseTheCvContentLanguageAndTemplate")}</li>
       </ol>
       <div className={classes.guideFaq}>
@@ -113,7 +112,7 @@ export function HelpPage() {
       <h2>{uiText("public:publicPages.yourCareerProfileAndSavedInterviews")}</h2>
       <p>{uiText("public:publicPages.yourProfileIsASharedCollectionOf")}</p>
       <p>{uiText("public:publicPages.viewingEditingAndDeletingYourProfileRemain")}</p>
-      <Link className={classes.secondary} to="/app/career-profile">{uiText("public:publicPages.openCareerProfile")} <FiArrowRight aria-hidden="true" /></Link>
+      <Link className={classes.secondary} to="/app/conversations">{uiText("public:publicPages.openCareerProfile")} <FiArrowRight aria-hidden="true" /></Link>
     </section>
     <section id="import" tabIndex={-1} className={classes.guideStep}><div className={classes.stepHeading}><SiteMarker><FiUpload /></SiteMarker><span className={classes.eyebrow}>{uiText("public:publicPages.topic3")}</span></div><h2>{uiText("public:publicPages.transferContentFromYourExistingCv")}</h2><p>{uiText("public:publicPages.afterCreatingAnAccountUploadAPdf")}</p><p>{uiText("public:publicPages.withProAfterFillingACvFrom")} <Link to="/help#wywiad">{uiText("public:publicPages.viewInterviewInstructions")}</Link>.</p><Link className={classes.secondary} to="/app/import">{uiText("public:hero.importCvFromPdf")}<FiArrowRight aria-hidden="true" /></Link></section>
     <section id="pobieranie" tabIndex={-1} className={classes.guideStep}><div className={classes.stepHeading}><SiteMarker><FiDownload /></SiteMarker><span className={classes.eyebrow}>{uiText("public:publicPages.topic4")}</span></div><h2>{uiText("public:publicPages.saveYourProjectOrDownloadAPdf")}</h2><p>{uiText("public:publicPages.saveStoresAnEditableCvOnYour")}</p><Link className={classes.secondary} to="/pricing">{uiText("public:publicPages.checkPlanAllowances")}<FiArrowRight aria-hidden="true" /></Link></section>

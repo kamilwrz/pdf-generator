@@ -84,17 +84,9 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     await expect(correct).toHaveAttribute('aria-expanded', 'false');
     await expect(confirm).toBeEnabled();
 
-    // Both responsive controls enforce the same unresolved-question guard.
-    const stages = page.getByRole('navigation', { name: label('interviewStages'), exact: true });
-    const prepareStage = stages.getByRole('button', { name: `03 ${label('prepareCv')}`, exact: true });
-    if (await stages.isVisible()) await expect(prepareStage).toBeDisabled();
-    else {
-      const selector = page.locator('select').filter({ has: page.locator('option[value="prepare"]') });
-      // Playwright's actionability matcher resolves an option through its
-      // enabled select. Check the option's native disabled property directly.
-      await expect(selector.locator('option[value="prepare"]')).toHaveJSProperty('disabled', true);
-    }
-    await expect(page.getByRole('button', { name: label('continueToCvPreparation'), exact: true })).toHaveCount(0);
+    // Factual decisions remain in the conversation until explicitly resolved.
+    await expect(page.locator('li[aria-current="step"]')).toContainText('02');
+    await expect(page.getByRole('button', { name: language === 'pl' ? 'Wybierz szablon' : 'Choose a template', exact: true })).toHaveCount(0);
 
     await correct.focus();
     await page.keyboard.press('Enter');
@@ -157,7 +149,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
       question_id: QUESTION_ID, answer: submitCorrection ? correction : proposed,
       status: 'answered', evidence_scope: 'session',
     });
-    await expect(page.getByRole('button', { name: label('continueToCvPreparation'), exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: language === 'pl' ? 'Wybierz szablon' : 'Choose a template', exact: true })).toBeVisible();
     expect(flow.current().source_cv_data).toEqual(flow.source);
     expect(flow.profileReads).toEqual([]);
     expect(flow.api.calls.filter((call) => call.method !== 'GET')).toEqual([]);

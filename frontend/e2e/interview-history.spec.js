@@ -42,8 +42,8 @@ async function history(page, language, { many = false, failDelete = false, singl
     const offset = Number(url.searchParams.get('offset') || 0); offsets.push(offset);
     return route.fulfill({ json: { items: offset ? [sample('older', { offer_company: 'Older Bank' })] : items, next_offset: many && !offset ? 50 : null } });
   });
-  await page.goto('/app/career-profile');
-  await page.getByRole('button', { name: copy[language].tab }).click();
+  await page.goto('/app/conversations');
+  await expect(page.getByRole('heading', { name: copy[language].tab }).first()).toBeVisible();
   return { api, deletes, offsets, releaseDelete };
 }
 

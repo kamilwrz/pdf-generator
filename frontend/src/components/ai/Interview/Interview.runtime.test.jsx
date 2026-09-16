@@ -40,8 +40,8 @@ describe('interview workflow', () => {
     });
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' }));
-    await user.click(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }));
+    await user.click(await screen.findByRole('button', { name: 'Wybierz szablon' }));
+    await user.click(screen.getByRole('button', { name: 'Utwórz CV · Linden' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Generation response lost');
     if (!readFails) expect(screen.getByRole('button', { name: 'Wznów dopasowanie CV' })).toBeEnabled();
     expect(interviewRequest.mock.calls.filter(([path]) => path.endsWith('/preview'))).toHaveLength(1);
@@ -51,7 +51,7 @@ describe('interview workflow', () => {
   it('finishes a bounded round without claiming every record was discussed', async () => {
     session = { ...session, question: null, phase: 'review', discovery_round_complete: true, discovery_complete: false };
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' });
+    await screen.findByRole('button', { name: 'Wybierz szablon' });
     expect(screen.queryByRole('button', { name: 'Następne pytanie', exact: true })).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByText('Chcę odpowiedzieć na więcej pytań'));
     expect(screen.getByRole('button', { name: /Odpowiedz na kolejne pytania/ })).toBeEnabled();
@@ -105,13 +105,13 @@ describe('interview workflow', () => {
     session = { ...session, question: null, phase: 'review', discovery_complete: true, question_limit: 14 };
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    const prepare = await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' });
+    const prepare = await screen.findByRole('button', { name: 'Wybierz szablon' });
     expect(screen.getByText(/Omówiliśmy dostępne wpisy/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Odpowiedz na kolejne pytania/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Twoje informacje/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Treść CV', exact: true })).toBeEnabled();
     await user.click(prepare);
-    expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Utwórz CV · Linden' })).toBeEnabled();
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   });
 
@@ -131,53 +131,15 @@ describe('interview workflow', () => {
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   });
 
-  it('shows the global CV-based plan and excludes clarifications from discovery progress', async () => {
-    session = {
-      ...session,
-      mode: 'enrich',
-      planned_question_count: 14,
-      answers: [
-        { question: { clarification: false } },
-        { question: { clarification: true } },
-      ],
-    };
-    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    expect(await screen.findByText(/Pytanie 2 z maksymalnie 14 · Zapisane odpowiedzi: 1/)).toBeVisible();
-  });
-
-  it('explains when a tailoring plan is waiting for job-requirement analysis', async () => {
-    session = {
-      ...session,
-      mode: 'tailor',
-      phase: 'ready',
-      question: null,
-      planned_question_count: null,
-    };
-    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    expect(await screen.findByText(/Plan pytań ustalimy po analizie wymagań oferty · Zapisane odpowiedzi: 0/)).toBeVisible();
-  });
-
-  it('discloses all paid preparation stages while preserving the original answers', async () => {
-    session = { ...session, question: null, phase: 'review' };
-    const user = userEvent.setup();
-    render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    await user.click(await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' }));
-    expect(screen.getByText(/Te etapy i skracanie tekstu zużywają kredyty AI/)).toBeVisible();
-    await user.click(screen.getByText('Jak przygotowujemy CV'));
-    expect(screen.getByText(/Każdy wykonany etap zużywa kredyty AI/)).toHaveTextContent('Twoje odpowiedzi pozostaną bez zmian');
-    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/preview'))).toBe(false);
-  });
-
   it('saves an answer before requesting another question', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     await user.type(await screen.findByLabelText('Twoja odpowiedź'), 'Zbudowałam raportowanie.');
-    await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź' }));
+    await user.click(screen.getByRole('button', { name: 'Wyślij odpowiedź' }));
     await screen.findByText('Odpowiedź zapisana w profilu zawodowym.');
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'answered', answer: 'Zbudowałam raportowanie.', question_id: 'q1' }));
     expect(screen.queryByText(/do zapisania/)).not.toBeInTheDocument();
-    expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/next'))).toBe(false);
-    await user.click(screen.getByRole('button', { name: 'Następne pytanie' }));
+
     await waitFor(() => expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/next'))).toBe(true));
   });
 
@@ -190,7 +152,7 @@ describe('interview workflow', () => {
     });
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     await user.type(await screen.findByLabelText('Twoja odpowiedź'), 'Moja odpowiedź');
-    await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź' }));
+    await user.click(screen.getByRole('button', { name: 'Wyślij odpowiedź' }));
     await screen.findByRole('alert');
     expect(screen.getByLabelText('Twoja odpowiedź')).toHaveValue('Moja odpowiedź');
   });
@@ -206,8 +168,8 @@ describe('interview workflow', () => {
     session.question = null;
     session.phase = 'ready';
     render(<MemoryRouter><InterviewFlow sessionId="session" sourceChanged /></MemoryRouter>);
-    await userEvent.setup().click(await screen.findByRole('button', { name: '03 Przygotuj CV' }));
-    expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeDisabled();
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Wybierz szablon' }));
+    expect(screen.getByRole('button', { name: 'Utwórz CV · Linden' })).toBeDisabled();
   });
 
   it('refreshes the source after saving pending input without restarting the session', async () => {
@@ -217,7 +179,7 @@ describe('interview workflow', () => {
     render(<MemoryRouter><InterviewFlow sessionId="session" sourceChanged currentSource={currentSource} onSourceRefreshed={refreshed} /></MemoryRouter>);
     await user.type(await screen.findByLabelText('Twoja odpowiedź'), 'Mój projekt');
     expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź' }));
+    await user.click(screen.getByRole('button', { name: 'Wyślij odpowiedź' }));
     await screen.findByText('Odpowiedź zapisana w profilu zawodowym.');
     await user.click(screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' }));
     await waitFor(() => expect(refreshed).toHaveBeenCalledOnce());
@@ -238,14 +200,13 @@ describe('interview workflow', () => {
   });
 });
 
-
 it('hides legacy provider diagnostics while preserving recovery controls', async () => {
   session = { ...session, phase: 'review', question: null, generation_feedback: ['/experience/0/bullets/6: Evidence technical report'] };
   render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
   await screen.findByText('Twoje odpowiedzi są zapisane');
   expect(screen.queryByText(/Evidence/)).not.toBeInTheDocument();
-  await userEvent.setup().click(screen.getByRole('button', { name: '03 Przygotuj CV' }));
-  expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' })).toBeEnabled();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Wybierz szablon' }));
+  expect(screen.getByRole('button', { name: 'Utwórz CV · Linden' })).toBeEnabled();
 });
 
 it('lets the candidate inspect and save a recovered preview without technical paths', async () => {
@@ -264,7 +225,6 @@ it('lets the candidate inspect and save a recovered preview without technical pa
   expect(screen.queryByText(/\/experience\//)).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Zapisz jako nowe CV' })).toBeEnabled();
 });
-
 
 it('offers clarification before exposing the filtered preview and supports explicit skipping', async () => {
   session = { ...session, phase: 'clarification', question: null, pending_clarifications: [{ topic: 'project' }], preview: {
@@ -299,13 +259,12 @@ it('offers clarification before exposing the filtered preview and supports expli
     expect(screen.getByLabelText('Pełny poprawiony opis')).toHaveAccessibleDescription(/Zastąpi całą propozycję/);
   });
 
-
 describe('candidate evidence separation', () => {
   const owner = { revision: 7, facts: [{ ...fact, text: 'Kamil Owner' }], sources: { documents: [{ id: 30, title: 'CV30.pdf' }, { id: 31, title: 'CV31.pdf' }], imports: [] } };
   const candidate = { ...fact, id: 'candidate', text: 'Anna Candidate' };
   beforeEach(() => {
     session = { ...session, evidence_scope: 'session', evidence_profile: { revision: 0, facts: [] },
-      phase: 'intake', question: null, proposed_facts: [candidate] };
+      phase: 'intake', confirmed: false, question: null, proposed_facts: [candidate] };
     interviewRequest.mockClear();
     interviewRequest.mockImplementation(async (path, method, body) => {
       if (path === '/career-profile') return owner;
@@ -320,31 +279,14 @@ describe('candidate evidence separation', () => {
   it('defaults selected documents to isolated data and confirms without the owner profile', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    await user.selectOptions(await screen.findByLabelText('Twoje CV'), 'document:30');
-    expect(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
-    await user.click(screen.getByRole('button', { name: 'Rozpocznij rozmowę' }));
-    await screen.findByRole('button', { name: 'Otwórz wpis: Anna Candidate' });
+    await user.click(await screen.findByRole('button', { name: 'CV30.pdf' }));
+    await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ evidence_scope: 'session', profile_revision: 0, facts: [candidate] })));
     expect(screen.queryByText('Kamil Owner')).toBeNull();
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ source_document_id: 30, include_profile: false, cv_data: {} }), expect.any(String));
-    await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy' }));
-    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ evidence_scope: 'session', profile_revision: 0, facts: [candidate] }));
-    await screen.findByText('Informacje zapisane tylko w tej rozmowie. Profil konta pozostaje bez zmian.');
-  });
-  it('requires a fresh same-person opt-in when switching documents', async () => {
-    const user = userEvent.setup();
-    render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    const select = await screen.findByLabelText('Twoje CV');
-    await user.selectOptions(select, 'document:30');
-    await user.click(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy'));
-    await user.selectOptions(select, 'document:31');
-    expect(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
-    await user.click(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy'));
-    await user.click(screen.getByRole('button', { name: 'Rozpocznij rozmowę' }));
-    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ source_document_id: 31, include_profile: true }), expect.any(String));
   });
   it('requires a CV selection even when the account profile contains a name', async () => {
     render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    await screen.findByLabelText('Twoje CV');
+    await screen.findByRole('button', { name: 'CV30.pdf' });
     expect(screen.queryByRole('option', { name: 'Mój profil zawodowy' })).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Nowe CV/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rozpocznij rozmowę' })).not.toBeInTheDocument();
@@ -353,6 +295,7 @@ describe('candidate evidence separation', () => {
   it('resumes isolated evidence without fetching the account profile', async () => {
     session.evidence_profile = { revision: 3, facts: [candidate] };
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole('button', { name: 'Treść CV', exact: true }));
     await screen.findByRole('button', { name: 'Otwórz wpis: Anna Candidate' });
     expect(interviewRequest.mock.calls.some(([path]) => path === '/career-profile')).toBe(false);
     expect(reviewFacts(owner, session)).toEqual([candidate]);
@@ -368,7 +311,6 @@ describe('candidate evidence separation', () => {
     expect(screen.getByText('Zapisana odpowiedź')).toBeVisible();
   });
 });
-
 
 describe('clarification corrections', () => {
   it('replaces a fact by ID without mutating the confirmed profile or duplicating the entry', () => {
@@ -410,17 +352,16 @@ describe('clarification corrections', () => {
   });
 });
 
-
 describe('save on interview navigation', () => {
   it('leaves unchanged facts without another confirmation request or invalidating the preview', async () => {
     session = { ...session, phase: 'ready', question: null };
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: '01 Twoje informacje' }));
-    expect(screen.getByText('Wszystkie informacje są zapisane.')).toBeVisible();
+    await user.click(await screen.findByRole('button', { name: 'Treść CV' }));
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zatwierdź informacje' })).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy' }));
-    await user.click(screen.getByRole('button', { name: '03 Przygotuj CV' }));
+    await user.click(screen.getByRole('button', { name: 'Wróć' }));
+    await user.click(screen.getByRole('button', { name: 'Wybierz szablon' }));
     expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/confirm'))).toBe(false);
   });
 
@@ -435,7 +376,7 @@ describe('save on interview navigation', () => {
       return session;
     });
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    const button = await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' });
+    const button = await screen.findByRole('button', { name: 'Wybierz szablon' });
     fireEvent.click(button); fireEvent.click(button);
     expect(interviewRequest.mock.calls.filter(([path]) => path.endsWith('/confirm'))).toHaveLength(1);
     expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ facts: [fact, pending] }));
@@ -452,10 +393,11 @@ describe('save on interview navigation', () => {
       return session;
     });
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Przejdź do rozmowy' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Treść CV', exact: true }));
+    await userEvent.click(screen.getByRole('button', { name: 'Wróć', exact: true }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Zapis niedostępny');
     expect(screen.getByRole('button', { name: 'Otwórz wpis: Anna Nowak' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Przejdź do rozmowy' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Wróć' })).toBeEnabled();
   });
 });
 
@@ -478,7 +420,7 @@ for (const scope of ['profile', 'session']) {
         return session;
       });
       render(<MemoryRouter><InterviewFlow sessionId="session" onClose={embedded ? vi.fn() : undefined} /></MemoryRouter>);
-      await user.click(await screen.findByRole('button', { name: '01 Twoje informacje' }));
+      await user.click(await screen.findByRole('button', { name: 'Treść CV' }));
       expect(screen.queryByRole('button', { name: '+ Dodaj informację' })).not.toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Analityczka' }));
       expect(screen.queryByRole('button', { name: /^Edytuj:/ })).not.toBeInTheDocument();
@@ -496,7 +438,7 @@ for (const scope of ['profile', 'session']) {
       await user.type(screen.getByLabelText('Treść'), 'Poprawiona notatka');
       await user.click(screen.getByRole('button', { name: 'Zastosuj zmianę' }));
       expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' })).toBeDisabled();
-      await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy' }));
+      await user.click(screen.getByRole('button', { name: 'Wróć' }));
       await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/confirm', 'POST', expect.objectContaining({ facts: [...cvFacts, { ...note, text: 'Poprawiona notatka' }] })));
       expect(screen.queryByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' })).not.toBeInTheDocument();
       expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/next') || path.endsWith('/preview'))).toBe(false);
@@ -515,36 +457,6 @@ it('source refresh replaces changed and deleted CV fields while retaining answer
   // Confirmed correction replaces one source field without duplicating its ID.
   const correction = { ...source[1], question: 'Is this correct?', source: 'interview:saved', text: 'Confirmed correction' };
   expect(reviewFacts({ facts: [correction] }, { ...changed, proposed_facts: [] })).toEqual([fact, correction]);
-});
-
-for (const kind of ['document', 'import']) {
-  it(`selects a bound ${kind} profile without another opt-in and resets scope on another source`, async () => {
-    const user = userEvent.setup();
-    const profile = { revision: 4, facts: [fact], source_binding: { kind, id: 30 }, source_available: true,
-      sources: { documents: [{ id: 31, title: 'Other CV' }], imports: [] } };
-    interviewRequest.mockImplementation(async (path) => path === '/career-profile' ? profile : session);
-    render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-    const select = await screen.findByLabelText('Twoje CV');
-    await user.selectOptions(select, 'profile');
-    expect(screen.queryByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeInTheDocument();
-    expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
-    await user.selectOptions(select, 'document:31');
-    expect(screen.getByLabelText('To moje CV — dołącz mój profil zawodowy')).not.toBeChecked();
-    await user.selectOptions(select, 'profile');
-    await user.click(screen.getByRole('button', { name: 'Rozpocznij rozmowę' }));
-    expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST', expect.objectContaining({ use_profile_source: true, include_profile: true, cv_data: {} }), expect.any(String));
-    const body = interviewRequest.mock.calls.find(([path, method]) => path === '/ai/interviews' && method === 'POST')[2];
-    expect(body.source_document_id).toBeUndefined();
-    expect(body.source_import_id).toBeUndefined();
-  });
-}
-
-it.each([null, { kind: 'document', id: 30 }])('does not offer an unavailable or unbound career profile (%j)', async (binding) => {
-  interviewRequest.mockResolvedValue({ revision: 1, facts: [fact], source_binding: binding, source_available: false,
-    sources: { documents: [{ id: 31, title: 'Other CV' }], imports: [] } });
-  render(<MemoryRouter><InterviewFlow /></MemoryRouter>);
-  await screen.findByLabelText('Twoje CV');
-  expect(screen.queryByRole('option', { name: 'Profil zawodowy', exact: true })).not.toBeInTheDocument();
 });
 
 describe('assisted answer provenance', () => {
@@ -588,7 +500,7 @@ describe('assisted answer provenance', () => {
     await user.clear(answer);
     await user.type(answer, 'Moja własna odpowiedź.');
     expect(screen.queryByRole('button', { name: 'Potwierdzam i zapisuję odpowiedź' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź' }));
+    await user.click(screen.getByRole('button', { name: 'Wyślij odpowiedź' }));
     await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST',
       expect.objectContaining({ answer: 'Moja własna odpowiedź.', status: 'answered' })));
     const body = interviewRequest.mock.calls.find(([path]) => path.endsWith('/answers'))[2];

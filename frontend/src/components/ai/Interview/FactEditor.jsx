@@ -15,7 +15,7 @@ const FIELD_PAGE_SIZE = 8;
  * Account profiles detach note paths; interviews retain existing answer bindings
  * for clarification and generation without asking users to assign CV fields.
  */
-export default function FactEditor({ facts, onChange, disabled = false, onEditingChange, isolated = false, detachNotePaths = false, readOnly = false }) {
+export default function FactEditor({ facts, onChange, disabled = false, onEditingChange, isolated = false, detachNotePaths = false, readOnly = false, compact = false }) {
   useTranslation();
   const id = useId();
   const groups = useMemo(() => groupCareerFacts(facts, { sourceProfile: true }), [facts]);
@@ -93,10 +93,10 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
   }
 
   return <section className={classes.editor} aria-label={uiText("interview:factEditor.informationToUse")}>
-    <div className={classes.toolbar}>
+    {!compact && <div className={classes.toolbar}>
       <div><h2>{isolated ? uiText("interview:factEditor.informationForThisCv") : uiText("interview:factEditor.yourCareerOrganised")}</h2>{section.id !== 'notes' && !readOnly && <button type="button" disabled={busy} onClick={openNotes}>{uiText('interview:factEditor.openNotes')}</button>}</div>
       <label className={classes.search}>{isolated ? uiText("interview:factEditor.searchCvInformation") : uiText("interview:factEditor.searchProfile")}<input type="search" value={query} disabled={busy} placeholder={uiText("interview:factEditor.companyProjectSkill")} onChange={(e) => { setQuery(e.target.value); setSelectedId(null); setPage(0); }} /></label>
-    </div>
+    </div>}
     <label className={classes.mobileNav}>{isolated ? uiText("interview:factEditor.cvSection") : uiText("interview:factEditor.profileSection")}<select value={section.id} disabled={busy} onChange={(e) => { setSectionId(e.target.value); setSelectedId(null); setQuery(''); setPage(0); }}>{availableSections.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select></label>
     <div className={classes.workspace}>
       <nav className={classes.navigation} aria-label={isolated ? uiText("interview:factEditor.cvSections") : uiText("interview:factEditor.profileSections")}>

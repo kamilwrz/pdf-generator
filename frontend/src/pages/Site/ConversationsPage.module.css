@@ -1,0 +1,20 @@
+.sessions { padding: var(--space-6); }
+.sessionList { list-style: none; margin: var(--space-6) 0; padding: 0; }
+.sessionList > li { display: flex; align-items: start; flex-wrap: wrap; gap: var(--space-4) var(--space-6); padding-block: var(--space-6); border-top: 1px solid var(--color-border); }
+.sessionDetails { flex: 1 1 28rem; min-width: 0; overflow-wrap: anywhere; }
+.sessionDetails h3 { margin-bottom: var(--space-2); }
+.sessionDetails p { margin-bottom: var(--space-2); font-size: var(--text-ui); }
+.sessionDetails .sessionMode { color: var(--color-muted); }
+.sessionMetadata { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); margin: var(--space-3) 0; font-size: var(--text-ui); }
+.sessionMetadata dt { color: var(--color-muted); }
+.sessionMetadata dd { margin: 0; font-variant-numeric: tabular-nums; }
+.sessionExcerpt { max-width: 72ch; }
+.sessionExcerpt span { font-weight: 600; }
+.sessions .sessionActions { margin: 0; flex: 0 1 auto; }
+.deleteExplanation { padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.deleteControls { padding: 0; }
+.deleteControls > div { margin: 0; }
+@media (max-width: 767px) {
+  .sessions { padding: var(--space-4); }
+  .sessions .sessionActions { width: 100%; }
+}

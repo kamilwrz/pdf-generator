@@ -108,10 +108,9 @@ describe('interview task navigation', () => {
     const refreshSource = screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' });
     refreshSource.focus();
     await userEvent.keyboard('{Enter}');
-    await waitFor(() => expect(writes()).toEqual(['source']));
+    await waitFor(() => expect(writes()).toEqual(['source', 'confirm']));
     expect(session.answers).toEqual(savedAnswers);
     expect(screen.queryByText(/Źródłowe CV zmieniło się od zapisania rozmowy/)).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /Rozmowa/ }));
     await waitFor(() => expect(writes()).toEqual(['source', 'confirm']));
     await userEvent.click(screen.getByRole('button', { name: 'Następne pytanie' }));
     await waitFor(() => expect(writes()).toEqual(['source', 'confirm', 'next']));
@@ -194,44 +193,10 @@ describe('interview task navigation', () => {
     expect(savedTemplates[0].template_id).toBe('linden');
   });
 
-  it('keeps optional notes open while clearing text and restores each source draft', async () => {
-    profile = { ...profile, sources: { documents: [
-      { id: 30, title: 'Anna CV' }, { id: 31, title: 'Other CV' },
-    ], imports: [] } };
-    const user = userEvent.setup();
-    renderInterview({ sessionId: undefined });
-    const source = await screen.findByLabelText('Twoje CV');
-    await user.selectOptions(source, 'document:30');
-    const summary = screen.getByText('Dodaj notatkę (opcjonalnie)', { exact: true });
-    const disclosure = summary.closest('details');
-    const input = screen.getByLabelText('Historia zawodowa, projekty i edukacja');
-    expect(disclosure).not.toHaveAttribute('open');
-    await user.click(summary);
-    await user.type(input, 'A');
-    await user.keyboard('{Backspace}');
-    // Emptying an active input must not hide it or remove keyboard focus.
-    expect(input).toHaveValue('');
-    expect(disclosure).toHaveAttribute('open');
-    expect(input).toHaveFocus();
-    await user.type(input, 'Notatka do pierwszego CV.');
-    await user.selectOptions(source, 'document:31');
-    expect(input).toHaveValue('');
-    expect(disclosure).not.toHaveAttribute('open');
-    await user.click(summary);
-    await user.type(input, 'Notatka do drugiego CV.');
-    await user.selectOptions(source, 'document:30');
-    expect(input).toHaveValue('Notatka do pierwszego CV.');
-    expect(disclosure).toHaveAttribute('open');
-    await user.selectOptions(source, 'document:31');
-    expect(input).toHaveValue('Notatka do drugiego CV.');
-    expect(disclosure).toHaveAttribute('open');
-    expect(writes()).toEqual([]);
-  });
-
   it('prioritises the next question and keeps early preparation secondary', async () => {
     renderInterview();
     const next = await screen.findByRole('button', { name: 'Następne pytanie', exact: true });
-    const prepare = screen.getByRole('button', { name: 'Przejdź do przygotowania CV', exact: true });
+    const prepare = screen.getByRole('button', { name: 'Wybierz szablon', exact: true });
     expect(next).toHaveClass(classes.primary);
     expect(prepare).not.toHaveClass(classes.primary);
     expect(screen.getAllByRole('button').filter((button) => button.classList.contains(classes.primary))).toEqual([next]);
@@ -245,11 +210,11 @@ describe('interview task navigation', () => {
   ])('prioritises preparation at the %s without requesting another question', async (_, progress) => {
     session = { ...session, ...progress, phase: 'review', answers: [{ question, answer: 'Przygotowałam raport.' }] };
     renderInterview();
-    const prepare = await screen.findByRole('button', { name: 'Przejdź do przygotowania CV', exact: true });
+    const prepare = await screen.findByRole('button', { name: 'Wybierz szablon', exact: true });
     expect(prepare).toHaveClass(classes.primary);
     expect(screen.queryByRole('button', { name: 'Następne pytanie', exact: true })).not.toBeInTheDocument();
     await userEvent.setup().click(prepare);
-    expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji', exact: true })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Utwórz CV · Linden', exact: true })).toBeEnabled();
     expect(writes()).toEqual([]);
   });
 
@@ -258,36 +223,23 @@ describe('interview task navigation', () => {
     renderInterview();
     await screen.findByRole('button', { name: 'Następne pytanie', exact: true });
     expect(screen.queryByRole('button', { name: 'Wczytaj aktualne CV do rozmowy', exact: true })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '01 Twoje informacje', exact: true }));
+    await user.click(screen.getByRole('button', { name: 'Treść CV', exact: true }));
     expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy', exact: true })).toBeEnabled();
-    await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy', exact: true }));
-    await user.click(screen.getByRole('button', { name: '03 Przygotuj CV', exact: true }));
-    expect(screen.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji', exact: true })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Wróć', exact: true }));
+    await user.click(screen.getByRole('button', { name: 'Wybierz szablon', exact: true }));
+    expect(screen.getByRole('button', { name: 'Utwórz CV · Linden', exact: true })).toBeEnabled();
     expect(writes()).toEqual([]);
   });
 
-  it('saves before the explicit next action and does not spend credits to advance automatically', async () => {
+  it('saves before automatically asking the next question', async () => {
     session = { ...session, phase: 'question', question };
     const user = userEvent.setup();
     renderInterview();
     await user.type(await screen.findByLabelText('Twoja odpowiedź'), 'Zbudowałam raportowanie.');
-    await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }));
-    const next = await screen.findByRole('button', { name: 'Następne pytanie', exact: true });
-    expect(next).toHaveClass(classes.primary);
-    expect(writes()).toEqual(['answers']);
-    await user.click(next);
+    await user.click(screen.getByRole('button', { name: 'Wyślij odpowiedź', exact: true }));
+    await waitFor(() => expect(writes()).toEqual(['answers', 'next']));
     await screen.findByLabelText('Twoja odpowiedź');
     expect(writes()).toEqual(['answers', 'next']);
-  });
-
-  it('blocks preparation while a question is pending in both stage controls', async () => {
-    session = { ...session, phase: 'question', question };
-    renderInterview();
-    await screen.findByLabelText('Twoja odpowiedź');
-    expect(screen.getByRole('button', { name: '03 Przygotuj CV', exact: true })).toBeDisabled();
-    expect(screen.getByRole('option', { name: /Przygotuj CV/ })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Przejdź do przygotowania CV', exact: true })).not.toBeInTheDocument();
-    expect(writes()).toEqual([]);
   });
 
   it('keeps a failed answer draft through read-only recovery', async () => {
@@ -297,10 +249,10 @@ describe('interview task navigation', () => {
     renderInterview();
     const answer = await screen.findByLabelText('Twoja odpowiedź');
     await user.type(answer, 'Zautomatyzowałam raport tygodniowy.');
-    await user.click(screen.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }));
+    await user.click(screen.getByRole('button', { name: 'Wyślij odpowiedź', exact: true }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się zapisać odpowiedzi.');
     await user.click(screen.getByRole('button', { name: 'Wczytaj zapisany stan', exact: true }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Zapisz odpowiedź', exact: true })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Wyślij odpowiedź', exact: true })).toBeEnabled());
     expect(screen.getByLabelText('Twoja odpowiedź')).toHaveValue('Zautomatyzowałam raport tygodniowy.');
     expect(writes()).toEqual(['answers']);
   });
@@ -310,7 +262,7 @@ describe('interview task navigation', () => {
     failConfirm = true;
     const user = userEvent.setup();
     renderInterview();
-    await user.click(await screen.findByRole('button', { name: '01 Twoje informacje', exact: true }));
+    await user.click(await screen.findByRole('button', { name: 'Treść CV', exact: true }));
     await user.click(screen.getByRole('button', { name: /Z rozmowy i notatki/ }));
     await user.click(screen.getByRole('button', { name: 'Otwórz wpis: Notatki', exact: true }));
     await user.click(screen.getByRole('button', { name: /^Edytuj:/ }));
@@ -318,12 +270,12 @@ describe('interview task navigation', () => {
     await user.clear(content);
     await user.type(content, 'Automatyzowałam cotygodniowe raporty.');
     expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy', exact: true })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Przejdź do rozmowy', exact: true })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Wróć', exact: true })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Zastosuj zmianę', exact: true }));
     expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy', exact: true })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Przejdź do rozmowy', exact: true }));
+    await user.click(screen.getByRole('button', { name: 'Wróć', exact: true }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się zapisać informacji.');
-    expect(screen.getByRole('button', { name: '01 Twoje informacje', exact: true })).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('button', { name: 'Treść CV', exact: true })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Automatyzowałam cotygodniowe raporty.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy', exact: true })).toBeDisabled();
     expect(writes()).toEqual(['confirm']);
