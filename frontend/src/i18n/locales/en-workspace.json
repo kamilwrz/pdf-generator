@@ -1846,8 +1846,6 @@
   "public": {
     "siteLayout.cvStudio": "CV Studio",
     "siteLayout.cvStudio2": "CV STUDIO",
-    "hero.cvStudioOnline": "CV Studio online",
-    "hero.seeHowInterviewsWork": "See how conversations work",
     "careerProfilePage.cvEnrichment": "CV enrichment",
     "careerProfilePage.startingInformation": "Starting information",
     "careerProfilePage.cvPreview": "CV preview",
@@ -1923,7 +1921,6 @@
     "careerProfilePage.saveBeforeEditor": "Save your notes before opening the editor. Changing the source keeps unsaved notes.",
     "careerProfilePage.noteConflict": "Notes changed in another window. Your text is still here. Copy it before loading the saved notes.",
     "careerProfilePage.loadSavedNotes": "Load saved notes and discard local changes",
-    "hero.exampleResultLabel": "Content for the new CV",
     "careerProfilePage.manageProfile": "Profile options"
   },
   "documents": {

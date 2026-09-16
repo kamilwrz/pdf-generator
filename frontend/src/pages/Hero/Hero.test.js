@@ -39,7 +39,7 @@ describe("landing product positioning", () => {
     assert.match(source, /aria-hidden=\{copy === 1 \? true : undefined\}/);
     assert.match(source, /tabIndex=\{copy === 1 \? -1 : undefined\}/);
     assert.match(source, /\{TEMPLATE_COUNT\}/);
-    assert.equal((source.match(/<details(?: open)?>/g) || []).length, 5);
+    assert.equal((source.match(/<details(?: open)?>/g) || []).length, 7);
     for (const anchor of ["wywiad", "dopasowanie", "szablony", "privacy", "cennik", "final-cta-title"]) {
       assert.ok(source.includes('id="' + anchor + '"'));
     }

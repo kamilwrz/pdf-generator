@@ -1870,8 +1870,6 @@
   "public": {
     "siteLayout.cvStudio": "CV Studio",
     "siteLayout.cvStudio2": "CV STUDIO",
-    "hero.cvStudioOnline": "CV Studio online",
-    "hero.seeHowInterviewsWork": "Sprawdź, jak działa Asystent CV",
     "careerProfilePage.cvEnrichment": "Uzupełnianie CV",
     "careerProfilePage.startingInformation": "Informacje początkowe",
     "careerProfilePage.cvPreview": "Podgląd CV",
@@ -1947,7 +1945,6 @@
     "careerProfilePage.saveBeforeEditor": "Zapisz notatki przed przejściem do edytora. Zmiana źródła zachowa niezapisane notatki.",
     "careerProfilePage.noteConflict": "Notatki zmieniły się w innym oknie. Twój tekst pozostał tutaj. Skopiuj go przed wczytaniem zapisanych notatek.",
     "careerProfilePage.loadSavedNotes": "Wczytaj zapisane notatki i odrzuć lokalne zmiany",
-    "hero.exampleResultLabel": "Treść do nowego CV",
     "careerProfilePage.manageProfile": "Opcje profilu"
   },
   "documents": {

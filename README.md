@@ -34,16 +34,20 @@ The public feature name is **CV Assistant** (Polish: **Asystent CV**). Landing, 
 
 Each demo is labelled as an example conversation. It shows the question, answer and suggested CV description, with one reminder to check the description before saving. Repeated explanations under the question and answer and a second sample-data footer are omitted. The examples retain their concrete Zendesk and Excel details without adding achievements.
 
-The opening sequence is **create a CV → improve its content with the Interview → tailor it to a job advert**. The hero has a short introduction, template/editor actions and two compact, stacked links to `#wywiad` and `#dopasowanie`. These links explain the choices before entering the application. The Interview section opens `/app/interview`; the tailoring section opens `/app/tailor`. Its copy explicitly identifies tailoring as an interview guided by the advert's requirements. The section descriptions focus on adding a CV, answering questions and reviewing the result. Each entry states the Pro price, no automatic renewal and included AI credits. Free import limits remain explained on the intake screen; no navigation starts paid AI.
+The opening sequence is **create a CV → improve its content with the CV Assistant → tailor it to a job advert**. The hero introduces the free template-to-PDF path and identifies AI help as Pro. Its two stacked links describe the visitor's intent and open `#wywiad` or `#dopasowanie` before entering the application. The assistant section opens `/app/interview`, explains questions based on an existing CV and returning to saved answers. Tailoring opens `/app/tailor`, explains comparing experience with the advert and saving a separate CV. Adding a CV and advert is available on Free; AI analysis and tailoring require Pro. Import allowances are stated beside the import action and in pricing. Navigation alone never starts paid AI.
+
+The Studio section explains importing existing content, editing with a live preview and optional page fitting without guaranteeing a one-page result. Canonical plan highlights include CV reviews, wording improvements and translations; the same strings appear in public pricing, registration and the plan picker. The FAQ has seven native disclosures, including four linked starting routes and an explanation of additional Pro tools and optional profile reuse. Only the free-PDF answer is initially open. Pro includes 200 shared AI credits for 30 days, with no automatic renewal. The Pro action sends guests to `/register?plan=pro` and existing accounts to `/app/account`; it does not start checkout or grant access.
+
+`frontend/e2e/hero-content-paths.spec.js`, lines 1–85, covers PL/EN FAQ keyboard navigation, focus on returning to the template section, retained import intent and guest/account Pro destinations, as well as responsive content links. Run it alongside `e2e/landing-grid.spec.js`, `e2e/hero-templates.spec.js` and `e2e/interview-discovery.spec.js`. The copy is checked against implemented functions and plan allowances; these tests do not measure conversion improvement.
 
 All eight landing sections share a 1440px maximum width and the header/footer content edges. `Hero.module.css` defines token-based gutters (32px wide, 24px tablet, 16px compact), section padding (96/64/48px) and a 64px wide-screen column gap. Hero, explanatory sections, Studio, privacy, pricing and FAQ use equal columns. Interview and tailoring align their copy and examples at the top; tailoring retains its example on the left. Narrative grids stack at 1024px; pricing stacks at 767px. FAQ keeps its heading before the questions in both DOM and visual order. The template gallery stays inside the content edges. Section headings share the global H2 scale; template selection, draft recovery, animations and image failures retain their behavior.
 
-`InterviewDemo` accepts an optional `tailoring` flag. Both instances share question/answer/proposal controls, one-pass viewport-triggered playback, pause/resume/replay, offscreen timer cleanup and static manual scenes with reduced motion. The tailoring example keeps a job requirement visible and uses a fictional Excel answer to illustrate a grounded CV description. It sends no requests, collects no answers and changes no CV/PDF data. Each section has one primary entry button. The Interview also links contextually to the tailoring explanation. Both languages use the same structure and public locale bundles.
+`InterviewDemo` accepts an optional `tailoring` flag. Both instances share question/answer/proposal controls, one-pass viewport-triggered playback, pause/resume/replay, offscreen timer cleanup and static manual scenes with reduced motion. The tailoring example keeps a job requirement visible and uses a fictional Excel answer to illustrate a grounded CV description. It sends no requests, collects no answers and changes no CV/PDF data. Each section has one primary entry button. The hero and getting-started FAQ provide the links between these explanations. Both languages use the same structure and public locale bundles.
 
 Implementation (verified complete file ranges):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–360, `Hero`: section order, anchors, CTA destinations and mirrored section markup.
-- `frontend/src/pages/Hero/Hero.module.css`, lines 1–877: `.hero`, `.contentPaths`, `.interviewSection`, `.tailoringSection` and responsive rules.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–369, `Hero`: section order, anchors, CTA destinations and mirrored section markup.
+- `frontend/src/pages/Hero/Hero.module.css`, lines 1–876: `.hero`, `.contentPaths`, `.interviewSection`, `.tailoringSection` and responsive rules.
 - `frontend/src/pages/Hero/InterviewDemo.jsx`, lines 1–99, `InterviewDemo`: localized variants and shared playback; its existing adjacent CSS owns scene transitions and reduced motion.
 - `frontend/src/pages/Hero/HeroTemplateShowcase.jsx`, lines 1–118, `HeroTemplateShowcase`, and `HeroTemplateShowcase.module.css`, lines 1–38: bounded preview fan and responsive image sizing.
 - `frontend/e2e/tailoring-landing.spec.js`: layout, both locales, keyboard destinations, 200% text, illustrative-only requests and controlled playback; existing hero-content-paths, interview-positioning, interview-demo and hero-templates suites cover the adjoining flows. `Hero.test.js` and `InterviewDemo.runtime.test.jsx` cover product boundaries and timer behavior.
@@ -484,7 +488,7 @@ Both complete dictionaries in `frontend/src/i18n/locales/pl.json` and `en.json` 
 
 Implementation (whole-module ranges, including `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` and `InterviewPage`):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–360.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–369.
 - `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13.
@@ -509,7 +513,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–129, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–360, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–369, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–558, `InterviewFlow`.
@@ -1920,7 +1924,7 @@ Implementation:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, component `StartChooser` — three primary cards (`onNew`, `onImport`, entitlement-aware interview link) plus secondary saved-document and legacy-recovery actions
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–454 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, three columns on wide screens, two columns with a full-width third choice on tablets, and one column on compact screens, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
 - `frontend/src/App.jsx`, lines 54–74, functions `StartRoute` and `CreateCvRoute` — resolves generic `/app/new` to `start=choose` for an account and `start=new` for a guest or an explicit template; `/app/import` remains directed
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–360, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–369, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
 - `frontend/src/utils/startChooser.js`, lines 30–46, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx`, lines 253–265 and 1110–1135, component `EditorController` — consumes the `choose` intent, keeps the chooser ahead of automatic template selection, and wires new/import/documents/recovery actions while omitting editor chrome
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — a new A4 setup is generated directly; legacy browser drafts require the explicit recovery action
@@ -1934,9 +1938,9 @@ Tests:
 
 Implementation (Topbar / landing entry points):
 
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–360, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
-- `frontend/src/pages/Hero/Hero.module.css`, lines 1–877 — Swiss tokens, responsive hero, `.copyExample`, `.finalCta`, focus-visible, and reduced motion.
-- `frontend/src/pages/Hero/Hero.test.js`, lines 1–47 — account and Pro boundaries, starts and CTA events, canonical plans, accessible gallery and FAQ.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–369, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, seven-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.module.css`, lines 1–876 — Swiss tokens, responsive hero, `.copyExample`, `.finalCta`, focus-visible, and reduced motion.
+- `frontend/src/pages/Hero/Hero.test.js`, lines 1–49 — account and Pro boundaries, start destinations, canonical plans, accessible gallery and FAQ.
 - `frontend/src/utils/authSession.js`, function `getEditorPath` — builds `/cvstudio/guest` or `/cvstudio/{username}` (plus optional `?start=` and the setup-only `template` hint)
 - `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — preserve `templates|import|new|download` through authentication and map the legacy `wizard` intent to `new`
 - `frontend/src/pages/PdfCanvas.jsx`, lines 8–2664 (workspace slug sync and `initialStartIntentRef`, including `choose` and `demo`) and 1102–1128 — the auto-open picker skips directed intents, while the demo path loads canonical `lindenTemplate` with `templateId: "linden"` and sets `isDemoContent`
@@ -2037,7 +2041,7 @@ Implementation:
 - `DESIGN.md`, lines 1–420 — scope, tokens (including `modalBackdrop` at lines 31 and 151), layout, components, accessibility, motion, prohibited patterns, and UI definition of done
 - `frontend/src/index.css`, lines 1–251 — canonical colour/type/spacing/radius/elevation/motion/z-index tokens, including `--color-modal-backdrop` at line 34, compatibility aliases, global focus, selection, and reduced-motion rules
 - `frontend/src/App.css`, lines 1–449 — viewport shell, canvas gutters, neutral scrollbars, compact breakpoint, and assistant-aware single-page A4 transform; lines 197–425 keep document typography isolated inside `.page-canvas`
-- `frontend/src/pages/Hero/Hero.module.css`, lines 1–877; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, lines 1–79 — spacious narrative and authentication surfaces on the shared tokens
+- `frontend/src/pages/Hero/Hero.module.css`, lines 1–876; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, lines 1–79 — spacious narrative and authentication surfaces on the shared tokens
 - `frontend/src/components/common/DialogShell/DialogShell.jsx`, lines 3–195, component `DialogShell`; `DialogShell.module.css`, lines 1–21 — shared white backdrop for modal variants; the remaining module supplies focus-safe responsive layout and reduced motion
 - `frontend/src/components/editor/PdfOperationProgressModal/PdfOperationProgressModal.module.css`, lines 6–15 — the standalone save/download progress overlay consumes the same white backdrop token
 - `frontend/src/App.test.js`, lines 53–68 — regression proving that the shared dialog shell and standalone operation modal both use the white token and the editor route does not override it
@@ -3172,7 +3176,7 @@ Implementation:
 - `backend/app/api/routes/billing.py`, lines 52–116 (`get_plans`, `select_plan`) and 147–214 (`admin_set_user_plan`) — product plan selection plus the exact-account, secret-protected support path
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION` and `applyPlanPresentation` — one canonical frontend contract used even while the catalog request is loading or unavailable
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, lines 22–175, component `PlanSelectModal` — accessible two-card picker with loading, fallback, current, pending, success, and error states
-- `frontend/src/pages/Hero/Hero.jsx`, lines 1–360, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, four-question FAQ, final CTA, and footer.
+- `frontend/src/pages/Hero/Hero.jsx`, lines 1–369, `buildStartUrl`, `CtaLink`, and `Hero` — directed starts, concise copy, AI example, pricing, seven-question FAQ, final CTA, and footer.
 - `frontend/src/templates/index.js`, lines 19–33, registry `TEMPLATES` — three shipped Free element packs and six metadata-only, server-materialized Pro entries
 - `frontend/src/hooks/useEntitlements.js`, lines 3–49, hook `useEntitlements`
 
@@ -3910,21 +3914,25 @@ Publiczna nazwa funkcji to **Asystent CV** (angielska: **CV Assistant**). Korzys
 
 ## Trzy cele na stronie głównej
 
-Każdy pokaz jest oznaczony jako przykładowa rozmowa. Przedstawia pytanie, odpowiedź i propozycję opisu do CV, z jednym przypomnieniem o sprawdzeniu opisu przed zapisem. Nie powtarza wyjaśnień pod pytaniem i odpowiedzią ani informacji o przykładowych danych w stopce. Przykłady zachowują konkretne informacje o Zendesk i Excelu bez dopisywania osiągnięć. Przy wejściach podano cenę Pro, brak automatycznego odnawiania i pakiet kredytów AI w cenie; limity importu Free są wyjaśnione na ekranie dodawania CV.
+Każdy pokaz jest oznaczony jako przykładowa rozmowa. Przedstawia pytanie, odpowiedź i propozycję opisu do CV, z jednym przypomnieniem o sprawdzeniu opisu przed zapisem. Nie powtarza wyjaśnień pod pytaniem i odpowiedzią ani informacji o przykładowych danych w stopce. Przykłady zachowują konkretne informacje o Zendesk i Excelu bez dopisywania osiągnięć.
 
-Początek strony ma kolejność **stworzenie CV → poprawa treści z Wywiadem → dopasowanie do ogłoszenia**. Pierwsza sekcja zawiera krótkie wprowadzenie, akcje szablonu/edytora i dwa proste linki pod sobą do `#wywiad` oraz `#dopasowanie`. Wyjaśniają wybór przed przejściem do aplikacji. Sekcja Wywiadu otwiera `/app/interview`, a dopasowania `/app/tailor`. Tekst wyraźnie opisuje dopasowanie jako wywiad kierowany wymaganiami ogłoszenia. Opisy sekcji skupiają się na dodaniu CV, odpowiedziach na pytania i sprawdzeniu wyniku. Przyciski nie uruchamiają płatnego AI.
+Początek strony ma kolejność **stworzenie CV → poprawa treści z Asystentem CV → dopasowanie do ogłoszenia**. Pierwsza sekcja przedstawia darmową ścieżkę od szablonu do PDF i oznacza pomoc AI jako Pro. Dwa linki pod sobą opisują potrzeby użytkownika i otwierają `#wywiad` lub `#dopasowanie` przed wejściem do aplikacji. Sekcja Asystenta otwiera `/app/interview`, wyjaśnia pytania na podstawie istniejącego CV oraz powrót do zapisanych odpowiedzi. Dopasowanie otwiera `/app/tailor`, opisuje porównanie doświadczenia z ogłoszeniem i zapis osobnego CV. Dodanie CV i ogłoszenia jest dostępne na Free; analiza i dopasowanie z AI wymagają Pro. Limity importu podano przy akcji importu i w cenniku. Sama nawigacja nie uruchamia płatnego AI.
+
+Sekcja Studio objaśnia przeniesienie istniejącej treści, edycję z podglądem i opcjonalne dopasowanie do strony bez gwarancji jednostronicowego wyniku. Wspólne opisy planów obejmują sprawdzanie CV, poprawę języka i tłumaczenia; te same teksty pojawiają się w publicznym cenniku, rejestracji i wyborze planu. FAQ ma siedem natywnych rozwijanych pytań, w tym cztery ścieżki startowe z linkami oraz objaśnienie dodatkowych narzędzi Pro i opcjonalnego ponownego użycia profilu. Początkowo otwarta jest tylko odpowiedź o darmowym PDF. Pro obejmuje 200 wspólnych kredytów AI na 30 dni, bez automatycznego odnowienia. Przycisk Pro kieruje gości do `/register?plan=pro`, a zalogowanych do `/app/account`; nie rozpoczyna płatności ani nie przyznaje dostępu.
+
+`frontend/e2e/hero-content-paths.spec.js`, linie 1–85, sprawdza w PL/EN obsługę FAQ klawiaturą, fokus po powrocie do sekcji szablonu, zachowanie intencji importu i cele Pro dla gościa/konta oraz responsywne linki do funkcji. Uruchom go wraz z `e2e/landing-grid.spec.js`, `e2e/hero-templates.spec.js` i `e2e/interview-discovery.spec.js`. Treść jest zgodna z zaimplementowanymi funkcjami i limitami planów; testy nie mierzą wzrostu konwersji.
 
 Wszystkie osiem sekcji strony ma maksymalną szerokość 1440px oraz krawędzie treści wspólne z nagłówkiem i stopką. `Hero.module.css` definiuje marginesy z tokenów (32px na szerokim ekranie, 24px na tablecie, 16px na małym ekranie), odstępy pionowe sekcji (96/64/48px) i odstęp kolumn 64px na szerokim ekranie. Pierwsza sekcja, opisy funkcji, Studio, prywatność, cennik i FAQ używają równych kolumn. Wywiad i dopasowanie wyrównują tekst i przykład od góry; dopasowanie zachowuje przykład po lewej. Sekcje narracyjne przechodzą na jedną kolumnę przy 1024px, a cennik przy 767px. Nagłówek FAQ poprzedza pytania w kodzie i na ekranie. Galeria szablonów pozostaje wewnątrz krawędzi treści. Nagłówki sekcji korzystają ze wspólnej skali H2; wybór szablonu, odzyskiwanie szkicu, animacje i błędy obrazów zachowują działanie.
 
-`InterviewDemo` przyjmuje opcjonalną flagę `tailoring`. Obie instancje współdzielą przyciski pytania/odpowiedzi/propozycji, jednorazowe odtwarzanie po wejściu w widok, pauzę/wznowienie/powtórzenie, sprzątanie timerów poza ekranem i statyczne ręczne sceny przy ograniczeniu ruchu. Przykład dopasowania zachowuje widoczne wymaganie ogłoszenia i używa fikcyjnej odpowiedzi o Excelu do pokazania opisu CV opartego na faktach. Nie wysyła żądań, nie zbiera odpowiedzi i nie zmienia danych CV/PDF. Każda sekcja ma jeden główny przycisk wejścia. Wywiad zawiera też kontekstowy link do objaśnienia dopasowania. Oba języki mają tę samą strukturę i publiczne pakiety tłumaczeń.
+`InterviewDemo` przyjmuje opcjonalną flagę `tailoring`. Obie instancje współdzielą przyciski pytania/odpowiedzi/propozycji, jednorazowe odtwarzanie po wejściu w widok, pauzę/wznowienie/powtórzenie, sprzątanie timerów poza ekranem i statyczne ręczne sceny przy ograniczeniu ruchu. Przykład dopasowania zachowuje widoczne wymaganie ogłoszenia i używa fikcyjnej odpowiedzi o Excelu do pokazania opisu CV opartego na faktach. Nie wysyła żądań, nie zbiera odpowiedzi i nie zmienia danych CV/PDF. Każda sekcja ma jeden główny przycisk wejścia. Linki między objaśnieniami są dostępne w pierwszej sekcji oraz FAQ dotyczącym startu. Oba języki mają tę samą strukturę i publiczne pakiety tłumaczeń.
 
 Test `frontend/e2e/landing-grid.spec.js` sprawdza wspólne krawędzie sekcji, geometrię odwróconych kolumn, obsługę FAQ klawiaturą i tekst powiększony do 200% w obu językach przy 390/834/1280/1920px. Uruchom `npm --prefix frontend run test:e2e -- e2e/landing-grid.spec.js --project=desktop-chromium --workers=2`.
 
 Implementacja (zweryfikowane pełne zakresy plików):
 
-- `frontend/src/pages/Hero/Hero.jsx`, wiersze 1–360, `Hero`: kolejność sekcji, kotwice, cele CTA i odwrócony układ sekcji.
-- `frontend/src/pages/Hero/Hero.module.css`, wiersze 1–960: `.hero`, `.contentPaths`, `.interviewSection`, `.tailoringSection` i reguły responsywne.
-- `frontend/src/pages/Hero/InterviewDemo.jsx`, wiersze 1–108, `InterviewDemo`: tłumaczone warianty i wspólne odtwarzanie; istniejący sąsiedni CSS odpowiada za przejścia scen i ograniczenie ruchu.
+- `frontend/src/pages/Hero/Hero.jsx`, wiersze 1–369, `Hero`: kolejność sekcji, kotwice, cele CTA i odwrócony układ sekcji.
+- `frontend/src/pages/Hero/Hero.module.css`, wiersze 1–876: `.hero`, `.contentPaths`, `.interviewSection`, `.tailoringSection` i reguły responsywne.
+- `frontend/src/pages/Hero/InterviewDemo.jsx`, wiersze 1–99, `InterviewDemo`: tłumaczone warianty i wspólne odtwarzanie; istniejący sąsiedni CSS odpowiada za przejścia scen i ograniczenie ruchu.
 - `frontend/src/pages/Hero/HeroTemplateShowcase.jsx`, wiersze 1–118, `HeroTemplateShowcase`, oraz `HeroTemplateShowcase.module.css`, wiersze 1–38: ograniczony wachlarz i responsywne rozmiary obrazów.
 - `frontend/e2e/tailoring-landing.spec.js`: układ, oba języki, cele klawiaturowe, tekst 200%, brak żądań AI z pokazu i kontrolowane odtwarzanie; istniejące zestawy hero-content-paths, interview-positioning, interview-demo i hero-templates obejmują sąsiednie ścieżki. `Hero.test.js` i `InterviewDemo.runtime.test.jsx` sprawdzają granice produktu i timery.
 
@@ -4364,7 +4372,7 @@ Pełne słowniki `frontend/src/i18n/locales/pl.json` i `en.json` są źródłem 
 
 Implementacja (zakresy całych modułów obejmujące `Hero`, `PricingPage`, `HelpPage`, `SiteHeader`, `SiteFooter` i `InterviewPage`):
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–360.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–369.
 - `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13.
@@ -4389,7 +4397,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–129, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 4–87, `AccountPage`.
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–360, `Hero`.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–369, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–558, `InterviewFlow`.
@@ -5789,7 +5797,7 @@ Implementacja:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, komponent `StartChooser` — trzy główne karty (`onNew`, `onImport`, link wywiadu zależny od uprawnień) oraz drugorzędne akcje dokumentów i recovery legacy
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–454 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, trzema kolumnami na szerokim ekranie, dwiema z trzecią kartą na całą szerokość na tablecie i jedną na małym ekranie, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
 - `frontend/src/App.jsx`, linie 54–74, funkcje `StartRoute` i `CreateCvRoute` — rozstrzyga ogólne `/app/new` jako `start=choose` dla konta i `start=new` dla gościa lub jawnego szablonu; `/app/import` pozostaje skierowany
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–360, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–369, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
 - `frontend/src/utils/startChooser.js`, linie 30–46, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx`, linie 253–265 i 1110–1135, komponent `EditorController` — zużywa intencję `choose`, utrzymuje chooser przed automatycznym wyborem szablonu i podpina nowe/import/dokumenty/recovery bez montowania chrome edytora
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — nowe A4 jest generowane bezpośrednio; starszy szkic przeglądarki wymaga jawnej akcji recovery
@@ -5803,9 +5811,9 @@ Testy:
 
 Implementacja:
 
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–360, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
-- `frontend/src/pages/Hero/Hero.module.css`, linie 1–877 — tokeny Swiss, responsywne hero, `.copyExample`, `.finalCta`, focus-visible i ograniczenie ruchu.
-- `frontend/src/pages/Hero/Hero.test.js`, linie 1–47 — granice konta i Pro, starty i zdarzenia CTA, kanoniczne plany, dostępna galeria i FAQ.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–369, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, siedem pytań FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.module.css`, linie 1–876 — tokeny Swiss, responsywne hero, `.copyExample`, `.finalCta`, focus-visible i ograniczenie ruchu.
+- `frontend/src/pages/Hero/Hero.test.js`, linie 1–49 — granice konta i Pro, cele startowe, kanoniczne plany, dostępna galeria i FAQ.
 - `frontend/src/utils/authSession.js`, funkcja `getEditorPath` — buduje `/cvstudio/guest` albo `/cvstudio/{username}` (plus opcjonalne `?start=` i parametr `template` tylko dla konfiguracji)
 - `frontend/src/pages/Register/Register.jsx` / `Login/Login.jsx` — zachowują `templates|import|new|download` przez uwierzytelnienie i mapują starsze `wizard` na `new`
 - `frontend/src/pages/PdfCanvas.jsx`, linie 8–2664 (synchronizacja sluga workspace i `initialStartIntentRef`, obejmujący `choose` i `demo`) oraz 1102–1128 — auto-otwarcie pickera pomija skierowane intencje, a ścieżka demo wczytuje kanoniczny `lindenTemplate` z `templateId: "linden"` i ustawia `isDemoContent`
@@ -5906,7 +5914,7 @@ Implementacja:
 - `DESIGN.md`, linie 1–420 — zakres, tokeny (w tym `modalBackdrop` w liniach 31 i 151), layout, komponenty, dostępność, ruch, wzorce zakazane i definicja ukończenia UI
 - `frontend/src/index.css`, linie 1–251 — kanoniczne tokeny koloru/typu/odstępów/promieni/elewacji/ruchu/z-index, w tym `--color-modal-backdrop` w linii 34, aliasy zgodności, globalny focus, zaznaczenie i reduced motion
 - `frontend/src/App.css`, linie 1–449 — shell viewportu, rynny canvasa, neutralne scrollbary, breakpoint compact i transform pojedynczego A4 zależny od chatu; linie 197–425 izolują typografię dokumentu wewnątrz `.page-canvas`
-- `frontend/src/pages/Hero/Hero.module.css`, linie 1–877; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, linie 1–79 — przestronne powierzchnie narracyjne/auth na wspólnych tokenach
+- `frontend/src/pages/Hero/Hero.module.css`, linie 1–876; `frontend/src/components/common/AuthLayout/AuthLayout.module.css`, linie 1–79 — przestronne powierzchnie narracyjne/auth na wspólnych tokenach
 - `frontend/src/components/common/DialogShell/DialogShell.jsx`, linie 3–195, komponent `DialogShell`; `DialogShell.module.css`, linie 1–21 — wspólne białe tło wariantów modalnych; pozostała część modułu zapewnia responsywny układ bezpieczny dla fokusu i reduced motion
 - `frontend/src/components/editor/PdfOperationProgressModal/PdfOperationProgressModal.module.css`, linie 6–15 — niezależny overlay postępu zapisu/pobierania używa tego samego białego tokenu
 - `frontend/src/App.test.js`, linie 53–68 — regresja potwierdzająca, że wspólna powłoka dialogu i niezależny modal operacji używają białego tokenu, a trasa edytora go nie nadpisuje
@@ -7031,7 +7039,7 @@ Support produkcyjny może przypisać `free` lub `pro` przez `POST /billing/admin
 - `backend/app/api/routes/billing.py`, linie 52–116 (`get_plans`, `select_plan`) i 147–214 (`admin_set_user_plan`) — wybór planu w produkcie oraz chroniona sekretem ścieżka supportu dla dokładnego konta
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION` i `applyPlanPresentation` — jeden kanoniczny kontrakt frontendu używany także podczas ładowania lub awarii katalogu
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`, linie 22–175, komponent `PlanSelectModal` — dostępny modal dwóch planów ze stanami ładowania, fallbacku, planu bieżącego, operacji, sukcesu i błędu
-- `frontend/src/pages/Hero/Hero.jsx`, linie 1–360, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, cztery pytania FAQ, końcowe CTA i stopka.
+- `frontend/src/pages/Hero/Hero.jsx`, linie 1–369, `buildStartUrl`, `CtaLink` i `Hero` — skierowane starty, krótsza treść, przykład AI, cennik, siedem pytań FAQ, końcowe CTA i stopka.
 - `frontend/src/templates/index.js`, linie 19–33, rejestr `TEMPLATES` — trzy wysyłane pakiety elementów Free i sześć metadata-only, server-materialized wpisów Pro
 - `frontend/src/hooks/useEntitlements.js`, linie 3–49, hook `useEntitlements`
 

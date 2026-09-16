@@ -137,18 +137,17 @@
 
 /* Goal links follow the same order as their explanatory sections. */
 .contentPaths { display: grid; margin-top: var(--space-6); border-top: 1px solid var(--color-border); }
-.contentPath, .sectionLink {
+.contentPath {
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--space-4); min-width: 0; min-height: var(--control-height);
     color: var(--color-ink); text-decoration: none; font-size: var(--text-body);
 }
 .contentPath { padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); }
 .contentPath strong { min-width: 0; line-height: 1.4; }
-.contentPath > svg, .sectionLink > svg { width: var(--space-4); height: var(--space-4); flex: 0 0 auto; }
+.contentPath > svg { width: var(--space-4); height: var(--space-4); flex: 0 0 auto; }
 .contentPath:hover, .contentPath:focus-visible { background: var(--color-canvas); color: var(--color-ink); }
-.contentPath:hover strong, .contentPath:focus-visible strong, .sectionLink:hover { text-decoration: underline; text-underline-offset: var(--space-1); }
+.contentPath:hover strong, .contentPath:focus-visible strong { text-decoration: underline; text-underline-offset: var(--space-1); }
 .contentPath:active { background: var(--color-surface); }
-.sectionLink { justify-content: flex-start; margin-top: var(--space-4); font-size: var(--text-ui); text-decoration: underline; text-underline-offset: var(--space-1); }
 .interviewSection { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--landing-column-gap); background: var(--color-canvas); scroll-margin-top: var(--space-8); }
 .interviewSection h2 { margin: 0; font-family: var(--font-ui); letter-spacing: -.035em; text-wrap: balance; }
 .interviewLead { margin: var(--space-6) 0; max-width: 48ch; font-size: var(--text-body); line-height: 1.55; }

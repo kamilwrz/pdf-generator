@@ -13,7 +13,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     const english = language === 'en';
     await expect(page.getByRole('heading', { level: 1 })).toContainText(english ? 'Create your CV.' : 'Stwórz CV.');
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
-    const jump = page.locator('a[href="#wywiad"]');
+    const jump = page.locator('#top a[href="#wywiad"]');
     await jump.focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('#wywiad')).toBeFocused();

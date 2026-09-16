@@ -46,7 +46,6 @@ const TEMPLATE_COUNT = TEMPLATES.length;
 const FREE_TEMPLATES = TEMPLATES.filter((template) => template.tier === "free");
 
 function ArrowIcon() {
-  useTranslation();
     return (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
@@ -55,7 +54,6 @@ function ArrowIcon() {
 }
 
 function CheckIcon() {
-  useTranslation();
     return (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="m5 12 4.2 4.2L19.5 6" stroke="currentColor" strokeWidth="2.35" strokeLinecap="round" strokeLinejoin="round" />
@@ -80,7 +78,6 @@ function buildStartUrl(start, plan) {
  * Shared landing call-to-action with primary, secondary, and link variants.
  */
 function CtaLink({ to, variant = "primary", children }) {
-  useTranslation();
     const variantClass =
         variant === "secondary"
             ? classes.buttonSecondary
@@ -114,13 +111,15 @@ export default function Hero() {
     const selectedTemplateUrl = getEditorPath({ start: "new", template: selectedTemplateId });
     const demoUrl = getEditorPath({ start: "demo" });
     const canResumeGuestDraft = !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent;
-    const proRegisterUrl = "/register?plan=pro";
+    // Existing accounts manage their plan in the account workspace; this
+    // destination does not grant Pro access or start a payment automatically.
+    const proUrl = getAccessToken() ? "/app/account" : "/register?plan=pro";
 
     return (
         <main className={classes.page}>
             <SiteHeader showLanguageSelect />
 
-            <section id="top" className={classes.hero}>
+            <section id="top" className={classes.hero} tabIndex={-1}>
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker} data-section-index="01">CV Studio online</p>
                     <div className={classes.heroHeading}>
@@ -128,8 +127,8 @@ export default function Hero() {
                         <p className={classes.heroSubheading}>{uiText("public:hero.chooseATemplateAndEnterContentDirectly")}</p>
                     </div>
                     <div className={classes.heroActions}>
-                        <CtaLink to={selectedTemplateUrl} event="hero_new_cv">{uiText("public:hero.createACvWithThisTemplate")}</CtaLink>
-                        {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>{uiText("public:hero.returnToCvDraft")} <ArrowIcon /></Link> : <CtaLink to={demoUrl} event="hero_demo" variant="secondary">{uiText("public:hero.exploreTheEditor")}</CtaLink>}
+                        <CtaLink to={selectedTemplateUrl}>{uiText("public:hero.createACvWithThisTemplate")}</CtaLink>
+                        {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>{uiText("public:hero.returnToCvDraft")} <ArrowIcon /></Link> : <CtaLink to={demoUrl} variant="secondary">{uiText("public:hero.exploreTheEditor")}</CtaLink>}
                     </div>
                     <p className={classes.accountNote}>{uiText("public:hero.startWithoutAnAccountFreeRegistrationIs")}</p>
                     <nav className={classes.contentPaths} aria-label={uiText('public:hero.contentPaths')}>
@@ -150,7 +149,7 @@ export default function Hero() {
                     templates={FREE_TEMPLATES}
                     selectedId={selectedTemplateId}
                     onSelect={setSelectedTemplateId}
-                    mobileAction={<CtaLink to={selectedTemplateUrl} event="hero_new_cv">{uiText("public:hero.createACvWithTheSelectedTemplate")}</CtaLink>}
+                    mobileAction={<CtaLink to={selectedTemplateUrl}>{uiText("public:hero.createACvWithTheSelectedTemplate")}</CtaLink>}
                 />
             </section>
 
@@ -161,7 +160,6 @@ export default function Hero() {
                     <p className={classes.interviewLead}>{uiText("public:hero.interviewBody")}</p>
                     <CtaLink to="/app/interview">{uiText("public:hero.openInterview")}</CtaLink>
                     <p className={classes.accountNote}>{uiText("public:hero.interviewAccess")}</p>
-                    <a className={classes.sectionLink} href="#dopasowanie">{uiText("public:hero.tailoringCrossLink")} <ArrowIcon /></a>
                 </div>
                 <InterviewDemo />
             </section>
@@ -198,7 +196,7 @@ export default function Hero() {
                             <div>
                                 <h3>{uiText("public:hero.alreadyHaveACvImportYourPdf")}</h3>
                                 <p>{uiText("public:hero.cvStudioReadsYourDocumentAndLays")}</p>
-                                <CtaLink to={importUrl} event="hero_import" variant="link">{uiText("public:hero.importCvFromPdf")}</CtaLink>
+                                <CtaLink to={importUrl} variant="link">{uiText("public:hero.importCvFromPdf")}</CtaLink>
                             </div>
                         </li>
                         <li>
@@ -265,7 +263,7 @@ export default function Hero() {
                         ))}
                     </div>
                 </div>
-                <CtaLink to="/templates" event="templates_new_cv" variant="link">{uiText("public:hero.chooseATemplateAndCreateACv")}</CtaLink>
+                <CtaLink to="/templates" variant="link">{uiText("public:hero.chooseATemplateAndCreateACv")}</CtaLink>
             </section>
 
             <section id="privacy" className={classes.trustStrip}>
@@ -298,7 +296,7 @@ export default function Hero() {
                                 <li key={feature}><CheckIcon />{feature}</li>
                             ))}
                         </ul>
-                        <CtaLink to={newCvUrl} event="pricing_free" variant="secondary">{uiText("public:hero.createACvForFree")}</CtaLink>
+                        <CtaLink to={newCvUrl} variant="secondary">{uiText("public:hero.createACvForFree")}</CtaLink>
                         <p className={classes.planFootnote}>{uiText("public:hero.noCardRequiredThePlanHasNo")}</p>
                     </article>
                     <article className={`${classes.priceCard} ${classes.priceFeatured}`}>
@@ -314,7 +312,7 @@ export default function Hero() {
                         </ul>
                         <Link
                             className={classes.buttonPrimary}
-                            to={proRegisterUrl}
+                            to={proUrl}
                         >{uiText("public:hero.chooseProForDays")} <ArrowIcon />
                         </Link>
                         <p className={classes.planFootnote}>{uiText("public:hero.oneOffPaymentNoAutomaticRenewal")}</p>
@@ -328,7 +326,13 @@ export default function Hero() {
                     <h2>{uiText("public:hero.whatShouldYouKnow")}</h2>
                 </div>
                 <div className={classes.faqList}>
-                    <details><summary>{uiText("public:hero.fitQuestion")}</summary><p>{uiText("public:hero.fitAnswer")}</p></details>
+                    <details>
+                        <summary>{uiText("public:hero.startQuestion")}</summary>
+                        <p><a href="#top">{uiText("public:hero.createACvForFree")}</a></p>
+                        <p><Link to={importUrl}>{uiText("public:hero.alreadyHaveACvImportYourPdf")}</Link></p>
+                        <p><a href="#wywiad">{uiText("public:hero.interviewJump")}</a></p>
+                        <p><a href="#dopasowanie">{uiText("public:hero.tailoringJump")}</a></p>
+                    </details>
                     <details open>
                         <summary>{uiText("public:hero.canIDownloadMyCvForFree")}</summary>
                         <p>{uiText("public:hero.yesAFreeAccountIncludesPdfDownloads")} {FREE_TEMPLATES.length} {uiText("public:hero.freeTemplatesOtherAllowancesAreListedIn")} <Link to="/pricing">{uiText("public:hero.pricing")}</Link>{uiText("public:hero.aiAssistanceIsAvailableWithPro")}</p>
@@ -341,6 +345,11 @@ export default function Hero() {
                         <summary>{uiText("public:hero.whatHappensToMyCvAfterImporting")}</summary>
                         <p>{uiText("public:hero.weExtractTheContentAndLayIt")}</p>
                     </details>
+                    <details>
+                        <summary>{uiText("public:hero.aiToolsQuestion")}</summary>
+                        <p>{uiText("public:hero.aiToolsAnswer")}</p>
+                    </details>
+                    <details><summary>{uiText("public:hero.fitQuestion")}</summary><p>{uiText("public:hero.fitAnswer")}</p></details>
                     <details>
                         <summary>{uiText("public:hero.doesProRenewAutomatically")}</summary>
                         <p>{uiText("public:hero.noYouPayPlnOnceForDays")}</p>

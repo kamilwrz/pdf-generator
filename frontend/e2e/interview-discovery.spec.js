@@ -14,7 +14,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/pricing');
-    await expect(page.getByText('Asystent CV do opisania doświadczenia i dopasowania CV do ogłoszenia', { exact: true })).toBeVisible();
+    await expect(page.getByText('Asystent CV i dopasowanie do ogłoszenia', { exact: true })).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-discovery-pricing-${width}.png`, fullPage: true });
     await page.getByRole('link', { name: 'Jak działa Asystent CV i kredyty' }).click();
     await expect(page).toHaveURL(/\/help#wywiad$/);
@@ -50,7 +50,7 @@ test('Pro users get direct entry points and canonical interview benefits in the 
   await page.goto('/app/account');
   await expect(page.getByText('ASYSTENT CV · W TWOIM PRO')).toBeVisible();
   await page.getByRole('button', { name: 'Zmień plan' }).click();
-  await expect(page.getByRole('dialog').getByText('Asystent CV do opisania doświadczenia i dopasowania CV do ogłoszenia', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Asystent CV i dopasowanie do ogłoszenia', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Zmień plan' })).toBeFocused();
   expect(api.calls.some((call) => call.method === 'POST')).toBe(false);
@@ -79,15 +79,17 @@ for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    await page.getByRole('link', { name: 'Zobacz, jak poprawić treść CV' }).click();
+    await page.getByRole('link', { name: 'Chcę lepiej opisać swoje doświadczenie' }).click();
     await expect(page.locator('#wywiad')).toBeFocused();
     await page.goto('/register?plan=pro');
-    await expect(page.getByText('Asystent CV do opisania doświadczenia i dopasowania CV do ogłoszenia', { exact: true })).toBeVisible();
+    await expect(page.getByText('Asystent CV i dopasowanie do ogłoszenia', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-discovery-register-${width}.png`, fullPage: true });
     await signIn(page);
     await page.goto('/cvstudio/Kamil');
-    await expect(page.getByRole('heading', { name: 'Jak chcesz zacząć?' })).toBeVisible();
+    // The first editor entry loads its workspace bundle; allow the same cold
+    // development-server startup window as the shared login fixture.
+    await expect(page.getByRole('heading', { name: 'Jak chcesz zacząć?' })).toBeVisible({ timeout: 20000 });
     const entry = page.getByRole('link', { name: 'Asystent CV Rozpocznij rozmowę', exact: true });
     await expect(entry).toBeVisible();
     await expect(entry).toHaveAttribute('href', '/app/interview');
