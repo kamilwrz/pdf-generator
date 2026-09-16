@@ -1,6 +1,47 @@
 import { test, expect } from '@playwright/test';
 import { installMockApi } from './support/mockApi.js';
 
+// Explicit manual-creation links must reach setup without asking users to
+// choose the same creation method again. Profile recovery shares the link.
+for (const language of ['pl', 'en']) {
+  for (const width of [390, 834, 1280, 1920]) {
+    test(`manual creation opens setup directly: ${language} ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const api = await installMockApi(page, { documents: [], imports: [] });
+      await page.addInitScript(language => {
+        localStorage.setItem('token', 'local-playwright-token');
+        localStorage.setItem('username', 'Kamil');
+        localStorage.setItem('cvstudio.uiLanguage', language);
+      }, language);
+      await page.route('**/api/career-profile*', route => route.fulfill({ json: {
+        revision: 0, facts: [], sources: { documents: [], imports: [] },
+      } }));
+      await page.route('**/api/ai/interviews**', route => route.fulfill({ json: { items: [], next_offset: null } }));
+      const en = language === 'en';
+      for (const path of ['/app/interview', '/app/career-profile', '/app/documents']) {
+        await page.goto(path);
+        const link = page.getByRole('link', { name: path === '/app/documents'
+          ? en ? 'Create a new CV' : 'Utwórz nowe CV'
+          : en ? 'Create a CV manually' : 'Utwórz CV ręcznie', exact: true });
+        await expect(link).toHaveAttribute('href', '/cvstudio/Kamil?start=new');
+        await link.focus();
+        await page.keyboard.press('Enter');
+        const setup = page.getByRole('dialog', { name: en ? 'Create CV' : 'Utwórz CV', exact: true });
+        await expect(setup).toBeVisible();
+        await expect(setup.getByRole('radio', { name: /Meridian/ })).toBeFocused();
+        if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+        expect(await setup.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+        await page.screenshot({ path: `../tmp/direct-setup-${language}-${width}.png` });
+        await page.keyboard.press('Escape');
+        await expect(setup).toBeHidden();
+      }
+      expect(api.calls.filter(call => /extract_cv|fill_template|create_pdf|update_pdf/.test(call.path))).toEqual([]);
+      api.assertHermetic();
+    });
+  }
+}
+
 for (const language of ['pl', 'en']) {
   for (const width of [390, 834, 1280, 1920]) {
     test(`source prerequisite in interview and profile: ${language} ${width}px`, async ({ page }) => {
@@ -34,7 +75,7 @@ for (const language of ['pl', 'en']) {
         const recovery = page.getByRole('region', { name: heading });
         const importLink = recovery.getByRole('link', { name: en ? 'Import PDF' : 'Importuj PDF' });
         await expect(importLink).toHaveAttribute('href', '/app/import');
-        await expect(recovery.getByRole('link', { name: en ? 'Create a CV manually' : 'Utwórz CV ręcznie' })).toHaveAttribute('href', '/app/new');
+        await expect(recovery.getByRole('link', { name: en ? 'Create a CV manually' : 'Utwórz CV ręcznie' })).toHaveAttribute('href', /\/cvstudio\/[^?]+\?start=new$/);
         await importLink.focus();
         await page.keyboard.press('Tab');
         await expect(recovery.getByRole('link').last()).toBeFocused();

@@ -14,7 +14,7 @@ import SavedImports from './SavedImports';
 import DialogShell from '../../components/common/DialogShell/DialogShell';
 import { listOwnedDocuments } from '../../services/documents';
 import { ApiClient, ENDPOINTS } from '../../services/api';
-import { getAccessToken } from '../../utils/authSession';
+import { getAccessToken, getEditorPath } from '../../utils/authSession';
 import { getDocumentPath } from '../../utils/siteRoutes';
 import { fetchOwnedPdfDownload, triggerBlobDownload } from '../../utils/download';
 
@@ -83,7 +83,7 @@ export default function DocumentsPage() {
   }
 
   return <SiteLayout workspace title={uiText("public:siteLayout.myDocuments")} eyebrow={uiText("account:accountPage.yourWorkspace")} intro={uiText("documents:documentsPage.returnToASavedCvOrPrepare")}
-    heroActions={<><Link className={classes.primary} to="/app/new"><FiPlus aria-hidden="true" />{uiText("editor:newCvSetupModal.createANewCv")}</Link><Link className={classes.secondary} to="/app/import"><FiUpload aria-hidden="true" />{uiText("editor:topbar.importPdf")}</Link></>}
+    heroActions={<><Link className={classes.primary} to={getEditorPath({ start: 'new' })}><FiPlus aria-hidden="true" />{uiText("editor:newCvSetupModal.createANewCv")}</Link><Link className={classes.secondary} to="/app/import"><FiUpload aria-hidden="true" />{uiText("editor:topbar.importPdf")}</Link></>}
     heroAside={entitlements?.ai_assistant === true ? <HeroNote icon={<FiFileText />} label={uiText("documents:documentsPage.interviewAvailableWithYourPro")} title={uiText("documents:documentsPage.notSureHowToDescribeYourExperience")}><p>{uiText("documents:documentsPage.answerQuestionsAboutYourActivitiesAndResults")}</p><Link className={classes.secondary} to="/app/interview">{uiText("account:accountPage.createACvThroughAnInterview")} <FiArrowRight aria-hidden="true" /></Link><Link to="/help#dopasowanie">{uiText("documents:documentsPage.iWantToTailorMyCurrentCv")}</Link></HeroNote> : <HeroNote icon={<FiFolder />} label={uiText("documents:documentsPage.everythingInOnePlace")} title={uiText("documents:documentsPage.anotherApplicationYouHaveAStartingPoint")}><p>{uiText("documents:documentsPage.openASavedProjectTailorItsContent")}</p><Link to="/help#powrot">{uiText("documents:documentsPage.returningToYourWork")} <FiArrowRight aria-hidden="true" /></Link></HeroNote>}>
     <section className={classes.library} aria-label={uiText("public:siteLayout.myDocuments")}>
     <div role="tablist" aria-label={uiText("public:siteLayout.myDocuments")} className={classes.tabs}>
