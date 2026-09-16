@@ -1530,7 +1530,7 @@
     "interviewFlow.clarificationsRemaining": "Doprecyzowania: {{count}} do sprawdzenia",
     "interviewFlow.chooseExistingSource": "Wybierz CV, import lub profil zawodowy",
     "interviewFlow.addSourceFirst": "Najpierw dodaj CV z danymi",
-    "interviewFlow.sourceRequiredHelp": "Profil zawodowy i wywiad służą do uzupełniania istniejącego CV. Zaimportuj PDF albo utwórz CV, uzupełnij je i zapisz. Źródło musi zawierać imię i nazwisko; doświadczenie zawodowe nie jest wymagane.",
+    "interviewFlow.sourceRequiredHelp": "Zacznij od swojego CV: zaimportuj plik PDF lub utwórz i zapisz nowy dokument. Pamiętaj o imieniu i nazwisku. Następnie możesz uzupełnić CV z pomocą profilu zawodowego i wywiadu.",
     "interviewFlow.editorSourceNeedsName": "Uzupełnij imię i nazwisko w bieżącym CV, a następnie wróć do wywiadu. Sam pusty szablon lub profil konta nie jest źródłem CV.",
     "interviewFlow.returnToCv": "Wróć do CV i uzupełnij dane",
     "interviewFlow.createCvManually": "Utwórz CV ręcznie",

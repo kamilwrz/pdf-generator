@@ -1615,7 +1615,7 @@
     "interviewFlow.clarificationsRemaining": "Clarifications: {{count}} to review",
     "interviewFlow.chooseExistingSource": "Choose a CV, import or career profile",
     "interviewFlow.addSourceFirst": "Add a CV with your details first",
-    "interviewFlow.sourceRequiredHelp": "The career profile and interview help enrich an existing CV. Import a PDF, or create a CV, add your details and save it. The source must include a full name; work experience is optional.",
+    "interviewFlow.sourceRequiredHelp": "Start with your CV: import a PDF or create and save a new document. Make sure it includes your full name. You can then add to your CV using the career profile and interview.",
     "interviewFlow.editorSourceNeedsName": "Add a full name to the current CV, then return to the interview. An empty template or account profile alone is not a CV source.",
     "interviewFlow.returnToCv": "Return to the CV and add details",
     "interviewFlow.createCvManually": "Create a CV manually",
