@@ -2326,7 +2326,7 @@
     "careerProfilePage.saveBeforeEditor": "Zapisz notatki przed przejściem do edytora. Zmiana źródła zachowa niezapisane notatki.",
     "careerProfilePage.noteConflict": "Notatki zmieniły się w innym oknie. Twój tekst pozostał tutaj. Skopiuj go przed wczytaniem zapisanych notatek.",
     "careerProfilePage.loadSavedNotes": "Wczytaj zapisane notatki i odrzuć lokalne zmiany",
-    "hero.interviewJump": "Treść CV potrzebuje poprawy? Poznaj Wywiad",
+    "hero.interviewJump": "Poznaj Wywiad",
     "hero.interviewLabel": "Wywiad · Pro",
     "hero.interviewTitle": "Masz więcej do pokazania niż listę obowiązków.",
     "hero.interviewBody": "Zacznij od swojego CV. Wywiad dopyta, co robisz, jakich narzędzi używasz i jakie są efekty Twojej pracy. Odpowiedz własnymi słowami. Z tych informacji przygotuje nową treść CV, poprawi jej styl i sprawdzi zgodność z podanymi faktami.",
@@ -2365,7 +2365,10 @@
     "publicPages.fitHeading": "CV na jednej stronie",
     "publicPages.fitIntro": "Po przygotowaniu treści Wywiad automatycznie sprawdza liczbę stron. Najpierw dopasowuje układ, potem w razie potrzeby próbuje skrócić opisy z kontrolą faktów. Możesz przywrócić wersję sprzed dopasowania.",
     "publicPages.fitTemplates": "Jeśli wynik nadal ma kilka stron, zobaczysz porównanie dostępnych szablonów. Wybierzesz tylko taki, w którym aplikacja rzeczywiście zmierzyła jedną stronę dla tej samej treści. Samo porównanie i zmiana szablonu są bez kredytów AI. Gdy żaden nie pasuje, możesz zachować dłuższy dokument lub poprawić go w edytorze.",
-    "careerProfilePage.manageProfile": "Opcje profilu"
+    "careerProfilePage.manageProfile": "Opcje profilu",
+    "hero.interviewHint": "Odpowiedz na pytania i opisz lepiej swoje doświadczenie.",
+    "hero.tailoringHint": "Dodaj CV i ofertę pracy. Przygotuj wersję pod tę rekrutację.",
+    "hero.contentPaths": "Pomoc w przygotowaniu treści CV"
   },
   "documents": {
     "modalPdfs.couldNotLoadTheSelectedPdf": "Nie udało się wczytać wybranego PDF!",

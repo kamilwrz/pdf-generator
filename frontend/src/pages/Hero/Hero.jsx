@@ -132,8 +132,16 @@ export default function Hero() {
                         {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>{uiText("public:hero.returnToCvDraft")} <ArrowIcon /></Link> : <CtaLink to={demoUrl} event="hero_demo" variant="secondary">{uiText("public:hero.exploreTheEditor")}</CtaLink>}
                     </div>
                     <p className={classes.accountNote}>{uiText("public:hero.startWithoutAnAccountFreeRegistrationIs")}</p>
-                    <a className={classes.interviewJump} href="#wywiad">{uiText("public:hero.interviewJump")} <ArrowIcon /></a>
-                    <Link className={classes.interviewJump} to="/app/tailor">{uiText('tailoring:title')} <ArrowIcon /></Link>
+                    <nav className={classes.contentPaths} aria-label={uiText('public:hero.contentPaths')}>
+                        <Link className={`${classes.contentPath} ${classes.tailoringPath}`} to="/app/tailor">
+                            <span><strong>{uiText('tailoring:title')}</strong><span>{uiText('public:hero.tailoringHint')}</span></span>
+                            <ArrowIcon />
+                        </Link>
+                        <a className={classes.contentPath} href="#wywiad">
+                            <span><strong>{uiText('public:hero.interviewJump')}</strong><span>{uiText('public:hero.interviewHint')}</span></span>
+                            <ArrowIcon />
+                        </a>
+                    </nav>
                     <ul className={classes.heroTrust} aria-label={uiText("public:hero.startWith")}>
                         <li>{uiText("public:hero.freeEditor")}</li>
                         <li>{uiText("public:hero.pdfWithoutAWatermark")}</li>

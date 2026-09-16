@@ -393,7 +393,7 @@
     "publicPages.pdfWithoutAWatermark": "PDF without a watermark.",
     "publicPages.forWorkingWithAi": "FOR WORKING WITH AI",
     "publicPages.yourFirstCvInStudio": "YOUR FIRST CV IN STUDIO?",
-    "hero.interviewJump": "Need better CV content? Explore the Interview",
+    "hero.interviewJump": "Explore the Interview",
     "hero.interviewLabel": "Interview · Pro",
     "hero.interviewTitle": "You have more to show than a list of duties.",
     "hero.interviewBody": "Start with your CV. The Interview asks what you do, which tools you use and what your work achieves. Answer in your own words. It uses those details to draft new CV content, edit the wording and check it against the facts you provided.",
@@ -430,7 +430,10 @@
     "siteLayout.interview": "Interview",
     "publicPages.fitHeading": "A one-page CV",
     "publicPages.fitIntro": "After drafting your content, the Interview checks the page count automatically. It first adjusts the layout, then attempts fact-checked shortening where needed. You can restore the version from before fitting.",
-    "publicPages.fitTemplates": "If the result still has several pages, you will see a comparison of available templates. Choose a template where the app has measured a single-page result using the same content. Comparison and template changes use no AI credits. If none fits, keep the longer document or edit it in Studio."
+    "publicPages.fitTemplates": "If the result still has several pages, you will see a comparison of available templates. Choose a template where the app has measured a single-page result using the same content. Comparison and template changes use no AI credits. If none fits, keep the longer document or edit it in Studio.",
+    "hero.interviewHint": "Answer questions to describe your experience more clearly.",
+    "hero.tailoringHint": "Add your CV and a job advert. Prepare a version for that role.",
+    "hero.contentPaths": "Help with your CV content"
   },
   "account": {
     "planSelectModal.pln": "PLN",
