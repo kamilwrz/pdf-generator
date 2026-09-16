@@ -34,7 +34,10 @@ from app.services.cv_templates.shared.contact import (
 )
 from app.services.cv_templates.shared.extras import _extra_sections
 from app.services.cv_templates.shared.icons import _icon
-from app.services.cv_templates.shared.masthead import tag_masthead_identity
+from app.services.cv_templates.shared.masthead import (
+    fit_wrapped_name_element,
+    tag_masthead_identity,
+)
 from app.services.cv_templates.shared.records import _education_bullets, _education_school
 from app.services.cv_templates.shared.text import (
     _compact_text,
@@ -207,23 +210,21 @@ def _gen_vellum(cv: dict) -> list[dict]:
     header_width = 348.0
     header: list[dict] = []
     cursor_y = 43.0
-    name = _compact_text(cv.get("name"), 44)
+    name = str(cv.get("name") or "").strip()
     title = _compact_text(cv.get("title"), 72)
     name_index: int | None = None
     title_index: int | None = None
 
     if name:
-        name_height = Builder.measure_block(
-            name, header_width, 28.5, 32.0, display, bold=True,
-        )
         name_index = len(header)
         name_element = _block(
-            name, left, cursor_y, header_width, name_height, 28.5, 32.0,
+            name, left, cursor_y, header_width, 32.0, 28.5, 32.0,
             palette["ink"], display, zIndex=3, bold=True,
         )
         name_element["letterSpacing"] = 3.3
+        fit_wrapped_name_element(name_element)
         header.append(name_element)
-        cursor_y += name_height + 5.0
+        cursor_y += name_element["height"] + 5.0
 
     title_top = cursor_y
     title_height = (

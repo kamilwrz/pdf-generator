@@ -6,6 +6,9 @@ import { TEST_TEMPLATES } from '../templates/testTemplatePacks.js';
 import { materializeElementSpecs } from './materializeElementSpecs.js';
 import { applySlateTextSize } from './slateAppearance.js';
 import { applyMonumentTextSize } from './monumentAppearance.js';
+import { applyAureliaTextSize } from './aureliaAppearance.js';
+import { applyCadenzaTextSize } from './cadenzaAppearance.js';
+import { applyVellumTextSize } from './vellumAppearance.js';
 import { hydratePersistedCanvasElement } from './persistedCanvasElement.js';
 import { hideProfilePhoto, showProfilePhoto } from './profilePhotoVisibility.js';
 import { applyChannelRelayout } from './contactBandOps.js';
@@ -83,12 +86,77 @@ for (const template of ['slate', 'monument']) {
 }
 
 test('other templates and unmanaged freeform text retain their authored geometry', () => {
-  for (const template of TEST_TEMPLATES.filter((template) => !['slate', 'monument'].includes(template.id))) {
+  for (const template of TEST_TEMPLATES.filter((template) => !['slate', 'monument', 'vellum', 'aurelia', 'cadenza'].includes(template.id))) {
     assert.equal(fit(template.elements), template.elements);
   }
   const freeform = [{ category: 'text', content: 'W'.repeat(100), fontSize: 24 }];
   assert.equal(fit(freeform), freeform);
 });
+
+for (const [template, preset] of Object.entries({
+  vellum: applyVellumTextSize, aurelia: applyAureliaTextSize, cadenza: applyCadenzaTextSize,
+})) {
+  test(`${template}: complete wrapped identity clears title and contacts and restores its authored layout`, () => {
+    const original = fit(starter(template));
+    const sourceName = nameOf(original);
+    const content = 'Hubert Mikołaj Stawiarczyk-Nowak';
+    const wrapped = fit(replaceName(original, { content }));
+    const name = nameOf(wrapped);
+    assert.equal(name.content, content);
+    assert.equal(name.fontSize, sourceName.fontSize);
+    assert.ok(name.nameFit.extraHeight > 0);
+    assert.equal(fit(wrapped), wrapped);
+    const title = wrapped.find((element) => element.mastheadRole === 'title');
+    assert.ok(title.top >= name.top + name.height + 5);
+    assert.ok(wrapped.filter((element) => element.contactChannel)
+      .every((element) => element.top >= title.top + title.height));
+    for (const fixed of original.filter((element) => element.fixedToPage || element.photoSlot)) {
+      assert.deepEqual(wrapped.find((element) => element.element_id === fixed.element_id), fixed);
+    }
+    if (template === 'aurelia') {
+      const frame = wrapped.find((element) => element.mastheadFrame);
+      assert.ok(frame.top + frame.height > title.top + title.height);
+      assert.equal(frame.height, original.find((element) => element.mastheadFrame).height + name.nameFit.extraHeight);
+    }
+    const restored = fit(replaceName(JSON.parse(JSON.stringify(wrapped)), { content: sourceName.content }));
+    for (const element of original.filter((element) => element.flowRole?.startsWith('masthead') || element.fixedToPage)) {
+      const actual = restored.find((candidate) => candidate.element_id === element.element_id);
+      assert.equal(actual.top, element.top, element.element_id);
+      assert.equal(actual.height, element.height, element.element_id);
+    }
+    for (const element of restored.filter((element) => element.flowRole === 'content')) {
+      assert.ok(element.top + (element.height || 0) < 796);
+    }
+  });
+
+  test(`${template}: legacy allocated rows, hidden title, type presets and browser wrapping remain stable`, () => {
+    const source = starter(template);
+    // Existing generated files may already reserve two rows without metadata.
+    // Repair only the additional rows the browser needs, not that old allocation.
+    const initial = fitMastheadNames(source, { measureTextWidth, measureLines: () => [{}, {}] });
+    const legacy = initial.map((element) => {
+      if (element.mastheadRole !== 'name') return element;
+      const { nameFit: _ignored, ...rest } = element;
+      return rest;
+    });
+    const repaired = fitMastheadNames(legacy, { measureTextWidth, measureLines: () => [{}, {}] });
+    assert.equal(repaired.find((element) => element.mastheadRole === 'title').top,
+      initial.find((element) => element.mastheadRole === 'title').top);
+    const hidden = applyTitleToggle(repaired, nameOf(repaired).mastheadBandId, () => 'restored-title').elements;
+    const longContent = 'Aleksandra ' + 'W'.repeat(70);
+    const grown = fit(replaceName(hidden, { content: longContent }));
+    const shown = applyTitleToggle(grown, nameOf(grown).mastheadBandId, () => 'restored-title').elements;
+    const title = shown.find((element) => element.mastheadRole === 'title');
+    assert.ok(title.top >= nameOf(shown).top + nameOf(shown).height + 5);
+    const large = fit(preset(shown, 'xl'));
+    assert.ok(large.find((element) => element.mastheadRole === 'title').top
+      >= nameOf(large).top + nameOf(large).height + 5);
+    const normal = fit(preset(large, 'm'));
+    assert.equal(nameOf(normal).fontSize, nameOf(source).fontSize);
+    assert.equal(nameOf(normal).content, longContent);
+    assert.equal(fit(normal), normal);
+  });
+}
 
 test('an authored narrower frame stays bounded across repeated fitting', () => {
   const initial = replaceName(starter('slate'), { width: 170, content: 'W'.repeat(55) });

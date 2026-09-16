@@ -1,12 +1,67 @@
-"""Masthead identity helpers for CV template generators (Phase 3).
+"""Masthead identity and name-layout helpers for CV template generators.
 
 Tags the name/title elements so the client masthead-identity manager can toggle
 the name's case and hide/show the title, and emits a zero-footprint anchor
 carrying the reflow descriptor. Mirrors `shared/contact.py`'s band-anchor model.
+Editorial names are measured with rendered casing/tracking before dependent
+header placement; compact continuation names keep their existing single row.
 """
 from __future__ import annotations
 
+import math
 from typing import Any
+
+from app.services.pdf_generator import PDF_Generator
+
+
+def fit_wrapped_name_element(name_el: dict, *, uppercase: bool = True) -> float:
+    """Measure an editorial name in place and return its added height in points.
+
+    The supplied textarea contains the authored one-line slot. Preserve its
+    font and full source text, measuring the actual casing and tracking used
+    for output. Persist the allocated expansion so the browser can adjust its
+    own measured wrapping without displacing the title/contact band twice.
+    Callers lay out all following masthead content using the updated height.
+    """
+    base_height = float(name_el["height"])
+    content = str(name_el.get("content") or "")
+    rendered = content.upper() if uppercase else content
+    height = max(base_height, math.ceil(PDF_Generator.measure_textarea_height(
+        rendered, name_el["fontFamily"], name_el["fontSize"],
+        name_el["lineHeight"], name_el["width"],
+        bold=bool(name_el.get("bold")), italic=bool(name_el.get("italic")),
+        letter_spacing=name_el.get("letterSpacing", 0), runs=name_el.get("runs"),
+    )))
+    extra_height = height - base_height
+    name_el["height"] = height
+    name_el["nameFit"] = {
+        "mode": "wrap", "baseHeight": base_height,
+        "baseFontSize": name_el["fontSize"], "fittedFontSize": name_el["fontSize"],
+        "baseLineHeight": name_el["lineHeight"], "width": name_el["width"],
+        "extraHeight": extra_height,
+    }
+    return extra_height
+
+
+def fit_running_name_element(name_el: dict, width: float) -> None:
+    """Fit a complete continuation-page name inside its single-line rail.
+
+    Unlike the main identity, this small fixed header cannot add rows into the
+    page's body. Scale its font and tracking together only when needed, keeping
+    its source content and authored maximum while reserving one point of slack.
+    The supplied element is updated in place; page and baseline stay unchanged.
+    """
+    content = str(name_el.get("content") or "")
+    rendered = content.upper() if name_el.get("textTransform") == "uppercase" else content
+    font, _, _ = PDF_Generator._resolve_font(
+        name_el["fontFamily"], bool(name_el.get("bold")), bool(name_el.get("italic")),
+    )
+    tracking = float(name_el.get("letterSpacing") or 0)
+    measured_width = PDF_Generator._line_width(rendered, font, name_el["fontSize"], tracking)
+    scale = min(1.0, (width - 1.0) / max(1.0, measured_width))
+    name_el["fontSize"] *= scale
+    name_el["letterSpacing"] = tracking * scale
+    name_el["width"] = width
 
 
 def build_masthead_identity_anchor(descriptor: dict[str, Any], *, page: int = 1) -> dict:

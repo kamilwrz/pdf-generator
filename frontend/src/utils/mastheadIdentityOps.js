@@ -151,14 +151,19 @@ export function applyNameCaseToggle(elements, bandId) {
 // PAGE as the toggled title, and is not page-fixed chrome. The coupled contact
 // band anchor is special-cased: its descriptor `startY` moves with the band so
 // later channel reflows use the new origin. The identity anchor (top 0) and the
-// name (above the title) are never caught by the boundary test.
+// name (above the title) retain their positions. A fitted name's stored body
+// origin must still track the title gap so later wrapping cannot restore it.
 //
 // The page guard is essential: `top` is page-relative, so without it a page-2+
 // element whose page-relative `top` happens to exceed the page-1 title's `top`
 // would be shifted as if it sat below the masthead — crushing/overlapping
 // continuation-page content. The masthead lives on one page; hiding/showing its
 // title only reflows that page. Cross-page repagination is not this op's job.
-function shiftBelow(el, boundaryTop, delta, contactBandId, boundaryPage, restoredIds = null) {
+function shiftBelow(el, boundaryTop, delta, contactBandId, boundaryPage, restoredIds = null, bandId = null) {
+  if (el.mastheadRole === 'name' && el.mastheadBandId === bandId
+    && Number.isFinite(el.nameFit?.flowStart)) {
+    return { ...el, nameFit: { ...el.nameFit, flowStart: el.nameFit.flowStart + delta } };
+  }
   if (el.flowRole === "masthead-anchor" && el.contactBand && el.contactBandId === contactBandId) {
     const anchor = { ...el.contactBand.anchor };
     if (typeof anchor.startY === "number") anchor.startY += delta;
@@ -286,7 +291,7 @@ function hideTitle(elements, bandId, descriptor, blockPt, createId) {
     !(el.mastheadBandId === bandId && el.mastheadRole === "title")
     && !(el.mastheadBandId === bandId && el.mastheadRole === "title-decoration")
   ));
-  const shifted = withoutTitle.map((el) => shiftBelow(el, boundaryTop, -blockPt, contactBandId, boundaryPage));
+  const shifted = withoutTitle.map((el) => shiftBelow(el, boundaryTop, -blockPt, contactBandId, boundaryPage, null, bandId));
   // A compacted contact row can cross above the old title boundary. Remember
   // the actual moved elements so showing the title reverses that move even
   // after save/reload, without also moving upstream names or sidebar content.
@@ -413,7 +418,7 @@ function showTitle(elements, bandId, descriptor, blockPt, createId) {
     elements.filter((el) => el.contactBandId === contactBandId && el.contactChannel)
       .forEach((el) => restoredIds.add(el.element_id));
   }
-  const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId, boundaryPage, restoredIds));
+  const shifted = elements.map((el) => shiftBelow(el, boundaryTop, +blockPt, contactBandId, boundaryPage, restoredIds, bandId));
   const titleEl = buildTitleElement(spec, bandId, createId, boundaryPage, nameEl);
   const decorations = buildTitleDecorations(
     descriptor.title?.decorations,

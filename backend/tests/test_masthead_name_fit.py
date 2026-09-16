@@ -302,3 +302,147 @@ def test_new_continuation_background_is_behind_visible_carried_text(template_id)
     dark = sum(max(samples[offset:offset + 3]) < 100
                for offset in range(0, len(samples), pixels.n))
     assert dark > 10, "Continuation paper must not paint over the carried record"
+
+
+@pytest.mark.parametrize("template_id", ["vellum", "aurelia", "cadenza"])
+@pytest.mark.parametrize("content", ["Hubert Mikołaj Stawiarczyk", "Anna " + "W" * 90])
+def test_editorial_generators_reserve_complete_tracked_name_before_title_and_contacts(template_id, content):
+    elements = generate_resume(template_id, _cv(content))
+    name = next(element for element in elements if element.get("mastheadRole") == "name")
+    title = next(element for element in elements if element.get("mastheadRole") == "title")
+    contact = next(element["contactBand"] for element in elements if element.get("contactBand"))
+    assert name["content"] == content
+    assert name["nameFit"]["mode"] == "wrap"
+    assert name["fontSize"] == {"vellum": 28.5, "aurelia": 29.0, "cadenza": 27.5}[template_id]
+    height = PDF_Generator.measure_textarea_height(
+        content.upper(), name["fontFamily"], name["fontSize"], name["lineHeight"], name["width"],
+        bold=name.get("bold", False), letter_spacing=name["letterSpacing"],
+    )
+    assert name["height"] >= height
+    assert title["top"] >= name["top"] + name["height"] + 5
+    assert contact["anchor"]["startY"] >= title["top"] + title["height"]
+    assert name["nameFit"]["extraHeight"] == name["height"] - name["nameFit"]["baseHeight"]
+    assert fit_legacy_masthead_names(elements) is elements
+    if template_id == "aurelia":
+        frame = next(element for element in elements if element.get("id") == "aurelia-masthead-frame")
+        assert frame["height"] == 104 + name["nameFit"]["extraHeight"]
+        assert frame["top"] + frame["height"] > title["top"] + title["height"]
+
+
+@pytest.mark.parametrize("template_id", ["vellum", "aurelia", "cadenza"])
+@pytest.mark.parametrize("title", ["Analyst", ""])
+def test_legacy_editorial_fit_repairs_name_only_autoheight_without_mutating_saved_graph(template_id, title):
+    source = generate_resume(template_id, {**_cv("Anna Li"), "title": title})
+    name = next(element for element in source if element.get("mastheadRole") == "name")
+    name.pop("nameFit")
+    name["content"] = "Hubert Mikołaj Stawiarczyk"
+    # This recreates the screenshot: the textarea's height has already grown,
+    # while the title blueprint and the contacts retain the original slot.
+    name["height"] = 3 * name["lineHeight"]
+    snapshot = deepcopy(source)
+    fitted = fit_legacy_masthead_names(source)
+    assert source == snapshot
+    fitted_name = next(element for element in fitted if element.get("mastheadRole") == "name")
+    identity = next(element["mastheadIdentity"] for element in fitted if element.get("mastheadIdentity"))
+    delta = fitted_name["nameFit"]["extraHeight"]
+    assert fitted_name["content"] == name["content"]
+    assert fitted_name["fontSize"] == name["fontSize"]
+    assert identity["title"]["spec"]["top"] >= fitted_name["top"] + fitted_name["height"] + 5
+    for before, after in zip(source, fitted):
+        if before.get("photoSlot") or before.get("fixedToPage"):
+            assert after["top"] == before["top"]
+        if before.get("contactBand"):
+            assert after["contactBand"]["anchor"]["startY"] == before["contactBand"]["anchor"]["startY"] + delta
+        if before.get("id") == "aurelia-masthead-frame":
+            assert after["height"] == before["height"] + delta
+    assert fit_legacy_masthead_names(fitted) is fitted
+
+
+@pytest.mark.parametrize("template_id", ["vellum", "aurelia", "cadenza"])
+def test_editorial_pdf_keeps_every_name_glyph_clear_of_the_following_title(template_id):
+    pymupdf = pytest.importorskip("pymupdf")
+    from app.utils.build_pdf import build_pdf_to_buffer
+    from app.utils.image_src_to_path import image_src_to_local_path
+
+    content = "Anna " + "W" * 90
+    source = generate_resume(template_id, _cv(content))
+    name = next(element for element in source if element.get("mastheadRole") == "name")
+    title = next(element for element in source if element.get("mastheadRole") == "title")
+    elements = [PdfElement(element_id=str(index), **element) for index, element in enumerate(source)]
+    pdf_data = SimpleNamespace(pdf_title="Editorial name", page_width=595, page_height=842, pages=1)
+    document = pymupdf.open(stream=build_pdf_to_buffer(pdf_data, elements, image_src_to_local_path), filetype="pdf")
+    spans = [span for block in document[0].get_text("dict")["blocks"] if "lines" in block
+             for line in block["lines"] for span in line["spans"]
+             if span["size"] == pytest.approx(name["fontSize"])]
+    assert "".join(span["text"] for span in spans).replace(" ", "") == content.upper().replace(" ", "")
+    # Font bounding boxes include a small descender allowance outside the
+    # textarea's line box. Verify the actual non-overlap contract, not an
+    # assumed equality between font ink metrics and authored line heights.
+    assert max(span["bbox"][3] for span in spans) < title["top"]
+
+
+@pytest.mark.parametrize("template_id", ["aurelia", "cadenza"])
+def test_editorial_long_continuation_name_stays_inside_its_existing_single_line_rail(template_id):
+    content = "Anna " + "W" * 90
+    cv = _cv(content)
+    cv["experience"] = [{"title": f"Analyst {index}", "company": "Research", "bullets": ["Evidence review. " * 50]}
+                        for index in range(6)]
+    elements = generate_resume(template_id, cv)
+    continuation = next(element for element in elements if element.get("content") == content and element.get("page", 1) > 1)
+    font, _, _ = PDF_Generator._resolve_font(continuation["fontFamily"], continuation.get("bold", False), False)
+    assert PDF_Generator._line_width(content.upper(), font, continuation["fontSize"], continuation["letterSpacing"]) <= 479
+    assert continuation["top"] == 30
+
+
+@pytest.mark.parametrize("write_path", ["create", "update-existing", "insert-on-update"])
+def test_wrapped_name_allocation_survives_database_save_and_reload(write_path):
+    """The settled expansion must not be lost at any JSON-column write path."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from app.crud.pdfs import create_new_pdf, elements_from_rows, update_pdf_elements
+    from app.models.models import Base, PdfElements, User
+
+    graph = generate_resume("aurelia", _cv("Hubert Mikołaj Stawiarczyk"))
+    source = next(element for element in graph if element.get("mastheadRole") == "name")
+    element = PdfElement(element_id="wrapped-name", **source)
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    try:
+        with Session(engine) as database:
+            owner = User(username="name-roundtrip", email="name@example.com")
+            database.add(owner)
+            database.flush()
+            initial = [] if write_path == "insert-on-update" else [
+                element.model_copy(update={"nameFit": None}) if write_path == "update-existing" else element
+            ]
+            pdf_id = create_new_pdf(database, "Wrapped name", owner.id, None, initial)
+            if write_path != "create":
+                rows = database.query(PdfElements).filter_by(pdf_id=pdf_id).all()
+                update_pdf_elements(database, [element], {row.element_id: row for row in rows}, pdf_id)
+                database.commit()
+            database.expire_all()
+            [restored] = elements_from_rows(database.query(PdfElements).filter_by(pdf_id=pdf_id).all())
+            assert restored.nameFit == element.nameFit
+            assert restored.content == element.content
+            assert float(restored.height) == float(element.height)
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("template_id", ["vellum", "aurelia", "cadenza"])
+def test_legacy_editorial_expansion_moves_complete_records_before_the_footer(template_id):
+    cv = _cv("Anna Li")
+    cv["experience"] = [{"title": f"Analyst {index}", "company": "Research", "bullets": ["Evidence review. " * 15]}
+                        for index in range(7)]
+    source = generate_resume(template_id, cv)
+    name = next(element for element in source if element.get("mastheadRole") == "name")
+    name.pop("nameFit")
+    name["content"] = "Anna " + "W" * 60
+    fitted = fit_legacy_masthead_names(source)
+    source_groups = {element["flowGroup"]: element.get("page", 1) for element in source if element.get("flowGroup")}
+    body = [element for element in fitted if element.get("flowGroup")]
+    assert any(element.get("page", 1) > source_groups[element["flowGroup"]] for element in body)
+    for group in source_groups:
+        members = [element for element in body if element["flowGroup"] == group]
+        assert len({element.get("page", 1) for element in members}) == 1
+        assert all(element["top"] + float(element.get("height") or 0) <= 770 for element in members)

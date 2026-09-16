@@ -28,7 +28,11 @@ from app.services.cv_templates.shared.contact import (
     build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
-from app.services.cv_templates.shared.masthead import tag_masthead_identity
+from app.services.cv_templates.shared.masthead import (
+    fit_running_name_element,
+    fit_wrapped_name_element,
+    tag_masthead_identity,
+)
 from app.services.cv_templates.shared.text import (
     _compact_text,
     _labels,
@@ -87,22 +91,20 @@ def _gen_aurelia(cv: dict) -> list[dict]:
     frame["mastheadFrame"] = True
     header.append(frame)
 
-    name = _compact_text(cv.get("name"), 48)
+    name = str(cv.get("name") or "").strip()
     title = _compact_text(cv.get("title"), 84)
     name_element: dict | None = None
     title_element: dict | None = None
 
     name_top = 57.0
+    name_expansion = 0.0
     if name:
-        name_height = Builder.measure_block(
-            name, width - 32.0, 29.0, 33.0, font, min_h=33.0,
-        )
         name_element = _block(
             name,
             left + 16.0,
             name_top,
             width - 32.0,
-            name_height,
+            33.0,
             29.0,
             33.0,
             palette["ink"],
@@ -111,12 +113,14 @@ def _gen_aurelia(cv: dict) -> list[dict]:
             align="center",
         )
         name_element["letterSpacing"] = 2.4
+        name_expansion = fit_wrapped_name_element(name_element)
+        frame["height"] += name_expansion
         name_element["flowRole"] = "masthead"
         header.append(name_element)
 
-    # The title occupies a stable slot inside the frame. Hiding it must not
-    # collapse the outline or pull the independent contact band into the box.
-    title_top = 105.0
+    # The outline and its title slot grow with wrapped name lines. Hiding the
+    # title still keeps its slot and cannot collapse the independent frame.
+    title_top = 105.0 + name_expansion
     title_height = Builder.measure_block(
         title, width - 48.0, 7.8, 10.8, font, min_h=10.8,
     ) if title else 11.0
@@ -139,7 +143,7 @@ def _gen_aurelia(cv: dict) -> list[dict]:
         title_element = title_prototype
         header.append(title_element)
 
-    contact_start_y = _FRAME_TOP + _FRAME_HEIGHT + 16.0
+    contact_start_y = _FRAME_TOP + frame["height"] + 16.0
     contact_elements, contact_bottom, contact_descriptor = _place_centered_icon_contacts(
         theme=palette["icon_theme"],
         items=_contact_channel_items(cv),
@@ -402,6 +406,7 @@ def _gen_aurelia(cv: dict) -> list[dict]:
             )
             continuation_name["letterSpacing"] = 2.0
             continuation_name["textTransform"] = "uppercase"
+            fit_running_name_element(continuation_name, width)
             continuation_name["fixedToPage"] = True
             continuation_name["flowRole"] = "fixed"
             decorations.append(continuation_name)

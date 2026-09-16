@@ -105,6 +105,19 @@ test("title show reconstructs the title from spec and reverses the shift", () =>
   assert.equal(elements.find((e) => e.element_id === "mid").mastheadIdentity.title.present, true);
 });
 
+test("title visibility keeps the fitted-name body origin aligned for later repagination", () => {
+  const source = doc().map((element) => element.element_id === 'name'
+    ? { ...element, nameFit: { mode: 'wrap', extraHeight: 32, flowStart: 146, repaginate: true } }
+    : element);
+  const hidden = applyTitleToggle(source, 'masthead-main', () => 'title-restored').elements;
+  const hiddenName = hidden.find((element) => element.element_id === 'name');
+  assert.equal(hiddenName.top, 44);
+  assert.equal(hiddenName.nameFit.flowStart, 122);
+  const restored = applyTitleToggle(JSON.parse(JSON.stringify(hidden)), 'masthead-main', () => 'title-restored').elements;
+  assert.deepEqual(restored.find((element) => element.element_id === 'name').nameFit,
+    source.find((element) => element.element_id === 'name').nameFit);
+});
+
 test("title restoration recovers contacts that compact above the title boundary", () => {
   const source = doc();
   source.find((element) => element.element_id === "chip").top = 98;

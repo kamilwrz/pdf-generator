@@ -1,8 +1,8 @@
-"""Render-only fitting for legacy point-text masthead names.
+"""Render-only fitting for legacy managed masthead names.
 
 New editor payloads already contain browser-measured geometry. This fallback
-repairs pre-fitting Slate/Monument documents with ReportLab metrics without
-mutating saved content or replacing the browser's typography decisions.
+repairs pre-fitting point-text and editorial textarea names with ReportLab
+metrics without mutating saved content or replacing browser typography choices.
 """
 from __future__ import annotations
 
@@ -35,14 +35,14 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
     """Return isolated fitted elements for managed names lacking fit metadata.
 
     A name must have both a matching identity descriptor and its contact band;
-    ordinary freeform text and the templates' existing textarea names remain
-    unchanged. Fit the largest hundredth-point font down to 14 pt, then wrap
-    complete text and move downstream first-page content by the added height.
+    ordinary freeform text remains unchanged. Point text fits down to 14 pt;
+    Vellum, Aurelia and Cadenza textareas retain their authored typography and
+    wrap complete names. Both modes move downstream content by added height.
     Modern browser-fitted names keep their exact size, height and line records.
     The input element list and all nested descriptor dictionaries stay intact.
     """
     candidates = [element for element in elements if
-                  _value(element, "category") == "text"
+                  _value(element, "category") in {"text", "textarea"}
                   and _value(element, "mastheadRole") == "name"
                   and not _value(element, "deleted", False)
                   and not isinstance(_value(element, "nameFit"), dict)]
@@ -51,8 +51,9 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
     result = deepcopy(elements)
     measure = PDF_Generator.__new__(PDF_Generator)
     pagination_template = None
+    changed = False
     for name in result:
-        if (_value(name, "category") != "text"
+        if (_value(name, "category") not in {"text", "textarea"}
                 or _value(name, "mastheadRole") != "name"
                 or _value(name, "deleted", False)
                 or isinstance(_value(name, "nameFit"), dict)):
@@ -65,6 +66,9 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
             continue
         identity = _value(identity_element, "mastheadIdentity")
         contact_id = identity.get("contactBandId")
+        wrap_mode = _value(name, "category") == "textarea"
+        if wrap_mode and contact_id not in {"vellum-contact", "aurelia-contact", "cadenza-contact"}:
+            continue
         contact_element = next((element for element in result if
                                 isinstance(_value(element, "contactBand"), dict)
                                 and _value(element, "contactBand").get("id") == contact_id), None)
@@ -112,7 +116,7 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
             return measure._line_width(content, font, size, tracking)
 
         minimum = min(base, 14.0)
-        if measured_width(base) <= width - 1.0 and "\n" not in content:
+        if wrap_mode or (measured_width(base) <= width - 1.0 and "\n" not in content):
             fitted = base
         else:
             low, high = math.ceil(minimum * 100), math.floor(base * 100)
@@ -125,7 +129,8 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
                 else:
                     high = middle - 1
             fitted = low / 100.0
-        line_height = round(fitted * 1.2, 2)
+        line_height = (_number(_value(name, "lineHeight"), fitted * 1.2)
+                       if wrap_mode else round(fitted * 1.2, 2))
         if prepared is not None:
             clean, styles = prepared
             rows = len(measure._wrap_textarea_styled(
@@ -135,14 +140,29 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
         else:
             rows = len(measure._wrap_textarea(content, font, fitted, tracking, width))
         rows = max(1, rows)
+        height = round(rows * line_height, 2)
         extra_height = round((rows - 1) * line_height, 2)
+        policy = {"baseFontSize": base, "fittedFontSize": fitted,
+                  "width": width, "extraHeight": extra_height}
+        if wrap_mode:
+            # Legacy canvas auto-height may have grown the name alone. The
+            # title blueprint records the space actually allocated by the
+            # generator, so do not treat the overlapping live box as settled.
+            base_height = 33.0 if contact_id == "aurelia-contact" else 32.0
+            gap = 15.0 if contact_id == "aurelia-contact" else 5.0
+            title_spec = (identity.get("title") or {}).get("spec") or {}
+            allocated_height = max(base_height, _number(title_spec.get("top"), top + base_height + gap) - top - gap)
+            height = max(base_height, math.ceil(height))
+            extra_height = height - allocated_height
+            policy.update({"mode": "wrap", "baseHeight": base_height,
+                           "baseLineHeight": line_height, "extraHeight": height - base_height})
         for key, value in {
-            "fontSize": fitted, "width": width, "height": round(rows * line_height, 2),
+            "fontSize": fitted, "width": width, "height": height,
             "lineHeight": line_height,
-            "nameFit": {"baseFontSize": base, "fittedFontSize": fitted,
-                        "width": width, "extraHeight": extra_height},
+            "nameFit": policy,
         }.items():
             _assign(name, key, value)
+        changed = True
         if extra_height == 0:
             continue
 
@@ -150,6 +170,10 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
         # other pages retain their coordinates. Descriptor blueprints follow
         # the same displacement so later restore/reflow actions stay coherent.
         for element in result:
+            if (wrap_mode and contact_id == "aurelia-contact"
+                    and _number(_value(element, "page"), 1) == page
+                    and _value(element, "id") == "aurelia-masthead-frame"):
+                _assign(element, "height", _number(_value(element, "height")) + extra_height)
             if (element is not name and _number(_value(element, "page"), 1) == page
                     and not _value(element, "fixedToPage", False)
                     and not _value(element, "photoSlot")
@@ -177,10 +201,11 @@ def fit_legacy_masthead_names(elements, *, page_width=595.0):
                 for spec in [parked_title.get("spec"), *(parked_title.get("decorations") or [])]:
                     if isinstance(spec, dict) and "top" in spec:
                         spec["top"] = _number(spec["top"]) + extra_height
-        pagination_template = "monument" if band_id == "monument-masthead" else "slate"
+        pagination_template = (contact_id.removesuffix("-contact") if wrap_mode
+                               else "monument" if band_id == "monument-masthead" else "slate")
     if pagination_template is not None:
         _carry_overflow_records(result, template=pagination_template)
-    return result
+    return result if changed else elements
 
 
 def _carry_overflow_records(elements, *, template):
@@ -259,7 +284,7 @@ def _carry_overflow_records(elements, *, template):
             merged.append(members)
     units = merged
 
-    continuation_top = 72.0 if template == "monument" else 58.0
+    continuation_top = {"monument": 72.0, "slate": 58.0}.get(template, 66.0)
     current_page, cursor, previous_source_page, previous_source_bottom = 1, 0.0, None, 0.0
     original_pages = {_number(_value(element, "page"), 1) for element in elements}
     for members in units:

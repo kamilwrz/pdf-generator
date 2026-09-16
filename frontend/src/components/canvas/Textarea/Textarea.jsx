@@ -351,16 +351,10 @@ function Textarea({
                 return;
             }
             if (mastheadRole) {
-                // Masthead name/title boxes are a self-contained identity block
-                // (see `mastheadIdentityOps.js`'s "position-preserving, no
-                // reflow" contract for the case/title toggles). `fitTextareaToContent`
-                // runs the generic record-flow cascade (`reflowTextareaHeight`),
-                // which reasons about section/record lanes the masthead does not
-                // belong to. On a split-column masthead this produced a
-                // stray shifted line under the job title when a case toggle
-                // caused the name to wrap onto two lines. Grow/shrink the box in
-                // place instead so the fix for clipped text cannot itself
-                // misplace unrelated masthead elements.
+                // Mastheads do not belong to generic record lanes. The shared
+                // name-layout transaction moves coupled title/contact geometry
+                // for supported editorial names after this measurement; other
+                // identity fields retain their template-owned placement.
                 editElementValues({ height: measuredHeight }, elementId);
                 return;
             }

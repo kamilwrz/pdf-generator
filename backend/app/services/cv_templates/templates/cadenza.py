@@ -27,7 +27,11 @@ from app.services.cv_templates.shared.contact import (
     build_contact_band_anchor,
 )
 from app.services.cv_templates.shared.extras import _extra_sections
-from app.services.cv_templates.shared.masthead import tag_masthead_identity
+from app.services.cv_templates.shared.masthead import (
+    fit_running_name_element,
+    fit_wrapped_name_element,
+    tag_masthead_identity,
+)
 from app.services.cv_templates.shared.records import _education_bullets, _education_school
 from app.services.cv_templates.shared.text import (
     _compact_text,
@@ -196,21 +200,21 @@ def _gen_cadenza(cv: dict) -> list[dict]:
 
     header: list[dict] = []
     cursor_y = 47.0
-    name = _compact_text(cv.get("name"), 46)
+    name = str(cv.get("name") or "").strip()
     title = _compact_text(cv.get("title"), 82)
     name_index: int | None = None
     title_index: int | None = None
 
     if name:
-        name_height = Builder.measure_block(name, width, 27.5, 32.0, display, bold=True)
         name_index = len(header)
         name_element = _block(
-            name, left, cursor_y, width, name_height, 27.5, 32.0,
+            name, left, cursor_y, width, 32.0, 27.5, 32.0,
             palette["ink"], display, zIndex=3, bold=True, align="center",
         )
         name_element["letterSpacing"] = 3.6
+        fit_wrapped_name_element(name_element)
         header.append(name_element)
-        cursor_y += name_height + 5.0
+        cursor_y += name_element["height"] + 5.0
 
     title_top = cursor_y
     title_height = Builder.measure_block(title, width, 8.2, 11.0, sans) if title else 11.0
@@ -418,6 +422,7 @@ def _gen_cadenza(cv: dict) -> list[dict]:
             )
             continuation_name["letterSpacing"] = 2.2
             continuation_name["textTransform"] = "uppercase"
+            fit_running_name_element(continuation_name, width)
             continuation_name["fixedToPage"] = True
             continuation_name["flowRole"] = "fixed"
             decorations.append(continuation_name)

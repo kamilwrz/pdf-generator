@@ -11,7 +11,7 @@ import { resolveTextareaBrowserLines } from "./browserTextLayout.js";
 import { createPersistedDocumentSnapshot, persistedDocumentSignature } from "./persistedDocumentSnapshot.js";
 
 function fitSnapshotNames(elements, snapshot, options = {}) {
-  if (!elements.some((element) => element.category === "text" && element.mastheadRole === "name")) return elements;
+  if (!elements.some((element) => element.mastheadRole === "name")) return elements;
   return fitMastheadNames(elements, {
     measureTextWidth: Object.hasOwn(options, "measureTextWidth")
       ? options.measureTextWidth : createCanvasTextWidthMeasurer(),
@@ -36,7 +36,7 @@ function fitSnapshotNames(elements, snapshot, options = {}) {
  * for otherwise identical page backgrounds and page numbers.
  */
 export function matchesAutomaticNameFitSnapshot(baseline, current, options = {}) {
-  if (!baseline?.elements?.some((element) => element.category === "text" && element.mastheadRole === "name")
+  if (!baseline?.elements?.some((element) => element.mastheadRole === "name")
     || !current?.elements) return false;
   const elements = fitSnapshotNames(baseline.elements, baseline, options);
   const maxPage = Math.max(1, ...elements.map((element) => Number(element.page) || 1));

@@ -1,7 +1,7 @@
 /**
- * Fit legacy point-text masthead names into their authored contact column.
- * Slate and Monument use this representation; the other templates already
- * own bounded multiline identity layouts. Geometry is persisted in A4 points,
+ * Fit masthead names into their authored column. Slate and Monument shrink
+ * point text before wrapping; Vellum, Aurelia and Cadenza retain their display
+ * typography and grow the complete identity block. Geometry uses A4 points,
  * never screen pixels, so zoom cannot change the fit or the exported document.
  */
 import { styledSegments } from './textRuns.js';
@@ -12,6 +12,41 @@ import { reconcileDocumentPages } from './structureOperation.js';
 export const MASTHEAD_NAME_MIN_FONT_SIZE = 14;
 const round = (value) => Math.round(value * 100) / 100;
 const pageOf = (element) => Number(element.page) || 1;
+const WRAPPING_NAMES = {
+  'vellum-contact': { baseHeight: 32, titleGap: 5 },
+  'aurelia-contact': { baseHeight: 33, titleGap: 15 },
+  'cadenza-contact': { baseHeight: 32, titleGap: 5 },
+};
+
+/**
+ * Measure a bounded editorial name without reducing its font or source text.
+ * Legacy generators sometimes reserved multiple rows already; infer that
+ * reservation from the latent title, never from a browser-grown name box.
+ * Persisting the displacement makes load, typing and shortening reversible.
+ */
+function wrapName(name, identity, contract, measureTextWidth, measureLines) {
+  const baseHeight = Number(name.nameFit?.baseHeight) || contract.baseHeight;
+  const titleTop = Number(identity.title?.spec?.top);
+  const previousExtraHeight = Number.isFinite(name.nameFit?.extraHeight)
+    ? name.nameFit.extraHeight
+    : Number.isFinite(titleTop)
+      ? Math.max(0, titleTop - Number(name.top) - contract.titleGap - baseHeight) : 0;
+  const lineHeight = Number(name.lineHeight) || Number(name.fontSize) * 1.2;
+  const measure = measureTextWidth || ((text, style) => text.length
+    * (Number(style.fontSize) * 0.6 + (Number(style.letterSpacing) || 0)));
+  const lines = measureLines?.(name);
+  const text = String(name.content ?? '');
+  const height = Math.ceil(lines?.length ? lines.length * lineHeight : measureTextareaHeight(
+    name.textTransform === 'uppercase' ? text.toUpperCase() : text,
+    name.width, name.fontSize, lineHeight,
+    { measureTextWidth: measure, textStyle: name },
+  ) - 6);
+  return {
+    previousExtraHeight,
+    fitted: { fontSize: name.fontSize, width: name.width, height, lineHeight,
+      nameFit: { mode: 'wrap', baseHeight, extraHeight: Math.max(0, height - baseHeight) } },
+  };
+}
 
 /**
  * Apply an explicit properties-panel size as the name's new maximum, even if
@@ -140,6 +175,11 @@ function shiftBelowName(element, name, identity, contactAnchor, delta) {
       ...(band.flow ? { flow: { ...band.flow, bodyTop: round(Number(band.flow.bodyTop) + delta) } } : {}),
     } };
   }
+  // Aurelia's outline encloses both identity fields. Extend its bottom edge
+  // while its top and horizontal inset remain fixed, including hidden titles.
+  if ((element.mastheadFrame || element.id === 'aurelia-masthead-frame') && name.category === 'textarea') {
+    return { ...element, height: round(Number(element.height) + delta) };
+  }
   if (element.fixedToPage || element.photoSlot || element.flowLane === 'sidebar'
     || String(element.flowRole || '').startsWith('sidebar')
     || element.flowRole === 'photo-contact-header'
@@ -152,8 +192,8 @@ function shiftBelowName(element, name, identity, contactAnchor, delta) {
 /**
  * Normalize complete document elements before a canvas state transaction.
  *
- * Only semantic point-text names with a coupled contact column opt in. The
- * stored base font is the user's size intent; the effective font can grow back
+ * Semantic point-text names and the three bounded editorial identities opt in.
+ * For point text, the stored base font is the user's size intent and grows back
  * after shortening. Explicit font edits replace that base. Saved extra height
  * makes wrapping/shortening reversible without repeatedly shifting the page.
  * Neither source strings, inline formatting nor unrelated templates are changed.
@@ -169,20 +209,23 @@ export function fitMastheadNames(elements, {
   if (!Array.isArray(elements)) return elements;
   let result = elements;
   for (const candidate of elements) {
-    if (candidate.category !== 'text' || candidate.mastheadRole !== 'name' || candidate.deleted) continue;
+    if (!['text', 'textarea'].includes(candidate.category) || candidate.mastheadRole !== 'name' || candidate.deleted) continue;
     const name = result.find((element) => element === candidate) || candidate;
     const identity = result.find((element) => element.mastheadIdentity
       && element.mastheadBandId === name.mastheadBandId);
     const contactAnchor = result.find((element) => element.contactBand
       && element.contactBand.id === identity?.mastheadIdentity.contactBandId);
     if (!identity || !contactAnchor) continue;
-    const width = nameWidth(result, name,
+    const wrapping = name.category === 'textarea' && WRAPPING_NAMES[contactAnchor.contactBand.id];
+    if (name.category === 'textarea' && !wrapping) continue;
+    const width = wrapping ? Number(name.width) : nameWidth(result, name,
       contactAnchor.profilePhotoMainContactBand || contactAnchor.contactBand, pageWidth);
-    if (!width) continue;
-    const fitted = fitName(name, width, measureTextWidth, measureLines);
+    if (!(width > 0)) continue;
+    const wrapped = wrapping ? wrapName(name, identity.mastheadIdentity, wrapping, measureTextWidth, measureLines) : null;
+    const fitted = wrapped?.fitted || fitName(name, width, measureTextWidth, measureLines);
     if (name.nameFit?.repaginate) fitted.nameFit.repaginate = true;
     if (Number.isFinite(name.nameFit?.flowStart)) fitted.nameFit.flowStart = name.nameFit.flowStart;
-    const delta = round(fitted.nameFit.extraHeight - (Number(name.nameFit?.extraHeight) || 0));
+    const delta = round(fitted.nameFit.extraHeight - (wrapped?.previousExtraHeight ?? (Number(name.nameFit?.extraHeight) || 0)));
     if (['fontSize', 'width', 'height', 'lineHeight'].every((key) => name[key] === fitted[key])
       && JSON.stringify(name.nameFit) === JSON.stringify(fitted.nameFit)) continue;
     const before = result;

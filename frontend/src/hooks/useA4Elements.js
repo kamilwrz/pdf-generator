@@ -160,7 +160,7 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
   const [A4_Elements, setA4_Elements] = useState([]);
   const nameWidthMeasurerRef = useRef(null);
   const fitNameLayout = useCallback((elements) => {
-    if (!elements.some((element) => element.category === 'text' && element.mastheadRole === 'name')) return elements;
+    if (!elements.some((element) => element.mastheadRole === 'name')) return elements;
     nameWidthMeasurerRef.current ??= createCanvasTextWidthMeasurer();
     return fitMastheadNames(elements, {
       measureTextWidth: nameWidthMeasurerRef.current,
@@ -1999,6 +1999,12 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
     if (isCanvasEnterReflowSuppressed()) return;
     if (quiet) markHistoryQuiet();
     setA4_Elements((prevState) => {
+      // Editorial names move their title, contacts and enclosing frame as one
+      // transaction. Generic record reflow cannot preserve those relationships.
+      const target = prevState.find((element) => element.element_id === elementId);
+      if (target?.mastheadRole === 'name' && target.nameFit?.mode === 'wrap') {
+        return fitNameLayout(prevState);
+      }
       const result = reflowTextareaHeight(
         prevState,
         elementId,
@@ -2021,7 +2027,7 @@ export function useA4Elements(titleRef, documentLanguage = "Polish") {
       // empties page 2 must drop the orphaned decorations.
       return finalizeDocumentPages(result.elements, { collapseEmpty: true });
     });
-  }, [markHistoryQuiet, finalizeDocumentPages]);
+  }, [markHistoryQuiet, finalizeDocumentPages, fitNameLayout]);
 
   /**
    * After AI content patches, move leftover main-column sections onto the
