@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next';
 /** Standalone library: owned reads, local search, and explicit per-document actions. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiPlus, FiUpload, FiFileText, FiFolder, FiArrowRight, FiDownload } from 'react-icons/fi';
+import { FiPlus, FiUpload, FiFileText, FiTarget, FiArrowRight, FiDownload } from 'react-icons/fi';
 import { useEntitlements } from '../../hooks/useEntitlements';
-import { HeroNote, SiteMarker } from '../../components/common/SiteLayout/SitePrimitives';
+import { WorkflowChoice, SiteMarker } from '../../components/common/SiteLayout/SitePrimitives';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import classes from '../../components/common/SiteLayout/SiteLayout.module.css';
 import SavedImports from './SavedImports';
@@ -28,6 +28,11 @@ export default function DocumentsPage() {
   const [tab, setTab] = useState('cvs');
   const locale = getUiLocale();
   const { entitlements } = useEntitlements();
+  // Only confirmed Pro access opens the assistant. Unknown access keeps a
+  // neutral account check; tailoring intake itself remains available on Free.
+  const canUseAssistant = entitlements?.ai_assistant === true;
+  const assistantAction = canUseAssistant ? uiText('public:hero.openInterview')
+    : entitlements ? uiText('editor:startChooser.explorePro') : uiText('editor:startChooser.checkAccess');
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useMessageState(null);
@@ -82,10 +87,17 @@ export default function DocumentsPage() {
     finally { pendingRef.current = false; setPending(null); }
   }
 
-  return <SiteLayout workspace title={uiText("public:siteLayout.myDocuments")} eyebrow={uiText("account:accountPage.yourWorkspace")} intro={uiText("documents:documentsPage.returnToASavedCvOrPrepare")}
+  return <SiteLayout workspace compact title={uiText("public:siteLayout.myDocuments")} eyebrow={uiText("account:accountPage.yourWorkspace")} intro={uiText("documents:documentsPage.returnToASavedCvOrPrepare")}
     heroActions={<><Link className={classes.primary} to={getEditorPath({ start: 'new' })}><FiPlus aria-hidden="true" />{uiText("editor:newCvSetupModal.createANewCv")}</Link><Link className={classes.secondary} to="/app/import"><FiUpload aria-hidden="true" />{uiText("editor:topbar.importPdf")}</Link></>}
-    heroAside={entitlements?.ai_assistant === true ? <HeroNote icon={<FiFileText />} label={uiText("documents:documentsPage.interviewAvailableWithYourPro")} title={uiText("documents:documentsPage.notSureHowToDescribeYourExperience")}><p>{uiText("documents:documentsPage.answerQuestionsAboutYourActivitiesAndResults")}</p><Link className={classes.secondary} to="/app/interview">{uiText("account:accountPage.createACvThroughAnInterview")} <FiArrowRight aria-hidden="true" /></Link><Link to="/help#dopasowanie">{uiText("documents:documentsPage.iWantToTailorMyCurrentCv")}</Link></HeroNote> : <HeroNote icon={<FiFolder />} label={uiText("documents:documentsPage.everythingInOnePlace")} title={uiText("documents:documentsPage.anotherApplicationYouHaveAStartingPoint")}><p>{uiText("documents:documentsPage.openASavedProjectTailorItsContent")}</p><Link to="/help#powrot">{uiText("documents:documentsPage.returningToYourWork")} <FiArrowRight aria-hidden="true" /></Link></HeroNote>}>
-    <div className={classes.actions}><Link className={classes.secondary} to="/app/tailor">{uiText('tailoring:title')} <FiArrowRight aria-hidden="true" /></Link></div>
+    >
+    <section className={classes.workflowChoices} aria-label={uiText('documents:documentsPage.cvHelp')}>
+      <WorkflowChoice id="assistant-choice" icon={<FiFileText />} title={uiText('public:siteLayout.interview')}
+        description={uiText('documents:documentsPage.assistantDescription')} note={uiText('documents:documentsPage.assistantPlan')}
+        to={canUseAssistant ? '/app/interview' : '/app/account'} action={assistantAction} />
+      <WorkflowChoice id="tailoring-choice" icon={<FiTarget />} title={uiText('tailoring:title')}
+        description={uiText('documents:documentsPage.tailoringDescription')} note={uiText('documents:documentsPage.tailoringPlan')}
+        to="/app/tailor" action={uiText('tailoring:title')} />
+    </section>
     <section className={classes.library} aria-label={uiText("public:siteLayout.myDocuments")}>
     <div role="tablist" aria-label={uiText("public:siteLayout.myDocuments")} className={classes.tabs}>
       {['cvs', 'imports'].map((value, index) => <button key={value} id={`library-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls={`library-panel-${value}`} tabIndex={tab === value ? 0 : -1} className={classes.tab} onClick={() => setTab(value)} onKeyDown={(event) => {

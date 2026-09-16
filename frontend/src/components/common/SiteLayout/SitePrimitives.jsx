@@ -1,6 +1,7 @@
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
-import { FiArrowUpRight } from 'react-icons/fi';
+import { FiArrowRight, FiArrowUpRight } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
 import classes from './SiteLayout.module.css';
 
 /** A noninteractive icon marker; the adjacent text always carries its meaning. */
@@ -13,6 +14,17 @@ export function SiteMarker({ children }) {
 export function HeroNote({ icon, label, title, children }) {
   useTranslation();
   return <><div className={classes.noteHeading}><SiteMarker>{icon}</SiteMarker><span>{label}</span><FiArrowUpRight aria-hidden="true" /></div><strong className={classes.noteTitle}>{title}</strong><div className={classes.noteBody}>{children}</div></>;
+}
+
+/** Presents a workspace workflow with one explicit entry and visible plan terms.
+ * Callers own entitlement decisions; rendering a choice never starts AI work.
+ */
+export function WorkflowChoice({ id, icon, title, description, note, to, action }) {
+  return <article className={classes.workflowChoice} aria-labelledby={id}>
+    <div className={classes.workflowHeading}><SiteMarker>{icon}</SiteMarker><h2 id={id}>{title}</h2></div>
+    <p>{description}</p>
+    <div className={classes.workflowAction}><p>{note}</p><Link className={classes.secondary} to={to}>{action}<FiArrowRight aria-hidden="true" /></Link></div>
+  </article>;
 }
 
 /**

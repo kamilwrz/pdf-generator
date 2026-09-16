@@ -2432,7 +2432,12 @@
     "modalPdfs.noSavedPdfs": "Brak zapisanych PDF!",
     "modalPdfs.openDownloadAndDeleteSavedProjects": "Otwieraj, pobieraj i usuwaj zapisane projekty.",
     "modalPdfs.planAllowance": "Limit planu",
-    "documentsPage.everythingInOnePlace": "WSZYSTKO W JEDNYM MIEJSCU"
+    "documentsPage.everythingInOnePlace": "WSZYSTKO W JEDNYM MIEJSCU",
+    "documentsPage.cvHelp": "Pomoc w przygotowaniu CV",
+    "documentsPage.assistantDescription": "Odpowiedz na pytania o swoją pracę. Asystent CV pomoże Ci opisać doświadczenie jasno i konkretnie.",
+    "documentsPage.assistantPlan": "Poprawa treści wymaga Pro i korzysta z kredytów AI.",
+    "documentsPage.tailoringDescription": "Dodaj CV i ogłoszenie. Asystent pomoże przygotować wersję CV pod tę rekrutację.",
+    "documentsPage.tailoringPlan": "Dane dodasz na Free, w ramach limitu importów. Dopasowanie z AI wymaga Pro i kredytów."
   },
   "account": {
     "planSelectModal.couldNotLoadPlans": "Nie udało się pobrać planów.",

@@ -1,5 +1,11 @@
 # English
 
+## Consistent document-library workflows
+
+`/app/documents` uses a compact heading with Create CV and Import PDF, followed by two equally styled workflow cards: CV Assistant and job tailoring. Each card has a heading, short description, plan explanation and one secondary action. Wide layouts align card widths, heights and action baselines; below 768px the cards stack in reading and keyboard order. There is one tailoring entry in the main content, linking directly to `/app/tailor`; the global navigation remains available. Confirmed AI entitlement opens `/app/interview`; Free opens the account plan and unresolved or failed entitlement loading offers an account access check. Tailoring intake remains available on Free within import limits, while AI requires Pro and credits. Rendering or following these entries does not start AI. Document/import tabs, search, empty/error/loading states and document actions keep their existing behavior.
+
+Implementation: `DocumentsPage` in `frontend/src/pages/Site/DocumentsPage.jsx`; reusable `WorkflowChoice` in `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`; `.workflowChoices`, `.workflowChoice` and `.workflowAction` in the shared `SiteLayout.module.css`. Strings are maintained in both canonical locale files and generated bundles. Run `npm --prefix frontend run test:e2e -- e2e/document-workflows.spec.js e2e/interview-discovery.spec.js --project=desktop-chromium --workers=2`. Coverage includes PL/EN at 390/834/1280/1920px, keyboard order, 200% text, Pro/Free/unavailable access and absence of automatic writes. No API, database, dependencies or deployment configuration changed.
+
 ## CV Assistant naming
 
 The public feature name is **CV Assistant** (Polish: **Asystent CV**). Landing, shared navigation/footer, pricing/help, document/account entries, editor entry points and the conversation screens use this name. Saved sessions are called conversations; action labels describe improving content or tailoring a CV to a job advert. Canonical strings live in `frontend/src/i18n/locales/pl.json` and `en.json`; `generate-locale-bundles.mjs` produces their shell/workspace bundles. Existing `/app/interview`, `/help#wywiad`, translation keys, API identifiers and stored sessions retain their technical names for compatibility. Historical references to Interview in this technical guide refer to the same feature. This is a copy change without new dependencies, API changes or data migration. Existing locale, component and browser tests cover translated labels, entry permissions, recovery and responsive layout.
@@ -360,7 +366,7 @@ At `/app/documents`, choose **Saved CVs** to search, sort, open, download or del
 
 No database, API contract, dependency or PDF renderer changes are introduced. The new module belongs beside `DocumentsPage` in `frontend/src/pages/Site/`; existing upload history remains available in the editor.
 
-Implementation: `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–117, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, lines 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, `AiCvPanel`. Tests: `frontend/e2e/documents-library.spec.js`, lines 1–71; run `cd frontend` then `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Coverage includes tab keyboard navigation, import reuse, deletion focus, read retry, empty state and 390/834/1280/1920px layouts plus 640px reflow and reduced motion.
+Implementation: `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–129, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, lines 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, lines 1–678, `AiCvPanel`. Tests: `frontend/e2e/documents-library.spec.js`, lines 1–71; run `cd frontend` then `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Coverage includes tab keyboard navigation, import reuse, deletion focus, read retry, empty state and 390/834/1280/1920px layouts plus 640px reflow and reduced motion.
 
 Reference: [W3C tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) explains tab selection, panel relationships and keyboard navigation.
 
@@ -481,14 +487,14 @@ Implementation (verified whole-module extents):
 
 - `frontend/src/pages/Site/PublicPages.jsx`, lines 1–123, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
-- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–117, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–129, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 4–87, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–360, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–559, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–72, `SiteLayout`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–199, `guideFaq`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–222, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
 
 Tests: `frontend/e2e/interview-discovery.spec.js` covers pricing-to-help navigation and focus, keyboard disclosures, 390/834/1280/1920 px widths, 200% text zoom, Pro invitations, Free/unavailable access, landing and start-chooser links, registration and plan-picker copy without paid calls. `planPresentation.test.js` verifies canonical benefits and retained server pricing. Run `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` and `npm run build` from `frontend/`. The new browser test lives in the existing `frontend/e2e/` directory; application folder and database structures are unchanged. Deploy through the existing frontend pipeline. Tests use mocked account data and do not verify production activation or live AI quality. [WAI page structure](https://www.w3.org/WAI/tutorials/page-structure/) explains semantic regions, headings and navigation used by the guide.
@@ -525,7 +531,7 @@ Known Pro template hints now preserve the chosen preview instead of falling back
 
 Implementation (verified file extents; the listed exports own the complete workflows):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–117, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–129, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
@@ -3852,6 +3858,12 @@ Notable product facts:
 
 # Polski
 
+## Spójne wejścia do pracy z CV w bibliotece
+
+`/app/documents` ma kompaktowy nagłówek z akcjami tworzenia CV i importu PDF, a pod nim dwie jednakowo prezentowane karty: Asystent CV i dopasowanie do ogłoszenia. Każda ma nagłówek, krótki opis, informację o planie i jeden przycisk drugorzędny. Na szerokim ekranie karty mają równe szerokości, wysokości i położenie przycisków; poniżej 768px układają się pod sobą w kolejności czytania i klawiatury. W głównej treści jest jedno wejście do `/app/tailor`; globalna nawigacja pozostaje dostępna. Potwierdzone uprawnienie AI otwiera `/app/interview`; Free kieruje do planu na koncie, a nierozstrzygnięte lub błędne pobranie uprawnień oferuje sprawdzenie dostępu na koncie. Przygotowanie danych do dopasowania pozostaje dostępne na Free w ramach limitów importu; AI wymaga Pro i kredytów. Wyświetlenie i użycie tych wejść nie uruchamia AI. Karty dokumentów/importów, wyszukiwanie, stany puste, błędów i ładowania oraz działania na dokumentach zachowują dotychczasowe zachowanie.
+
+Implementacja: `DocumentsPage` w `frontend/src/pages/Site/DocumentsPage.jsx`; współdzielony `WorkflowChoice` w `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`; `.workflowChoices`, `.workflowChoice` i `.workflowAction` we wspólnym `SiteLayout.module.css`. Teksty znajdują się w obu kanonicznych słownikach i generowanych pakietach. Uruchom `npm --prefix frontend run test:e2e -- e2e/document-workflows.spec.js e2e/interview-discovery.spec.js --project=desktop-chromium --workers=2`. Testy obejmują PL/EN przy 390/834/1280/1920px, kolejność klawiatury, tekst 200%, dostęp Pro/Free/niedostępny plan i brak automatycznych zapisów. Bez zmian API, bazy, zależności ani konfiguracji wdrożenia.
+
 ## Nazwa Asystent CV
 
 Publiczna nazwa funkcji to **Asystent CV** (angielska: **CV Assistant**). Korzystają z niej landing, wspólne menu i stopka, cennik i pomoc, wejścia z dokumentów i konta, edytor oraz ekrany rozmowy. Zapisane sesje to rozmowy; przyciski opisują poprawę treści lub dopasowanie CV do ogłoszenia. Kanoniczne teksty znajdują się w `frontend/src/i18n/locales/pl.json` i `en.json`; `generate-locale-bundles.mjs` tworzy pakiety shell/workspace. Istniejące `/app/interview`, `/help#wywiad`, klucze tłumaczeń, identyfikatory API i zapisane sesje zachowują techniczne nazwy dla zgodności. Historyczne odniesienia do Wywiadu w tym przewodniku technicznym dotyczą tej samej funkcji. Zmiana dotyczy tekstów, bez nowych zależności, zmian API ani migracji danych. Istniejące testy tłumaczeń, komponentów i przeglądarkowe obejmują nazwy, uprawnienia wejścia, odzyskiwanie rozmów i układ responsywny.
@@ -4214,7 +4226,7 @@ Na `/app/documents` wybierz **Zapisane CV**, aby wyszukiwać, sortować, otwiera
 
 Zmiana nie wprowadza zmian bazy, kontraktu API, zależności ani renderera PDF. Nowy moduł znajduje się obok `DocumentsPage` w `frontend/src/pages/Site/`; dotychczasowa historia przesyłania pozostaje dostępna w edytorze.
 
-Implementacja: `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–117, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, linie 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, `AiCvPanel`. Testy: `frontend/e2e/documents-library.spec.js`, linie 1–71; uruchom `cd frontend`, następnie `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Zakres obejmuje klawiaturę zakładek, ponowne użycie importu, fokus po usuwaniu, ponowienie odczytu, pusty stan oraz układy 390/834/1280/1920 px, reflow 640 px i ograniczony ruch.
+Implementacja: `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–129, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, linie 1–93, `SavedImports`; `frontend/src/components/ai/AiCvPanel/AiCvPanel.jsx`, linie 1–678, `AiCvPanel`. Testy: `frontend/e2e/documents-library.spec.js`, linie 1–71; uruchom `cd frontend`, następnie `npm run test:e2e -- documents-library.spec.js import-history.spec.js --workers=1`. Zakres obejmuje klawiaturę zakładek, ponowne użycie importu, fokus po usuwaniu, ponowienie odczytu, pusty stan oraz układy 390/834/1280/1920 px, reflow 640 px i ograniczony ruch.
 
 Źródło: [wzorzec zakładek W3C](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) wyjaśnia wybór zakładek, powiązania paneli i obsługę klawiatury.
 
@@ -4335,14 +4347,14 @@ Implementacja (zweryfikowane zakresy całych modułów):
 
 - `frontend/src/pages/Site/PublicPages.jsx`, linie 1–123, `PricingPage, HelpPage`.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `PLAN_PRESENTATION, applyPlanPresentation`.
-- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–117, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–129, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 4–87, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–360, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–13, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–559, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–72, `SiteLayout`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–199, `guideFaq`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–222, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
 
 Testy: `frontend/e2e/interview-discovery.spec.js` sprawdza przejście z cennika do pomocy i fokus, rozwijanie klawiaturą, szerokości 390/834/1280/1920 px, zoom tekstu 200%, zaproszenia Pro, Free/niedostępne uprawnienia, linki ze strony głównej i ekranu startowego oraz opisy rejestracji i wyboru planu bez płatnych wywołań. `planPresentation.test.js` weryfikuje kanoniczne korzyści i zachowanie cen serwera. Uruchom `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` i `npm run build` z `frontend/`. Nowy test przeglądarkowy znajduje się w istniejącym `frontend/e2e/`; struktura aplikacji i bazy pozostaje bez zmian. Wdrażaj przez istniejący proces frontendu. Testy używają mocków konta i nie weryfikują aktywacji produkcyjnej ani jakości rzeczywistych odpowiedzi AI. [Struktura strony według WAI](https://www.w3.org/WAI/tutorials/page-structure/) wyjaśnia semantyczne regiony, nagłówki i nawigację użyte w instrukcji.
@@ -4379,7 +4391,7 @@ Rozpoznany parametr szablonu Pro zachowuje teraz wybrany podgląd zamiast wraca�
 
 Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowiadają za kompletne przepływy):
 
-- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–117, `DocumentsPage`.
+- `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–129, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.

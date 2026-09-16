@@ -43,10 +43,10 @@ test('Pro users get direct entry points and canonical interview benefits in the 
   const api = await installMockApi(page);
   await signIn(page);
   await page.goto('/app/documents');
-  await expect(page.getByText('ASYSTENT CV · MASZ DOSTĘP W PRO')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Utwórz CV z pomocą Asystenta CV', exact: true })).toHaveAttribute('href', '/app/interview');
-  await page.getByRole('link', { name: 'Chcę dopasować obecne CV do oferty' }).click();
-  await expect(page.locator('#dopasowanie')).toBeFocused();
+  await expect(page.getByRole('heading', { name: 'Asystent CV', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Popraw treść CV', exact: true })).toHaveAttribute('href', '/app/interview');
+  await page.locator('article[aria-labelledby="tailoring-choice"]').getByRole('link').click();
+  await expect(page).toHaveURL(/\/app\/tailor$/);
   await page.goto('/app/account');
   await expect(page.getByText('ASYSTENT CV · W TWOIM PRO')).toBeVisible();
   await page.getByRole('button', { name: 'Zmień plan' }).click();
