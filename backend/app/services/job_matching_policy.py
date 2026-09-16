@@ -184,6 +184,8 @@ Usuń tautologie, puste wstępy, nadmiar przymiotników i powtórzenia wewnątrz
 Zachowaj precyzyjne terminy; nie zastępuj ich przypadkowymi synonimami dla urozmaicenia.
 Zachowaj wszystkie unikalne szczegóły, źródłowe liczby, negacje i poziom odpowiedzialności.
 Nie dodawaj brakującej metryki, efektywności, przyczynowości ani autorstwa sukcesu zespołu.
-Nie łącz, nie przenoś i nie usuwaj pól; powtórzone punkty między polami rozstrzyga
+Nie łącz, nie przenoś i nie usuwaj pól. Dopuszczalny jest podział przeciążonego
+punktu przez additional_points według kontraktu redakcji, wyłącznie w tej samej roli.
+Powtórzone punkty między polami rozstrzyga
 późniejsza niezależna weryfikacja, z zachowaniem odrębnych faktów.
 """

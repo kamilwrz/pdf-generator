@@ -166,9 +166,9 @@ for (const width of [390, 834, 1280, 1920]) {
     const stageButton = page.getByRole('button', { name: '03 Przygotuj CV', exact: true });
     if (await stageButton.isVisible()) await stageButton.click();
     else await page.getByRole('combobox', { name: 'Etapy', exact: true }).selectOption('prepare');
-    await expect(page.getByText(/Te etapy oraz ewentualne skracanie tekstu zużywają kredyty AI/)).toBeVisible();
+    await expect(page.getByText(/Te etapy i skracanie tekstu zużywają kredyty AI/)).toBeVisible();
     await page.getByText('Jak przygotowujemy CV', { exact: true }).click();
-    await expect(page.getByText(/Każdy z tych trzech etapów zużywa kredyty AI/)).toBeVisible();
+    await expect(page.getByText(/Każdy wykonany etap zużywa kredyty AI/)).toBeVisible();
     const release = api.hold('preview');
     await page.getByRole('button', { name: 'Odśwież podgląd', exact: true }).click();
     const loading = page.getByRole('region', { name: 'Przetwarzanie wywiadu' });

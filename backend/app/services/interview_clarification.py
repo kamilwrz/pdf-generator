@@ -86,6 +86,11 @@ def clarification_queue(row, raw, verification, notes, profile):
     seen, result = _seen(row.state), []
     for note in notes:
         path = note['path']
+        # A rejected split is a failed editorial transformation. Asking about
+        # one fragment could overwrite a full source fact with partial text.
+        # Keep the confirmed fallback and leave the original evidence intact.
+        if any(path in group['paths'] for group in raw.get('editorial_splits', [])):
+            continue
         # Broad or unknown paths cannot identify a specific disputed fact.
         if path not in fields or path not in unsupported or not service.PATH.fullmatch(path):
             continue

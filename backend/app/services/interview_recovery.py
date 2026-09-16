@@ -75,6 +75,12 @@ def assemble_reviewed_draft(raw, verification, profile, language):
                 blocked.add(field["path"])
     scopes = {_dependent_scope(path) for path in blocked}
     blocked.update(path for path in paths if any(path == scope or path.startswith(scope + '/') for scope in scopes))
+    # Splitting is one editorial replacement, not independent new evidence.
+    # Reject the complete group if one fragment fails, otherwise the original
+    # could be restored beside surviving fragments or lose its qualifications.
+    for group in raw.get('editorial_splits', []):
+        if blocked.intersection(group['paths']):
+            blocked.update(group['paths'])
     accepted = [field for field in fields if field["path"] not in blocked]
     try:
         cv_data, changes = service.assemble_draft({"fields": accepted}, profile, language)

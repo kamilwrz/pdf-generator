@@ -80,7 +80,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert saved['preview']['cv_data']['summary'] == PROFESSIONAL
     assert any(PROFESSIONAL in str(element) for element in saved['preview']['elements'])
     assert saved['preview']['changes'][0]['evidence_refs'] == ['answer-q']
-    assert saved['preview']['pipeline_version'] == 6
+    assert saved['preview']['pipeline_version'] == 7
     assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert 'generation_attempt' not in saved
@@ -151,7 +151,7 @@ def test_assembly_recovery_requires_complete_current_pipeline(environment, chang
     assert result.json()['preview']['recovered_previous_attempt'] is not changed_profile
 
 
-@pytest.mark.parametrize('previous_version', [2, 5])
+@pytest.mark.parametrize('previous_version', [2, 5, 6])
 def test_upgraded_policy_does_not_replay_completed_older_generation_stages(environment, previous_version):
     """Unfinished older attempts restart under the complete language contract."""
     client, db, user, _ = environment
@@ -171,7 +171,7 @@ def test_upgraded_policy_does_not_replay_completed_older_generation_stages(envir
         upgraded = generate(client, legacy.json())
     assert upgraded.status_code == 200, upgraded.text
     assert provider.call_count == 3
-    assert upgraded.json()['preview']['pipeline_version'] == 6
+    assert upgraded.json()['preview']['pipeline_version'] == 7
     assert upgraded.json()['preview']['recovered_previous_attempt'] is False
     assert upgraded.json()['answers'] == session['answers']
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == before
@@ -400,3 +400,153 @@ def test_editorial_fallback_is_replayed_after_verification_failure(environment):
     assert result.json()['preview']['cv_data']['summary'] == RAW
     assert result.json()['answers'] == session['answers']
     assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 3
+
+
+AML_PARTS = [
+    'Ocena profilu działalności, struktury własnościowej i beneficjentów rzeczywistych.',
+    'Analiza wyników screeningu sankcji i PEP.',
+    'Przekazywanie spraw wymagających wyjaśnienia do przełożonego, bez podejmowania decyzji o eskalacji.',
+]
+AML_LONG = ' '.join(AML_PARTS)
+AML_PATH = '/experience/0/bullets/0'
+
+
+def aml_fixture(client, db):
+    """Create source-bound AML evidence without promoting model output to facts."""
+    session = confirm(client, create(client, cv_data={
+        'name': 'Anna Nowak', 'experience': [{'title': 'Analityk AML', 'company': 'Bank',
+            'bullets': [AML_LONG, 'Porządkowanie dokumentacji.']}],
+    }))
+    profile = service.interview_profile(db, db.get(InterviewSession, session['id']))
+    draft = {'fields': [{'path': fact['path'], 'value': fact['text'], 'evidence_refs': [fact['id']]}
+                        for fact in profile['facts'] if '/bullets/' in fact.get('path', '')], 'remaining_gaps': []}
+    repair = editorial(draft)
+    repair['fields'][0].update(value=AML_PARTS[0], additional_points=AML_PARTS[1:])
+    issue = {'path': AML_PATH, 'quote': AML_LONG, 'reason': 'Trzy niezależne etapy w jednym punkcie.'}
+    return session, profile, draft, repair, issue
+
+
+def test_aml_readability_repair_is_bounded_verified_and_preserves_evidence(environment):
+    client, db, user, _ = environment
+    session, profile, draft, repair, issue = aml_fixture(client, db)
+    snapshot = deepcopy(profile)
+    outputs = [(draft, USAGE), (editorial(draft), USAGE),
+               ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE), (VERIFIED, USAGE)]
+    with patch.object(service, '_gpt', side_effect=outputs) as provider:
+        result = generate(client, session, 1)
+    assert result.status_code == 200, result.text
+    saved = result.json()
+    assert saved['preview']['cv_data']['experience'][0]['bullets'] == [AML_PARTS[0], 'Porządkowanie dokumentacji.', *AML_PARTS[1:]]
+    checked = json.loads(provider.call_args_list[-1].args[1])
+    assert checked['editorial_splits'][0]['paths'] == [AML_PATH, '/experience/0/bullets/2', '/experience/0/bullets/3']
+    refs = draft['fields'][0]['evidence_refs']
+    assert all(f['evidence_refs'] == refs for f in checked['draft'] if f['path'] in checked['editorial_splits'][0]['paths'])
+    assert saved['usage']['cost_pln_estimate'] == pytest.approx(.05)
+    assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == snapshot
+    receipt = client.get(f"/ai/interviews/{session['id']}/credits").json()
+    assert len(receipt['requests']) == 1 and len(receipt['requests'][0]['stages']) == 5
+    assert [stage['operation'] for stage in receipt['requests'][0]['stages']][-2:] == ['editorial-repair', 'verify-repair']
+    assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 5
+
+
+def test_quality_gate_stops_after_one_failed_repair_and_keeps_answers(environment):
+    client, db, _, _ = environment
+    session, _, draft, _, issue = aml_fixture(client, db)
+    rejected = {**VERIFIED, 'quality_issues': [issue]}
+    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (editorial(draft), USAGE),
+                      (rejected, USAGE), (editorial(draft), USAGE), (rejected, USAGE)]) as provider:
+        result = generate(client, session, 1)
+    assert result.status_code == 422, result.text
+    assert provider.call_count == 5
+    current = client.get(f"/ai/interviews/{session['id']}").json()
+    assert current['preview'] is None and current['answers'] == session['answers']
+    assert 'generation_attempt' not in current
+
+
+def test_completed_quality_repair_replays_after_final_verification_failure(environment):
+    client, db, _, _ = environment
+    session, _, draft, repair, issue = aml_fixture(client, db)
+    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (editorial(draft), USAGE),
+                      ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE),
+                      service.AIServiceError('Unavailable', reservation_outcome='release')]):
+        assert generate(client, session, 1).status_code == 500
+    resumed = client.get(f"/ai/interviews/{session['id']}").json()
+    with patch.object(service, '_gpt', return_value=(VERIFIED, USAGE)) as provider:
+        result = generate(client, resumed, 1)
+    assert result.status_code == 200, result.text
+    assert provider.call_count == 1
+    assert result.json()['usage']['cost_pln_estimate'] == pytest.approx(.05)
+
+
+def test_split_rejection_restores_whole_original_without_partial_claims():
+    from app.services.interview_recovery import assemble_reviewed_draft
+    profile = {'facts': [
+        {'id': 'name', 'kind': 'fact', 'path': '/name', 'text': 'Anna Nowak'},
+        {'id': 'aml', 'kind': 'fact', 'path': AML_PATH, 'text': AML_LONG},
+    ]}
+    draft = {'fields': [{'path': AML_PATH, 'value': AML_LONG, 'evidence_refs': ['aml']}], 'remaining_gaps': []}
+    review = {'fields': [{'path': AML_PATH, 'value': AML_PARTS[0], 'additional_points': AML_PARTS[1:]}]}
+    split = apply_editorial_review(draft, review, profile)
+    cv, changes, notes = assemble_reviewed_draft(split, {'unsupported_paths': ['/experience/0/bullets/1']}, profile, 'pl')
+    assert cv['experience'][0]['bullets'] == [AML_LONG]
+    assert changes == [] and len(notes) == 3
+    assert draft['fields'][0]['value'] == AML_LONG
+
+
+@pytest.mark.parametrize('path', ['/summary', '/education/0/description', '/custom_sections/0/items/0'])
+def test_only_bullet_fields_can_split(path):
+    draft = {'fields': [{'path': path, 'value': AML_LONG, 'evidence_refs': ['a']}], 'remaining_gaps': []}
+    with pytest.raises(ValueError):
+        apply_editorial_review(draft, {'fields': [{'path': path, 'value': AML_PARTS[0], 'additional_points': AML_PARTS[1:]}]})
+
+
+def test_split_cannot_remove_metrics_or_split_literal_framing():
+    draft = {'fields': [{'path': AML_PATH, 'value': 'Testy 4 scenariuszy. Raport dla opiekuna.', 'evidence_refs': ['a']}], 'remaining_gaps': []}
+    unsafe = {'fields': [{'path': AML_PATH, 'value': 'Testy scenariuszy.', 'additional_points': ['Raport dla opiekuna.']}]}
+    assert apply_editorial_review(draft, unsafe) == draft
+    literal = {'fields': [{'path': AML_PATH, 'value': 'Testy 4 scenariuszy.', 'additional_points': ['Raport dla opiekuna.']}]}
+    assert apply_editorial_review(draft, literal, {'facts': [{'id': 'a', 'kind': 'framing'}]}) == draft
+
+
+def test_audit_and_generation_share_readability_without_blanket_length_rules():
+    from app.services.cv_audit import CV_AUDIT_POLICY
+    from app.services.cv_editorial_policy import CV_READABILITY_POLICY
+    assert CV_READABILITY_POLICY in CV_AUDIT_POLICY
+    assert CV_READABILITY_POLICY in editorial_service.EDITORIAL_TASK
+    assert CV_READABILITY_POLICY in editorial_service.QUALITY_TASK
+    assert 'Do not impose a word count' in CV_READABILITY_POLICY
+
+
+def test_quality_finding_must_quote_its_actual_field():
+    with pytest.raises(ValueError):
+        editorial_service.validate_quality_issues(draft_for_answer(),
+            {'quality_issues': [{'path': '/summary', 'quote': 'Invented text', 'reason': 'Too long'}]}, {'facts': []})
+
+
+def test_rejected_repair_cannot_publish_known_overloaded_source_fallback(environment):
+    client, db, _, _ = environment
+    session, _, draft, repair, issue = aml_fixture(client, db)
+    rejected = {**VERIFIED, 'unsupported_paths': ['/experience/0/bullets/2']}
+    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (editorial(draft), USAGE),
+                      ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE), (rejected, USAGE)]):
+        result = generate(client, session, 1)
+    assert result.status_code == 422, result.text
+    assert client.get(f"/ai/interviews/{session['id']}").json()['preview'] is None
+
+
+def test_source_change_during_quality_repair_blocks_publication(environment):
+    client, db, user, _ = environment
+    session, profile, draft, repair, issue = aml_fixture(client, db)
+    outputs = iter([(draft, USAGE), (editorial(draft), USAGE),
+                    ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE)])
+    calls = []
+    def provider(_system, body, **kwargs):
+        calls.append(json.loads(body))
+        if len(calls) == 4:
+            service.put_profile(db, user.id, profile['revision'], profile['facts'])
+        return next(outputs)
+    with patch.object(service, '_gpt', side_effect=provider):
+        result = generate(client, session, 1)
+    assert result.status_code == 409, result.text
+    assert len(calls) == 4
+    assert client.get(f"/ai/interviews/{session['id']}").json()['preview'] is None

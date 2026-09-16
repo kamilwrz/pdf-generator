@@ -6,6 +6,22 @@ keep their narrower tasks. This module never grants new editable fields,
 changes response schemas, or replaces server validation and evidence review.
 """
 
+CV_READABILITY_POLICY = """SHARED CV READABILITY STANDARD
+Use the same standard when writing and auditing CV prose. One bullet should express
+one main responsibility with its useful context or outcome. Separate independent
+activities or process stages when combining them obscures the candidate's work.
+A list of objects checked in ONE activity is not automatically several activities.
+Keep concise, informative bullets unchanged. Do not impose a word count, page count,
+mandatory metric or a stylistic preference as a defect. Remove filler and repeated
+claims within the same role, but preserve distinct facts, tools, qualifications,
+negations and responsibility limits. Never combine facts from different roles.
+Full interview answers are evidence, not text to copy verbatim into the CV.
+Only report an actionable weakness supported by an exact quote and its context;
+do not cite a short, clear bullet as evidence that another bullet is overloaded.
+Splitting must preserve meaning across the complete group and attach each caveat
+to the activity it limits. It must not introduce ownership, outcomes or chronology.
+"""
+
 STYLE_INSTRUCTION = """STANDARD REDAKCJI JĘZYKA CV
 Cel: tekst gotowy do CV, naturalny w zadanym języku, profesjonalny, konkretny
 i łatwy do szybkiego przeczytania. Popraw składnię, czytelność i spójność tak,

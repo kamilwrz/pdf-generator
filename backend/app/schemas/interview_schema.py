@@ -215,6 +215,9 @@ class EditorialPatch(Contract):
     """One complete prose replacement; evidence and record identity are server-owned."""
     path: str = Field(min_length=1, max_length=200)
     value: str = Field(min_length=1, max_length=4000)
+    # Only bullet prose may split. The server allocates sibling paths and copies
+    # the original citations; the model cannot choose another role or overwrite a sibling.
+    additional_points: list[str] = Field(default_factory=list, max_length=3)
 
 
 class EditorialReview(Contract):
@@ -234,6 +237,17 @@ class Verification(Contract):
     unsupported_paths: list[str] = Field(max_length=250)
     reasons: list[str] = Field(max_length=250)
     clarifications: list[Clarification] = Field(default_factory=list, max_length=250)
+    quality_issues: list["EditorialIssue"] = Field(default_factory=list, max_length=30)
+
+
+class EditorialIssue(Contract):
+    """A concrete readability finding tied to exact candidate text, never a new fact."""
+    path: str = Field(min_length=1, max_length=200)
+    quote: str = Field(min_length=1, max_length=4000)
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+Verification.model_rebuild()
 
 
 def provider_schema(model):

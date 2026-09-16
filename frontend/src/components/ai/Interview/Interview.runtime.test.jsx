@@ -162,9 +162,9 @@ describe('interview workflow', () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     await user.click(await screen.findByRole('button', { name: 'Przejdź do przygotowania CV' }));
-    expect(screen.getByText(/Te etapy oraz ewentualne skracanie tekstu zużywają kredyty AI/)).toBeVisible();
+    expect(screen.getByText(/Te etapy i skracanie tekstu zużywają kredyty AI/)).toBeVisible();
     await user.click(screen.getByText('Jak przygotowujemy CV'));
-    expect(screen.getByText(/Każdy z tych trzech etapów zużywa kredyty AI/)).toHaveTextContent('Twoje odpowiedzi pozostaną bez zmian');
+    expect(screen.getByText(/Każdy wykonany etap zużywa kredyty AI/)).toHaveTextContent('Twoje odpowiedzi pozostaną bez zmian');
     expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/preview'))).toBe(false);
   });
 

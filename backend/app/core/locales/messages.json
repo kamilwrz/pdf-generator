@@ -1,4 +1,5 @@
 {
+  "interview_quality_not_ready": {"pl": "Treść CV nadal wymaga poprawy czytelności po jednej próbie redakcji. Nie pokazaliśmy jej jako gotowego wyniku. Twoje odpowiedzi są zapisane. Możesz spróbować ponownie; kolejna próba korzysta z kredytów AI.", "en": "The CV still needs readability improvements after one repair attempt. It has not been presented as a finished result. Your answers are saved. You can try again; another attempt uses AI credits."},
   "interview_answer_help_unavailable": {
     "pl": "Przy tym pytaniu potrzebna jest Twoja własna informacja. Wpisz odpowiedź, wybierz Nie pamiętam albo Pomiń.",
     "en": "This question needs information only you can provide. Write your answer, choose I cannot remember or Skip."

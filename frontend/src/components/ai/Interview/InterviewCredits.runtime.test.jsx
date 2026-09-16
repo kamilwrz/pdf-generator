@@ -91,3 +91,21 @@ it('keeps pending and failed metered stages in history and retries only its read
   expect(onRefreshBalance).toHaveBeenCalledOnce();
   expect(interviewRequest.mock.calls.every(([path, method]) => path.endsWith('/credits') && (!method || method === 'GET'))).toBe(true);
 });
+
+
+it('names both bounded quality repair charges in Polish and English', async () => {
+  interviewRequest.mockResolvedValue({ credits_charged: 2, requests: [{
+    ...receipt.requests[0], operation: 'preview', credits_charged: 2,
+    stages: [
+      { operation: 'editorial-repair', credits_charged: 1, status: 'settled' },
+      { operation: 'verify-repair', credits_charged: 1, status: 'settled' },
+    ],
+  }] });
+  render(<InterviewCredits {...props} />);
+  await userEvent.setup().click(await screen.findByText('Historia zapytań AI (1)'));
+  expect(screen.getByText(/Poprawa czytelności:/)).toBeVisible();
+  expect(screen.getByText(/Kontrola poprawionej treści:/)).toBeVisible();
+  await setUiLanguage('en');
+  expect(screen.getByText(/Readability repair:/)).toBeVisible();
+  expect(screen.getByText(/Repaired content check:/)).toBeVisible();
+});
