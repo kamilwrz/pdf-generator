@@ -19,6 +19,9 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
   useTranslation();
   const id = useId();
   const groups = useMemo(() => groupCareerFacts(facts, { sourceProfile: true }), [facts]);
+  // Empty CV sections cannot be edited here. Keep notes available even when
+  // empty, and keep the selected section reachable after its last note is deleted.
+  const availableSections = careerSections.filter((item) => item.id === 'notes' || groups.some((group) => group.section === item.id));
   const [sectionId, setSectionId] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState('');
@@ -31,7 +34,7 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
   const addRef = useRef(null);
   const editInput = useRef(null);
   const trigger = useRef(null);
-  const section = careerSections.find((s) => s.id === sectionId) || careerSections.find((s) => s.id === (groups.some((g) => g.section === 'experience') ? 'experience' : groups[0]?.section)) || careerSections[0];
+  const section = availableSections.find((s) => s.id === sectionId) || availableSections.find((s) => s.id === 'experience') || availableSections[0];
   const selected = groups.find((g) => g.facts.some((f) => f.id === selectedId));
   const matching = groups.filter((g) => query.trim() ? g.facts.some((f) => `${f.question || ''} ${f.text} ${f.context}`.toLocaleLowerCase(getUiLocale()).includes(query.trim().toLocaleLowerCase(getUiLocale()))) : g.section === section.id);
   const currentPage = Math.min(page, Math.max(0, Math.ceil(matching.length / PAGE_SIZE) - 1));
@@ -77,6 +80,11 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
     if (facts.length >= 500) { setMessage(messageRef("interview:factEditor.thisSectionHasReachedItsInformationLimit")); return; }
     openEditor({ id: crypto.randomUUID(), text: '', context: '', kind: 'fact', path: '', source: 'manual' }, event);
   }
+
+  function openNotes() {
+    setSectionId('notes'); setSelectedId(null); setQuery(''); setPage(0);
+    requestAnimationFrame(() => heading.current?.focus());
+  }
   function removeField(field) {
     if (!canEditField(field)) return;
     setUndo({ removed: facts.filter((f) => field.ids.includes(f.id)), index: facts.findIndex((f) => field.ids.includes(f.id)) });
@@ -86,18 +94,17 @@ export default function FactEditor({ facts, onChange, disabled = false, onEditin
 
   return <section className={classes.editor} aria-label={uiText("interview:factEditor.informationToUse")}>
     <div className={classes.toolbar}>
-      <div><span className={classes.eyebrow}>{isolated ? uiText("interview:factEditor.thisInterviewOnly") : uiText("interview:factEditor.yourCvInformation")}</span><h2>{isolated ? uiText("interview:factEditor.informationForThisCv") : uiText("interview:factEditor.yourCareerOrganised")}</h2></div>
+      <div><h2>{isolated ? uiText("interview:factEditor.informationForThisCv") : uiText("interview:factEditor.yourCareerOrganised")}</h2>{section.id !== 'notes' && !readOnly && <button type="button" disabled={busy} onClick={openNotes}>{uiText('interview:factEditor.openNotes')}</button>}</div>
       <label className={classes.search}>{isolated ? uiText("interview:factEditor.searchCvInformation") : uiText("interview:factEditor.searchProfile")}<input type="search" value={query} disabled={busy} placeholder={uiText("interview:factEditor.companyProjectSkill")} onChange={(e) => { setQuery(e.target.value); setSelectedId(null); setPage(0); }} /></label>
     </div>
-    <label className={classes.mobileNav}>{isolated ? uiText("interview:factEditor.cvSection") : uiText("interview:factEditor.profileSection")}<select value={section.id} disabled={busy} onChange={(e) => { setSectionId(e.target.value); setSelectedId(null); setQuery(''); setPage(0); }}>{careerSections.map((s) => <option key={s.id} value={s.id}>{s.label} ({groups.filter((g) => g.section === s.id).length})</option>)}</select></label>
+    <label className={classes.mobileNav}>{isolated ? uiText("interview:factEditor.cvSection") : uiText("interview:factEditor.profileSection")}<select value={section.id} disabled={busy} onChange={(e) => { setSectionId(e.target.value); setSelectedId(null); setQuery(''); setPage(0); }}>{availableSections.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select></label>
     <div className={classes.workspace}>
       <nav className={classes.navigation} aria-label={isolated ? uiText("interview:factEditor.cvSections") : uiText("interview:factEditor.profileSections")}>
-        {careerSections.map((item, index) => <button key={item.id} type="button" disabled={busy} aria-current={!query && section.id === item.id ? 'page' : undefined} onClick={() => { setSectionId(item.id); setSelectedId(null); setQuery(''); setPage(0); setMessage(''); }}><span className={classes.index}>{String(index + 1).padStart(2, '0')}</span><span>{item.label}</span><span className={classes.count}>{groups.filter((g) => g.section === item.id).length}</span></button>)}
-        <p className={classes.navHint}>{uiText("interview:factEditor.chooseASectionThenAnEntry")}<br />{uiText("interview:factEditor.eachRoleHasItsOwnPlace")}</p>
+        {availableSections.map((item) => <button key={item.id} type="button" disabled={busy} aria-current={!query && section.id === item.id ? 'page' : undefined} onClick={() => { setSectionId(item.id); setSelectedId(null); setQuery(''); setPage(0); setMessage(''); }}><span>{item.label}</span></button>)}
       </nav>
       <div className={classes.content}>
         <header className={classes.sectionHeader}>
-          <div><span className={classes.eyebrow}>{selected ? uiText("interview:factEditor.selectedEntry") : query ? (isolated ? uiText("interview:factEditor.inCvInformation") : uiText("interview:factEditor.acrossYourProfile")) : `${String(careerSections.indexOf(section) + 1).padStart(2, '0')} / ${isolated ? 'Informacje do CV' : 'Profil zawodowy'}`}</span><h3 ref={heading} tabIndex={-1}>{selected ? (selectedHasInterviewAnswer ? uiText("interview:factEditor.interviewAnswer") : selected.title) : query ? uiText("interview:factEditor.searchResults") : section.label}</h3><p>{selected ? (selectedHasInterviewAnswer ? uiText("interview:factEditor.theQuestionAnswerAndContextAppearTogether") : selected.subtitle || uiText("interview:factEditor.factsInOneEntry", { value0: (selected.fields.length) })) : section.description}</p></div>
+          <div><h3 ref={heading} tabIndex={-1}>{selected ? (selectedHasInterviewAnswer ? uiText("interview:factEditor.interviewAnswer") : selected.title) : query ? uiText("interview:factEditor.searchResults") : section.label}</h3><p>{selected ? (selectedHasInterviewAnswer ? uiText("interview:factEditor.theQuestionAnswerAndContextAppearTogether") : selected.subtitle || uiText("interview:factEditor.factsInOneEntry", { value0: (selected.fields.length) })) : null}</p></div>
           {selected ? <button disabled={busy} type="button" onClick={() => { setSelectedId(null); requestAnimationFrame(() => heading.current?.focus()); }}>{uiText("interview:factEditor.entryList")}</button> : canEditSection && <button ref={addRef} type="button" disabled={busy || facts.length >= 500} onClick={addRecord}>{uiText("interview:factEditor.addInformation")}</button>}
         </header>
         {section.id !== 'notes' && <p className={classes.navHint}>{uiText("interview:factEditor.sourceReadOnly")}</p>}

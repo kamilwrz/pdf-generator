@@ -37,10 +37,19 @@ export default function CareerProfilePage() {
   const profileViewButton = useRef(null);
   const confirmationTrigger = useRef(null);
   const confirmationHeading = useRef(null);
+  const restoreAfterDeletion = useRef(false);
   useEffect(() => { if (confirmDelete) confirmationHeading.current?.focus(); }, [confirmDelete]);
+  useEffect(() => {
+    // Wait for the request and React commit before focusing a surviving control.
+    // The original delete button may be unmounted or disabled after clearing.
+    if (busy || confirmDelete || !restoreAfterDeletion.current) return;
+    restoreAfterDeletion.current = false;
+    const trigger = confirmationTrigger.current;
+    const target = trigger?.isConnected && !trigger.disabled ? trigger : profileViewButton.current;
+    target?.focus();
+  }, [busy, confirmDelete]);
   function restoreDeletionFocus() {
-    // Wait for the deleted row to unmount before choosing a surviving target.
-    requestAnimationFrame(() => (confirmationTrigger.current?.isConnected ? confirmationTrigger.current : deleteButton.current || profileViewButton.current)?.focus());
+    restoreAfterDeletion.current = true;
   }
   const load = useCallback(async () => {
     const [p, s] = await Promise.all([interviewRequest('/career-profile'), interviewRequest('/ai/interviews')]);
@@ -108,7 +117,7 @@ export default function CareerProfilePage() {
   });
   const name = visibleFacts.find((f) => f.path === '/name')?.text;
   const title = visibleFacts.find((f) => f.path === '/title')?.text;
-  return <SiteLayout workspace compact title={uiText("public:siteLayout.careerProfile")} intro={uiText("public:careerProfilePage.yourWholeCareerOrganisedAndReadyFor")} heroActions={hasSource && <Link className={site.primary} to="/app/interview">{uiText("public:careerProfilePage.createACvThroughAnInterview")}</Link>} heroAside={<><span className={site.eyebrow}>{uiText("public:careerProfilePage.yourExperienceYourVoice")}</span><strong className={site.noteTitle}>{name || uiText("public:careerProfilePage.startWithYourStory")}</strong><p>{title || uiText("public:careerProfilePage.rolesProjectsAndSkillsFormAShared")}</p><span className={layout.profileMeta}>{uiText("public:careerProfilePage.information")} {facts.length} {uiText("public:careerProfilePage.interviews")} {sessions.length}</span></>}>
+  return <SiteLayout workspace compact title={uiText("public:siteLayout.careerProfile")} intro={uiText("public:careerProfilePage.yourWholeCareerOrganisedAndReadyFor")} heroActions={hasSource && <Link className={site.primary} to="/app/interview">{uiText("public:careerProfilePage.createACvThroughAnInterview")}</Link>} heroAside={<><span className={site.eyebrow}>{uiText("public:careerProfilePage.yourExperienceYourVoice")}</span><strong className={site.noteTitle}>{name || uiText("public:careerProfilePage.startWithYourStory")}</strong><p>{title || uiText("public:careerProfilePage.rolesProjectsAndSkillsFormAShared")}</p></>}>
     <div className={`${classes.flow} ${layout.profile}`} aria-busy={busy}>
       <nav className={layout.views} aria-label={uiText("public:careerProfilePage.profileViews")}><button ref={profileViewButton} disabled={busy || editing} aria-current={view === 'profile' ? 'page' : undefined} onClick={() => setView('profile')}>{uiText("public:careerProfilePage.myInformation")}</button><button disabled={busy || editing} aria-current={view === 'sessions' ? 'page' : undefined} onClick={() => setView('sessions')}>{uiText("public:careerProfilePage.savedInterviews")} <span>{sessions.length}</span></button></nav>
       {error && <div className={classes.error} role="alert"><p>{error}</p><button disabled={busy || editing} onClick={() => run(load)}>{uiText(noteConflict ? "public:careerProfilePage.loadSavedNotes" : "public:careerProfilePage.loadSavedProfile")}</button></div>}
@@ -132,7 +141,7 @@ export default function CareerProfilePage() {
       {!hasSource && <InterviewSourceRequired />}
       {(hasSource || visibleFacts.length > 0) && <FactEditor key={sourceValue} detachNotePaths facts={visibleFacts} onChange={(next) => setFacts(binding ? next : [...facts.filter((fact) => !isCareerNote(fact)), ...next])} disabled={busy} readOnly={!hasSource} onEditingChange={setEditing} />}{(hasSource || facts.length > 0 || binding) && <div className={layout.saveBar}><p>{editing ? uiText("public:careerProfilePage.applyOrCancelFieldEditingBeforeSaving") : dirty ? uiText("public:careerProfilePage.youHaveUnsavedChanges") : uiText("public:careerProfilePage.allInformationSaved")}<span>{uiText("public:careerProfilePage.changesAffectYourProfileExistingCvsKeep")}</span></p><div className={classes.actions}>
         {hasSource && <button className={classes.primary} disabled={busy || editing || noteConflict || !dirty || facts.some((fact) => !fact.text.trim())} onClick={() => run(async () => { const p = await interviewRequest('/career-profile', 'PUT', { revision: profile.revision, facts }); setProfile(p); setFacts(p.facts); setStatus(messageRef("public:careerProfilePage.profileSaved")); })}>{uiText("public:careerProfilePage.saveProfile")}</button>}
-        <button ref={deleteButton} className={classes.danger} disabled={busy || editing || (!facts.length && !binding)} onClick={(event) => { confirmationTrigger.current = event.currentTarget; setConfirmDelete('profile'); }}>{uiText("public:careerProfilePage.clearProfile")}</button>
+        <details className={layout.management}><summary>{uiText('public:careerProfilePage.manageProfile')}</summary><button ref={deleteButton} className={classes.danger} disabled={busy || editing || (!facts.length && !binding)} onClick={(event) => { confirmationTrigger.current = event.currentTarget; setConfirmDelete('profile'); }}>{uiText("public:careerProfilePage.clearProfile")}</button></details>
       </div></div>}</> : !error && <p className={layout.loading}>{uiText("public:careerProfilePage.loadingProfile")}</p>)}
       {confirmDelete && <section className={classes.question} aria-label={uiText("public:careerProfilePage.confirmDeletion")}><h2 ref={confirmationHeading} tabIndex={-1}>{confirmDelete === 'profile' ? uiText("public:careerProfilePage.deleteAllProfileInformation") : uiText("public:careerProfilePage.deleteSavedInterview")}</h2><p>{uiText("public:careerProfilePage.previouslySavedCvsWillRemainAvailable")} {confirmDelete === 'profile' ? uiText("public:careerProfilePage.newGenerationWillNotUseDeletedFacts") : uiText("public:careerProfilePage.informationSavedOnlyInThisInterviewWill")}</p><div className={classes.actions}><button className={classes.danger} disabled={busy} onClick={() => run(async () => {
         if (confirmDelete === 'profile') { const p = await interviewRequest(`/career-profile?revision=${profile.revision}`, 'DELETE'); setProfile({ ...p, sources: profile.sources }); setFacts([]); setNoteConflict(false); }

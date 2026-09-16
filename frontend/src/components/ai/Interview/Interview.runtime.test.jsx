@@ -126,7 +126,7 @@ describe('interview workflow', () => {
     session.question.follow_up_to = 'earlier-question';
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     const input = await screen.findByLabelText('Twoja odpowiedź');
-    expect(input).toHaveAccessibleDescription(/Odpowiedz własnymi słowami/);
+    expect(input).toHaveAccessibleDescription(/Pisz własnymi słowami/);
     expect(screen.getByText(/Dopytanie do wcześniejszej odpowiedzi/)).toHaveTextContent('możesz je pominąć');
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   });
@@ -600,12 +600,11 @@ describe('assisted answer provenance', () => {
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     const user = userEvent.setup();
     const use = await screen.findByRole('button', { name: 'Użyj propozycji' });
-    const review = screen.getByRole('button', { name: 'Sprawdź informacje' });
-    expect(review).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Sprawdź informacje' })).not.toBeInTheDocument();
     await user.click(use);
-    expect(review).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Sprawdź informacje' })).not.toBeInTheDocument();
     await user.clear(screen.getByLabelText('Twoja odpowiedź'));
-    expect(review).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Sprawdź informacje' })).not.toBeInTheDocument();
     expect(interviewRequest.mock.calls.some(([path, method]) => method === 'POST'
       && (path.endsWith('/confirm') || path.endsWith('/answers')))).toBe(false);
   });

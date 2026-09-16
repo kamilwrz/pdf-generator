@@ -78,6 +78,7 @@ it.each([
   }
   const expectedLanguage = manual && change !== 'document' ? 'de' : 'en';
   await userEvent.click(screen.getByRole('button', { name: t('ai:task.interview'), exact: true }));
+  await userEvent.click(await screen.findByText(/^(Język CV:|CV language:)/));
   expect(await screen.findByRole('combobox', { name: t('interview:interviewFlow.newCvLanguage') })).toHaveValue(expectedLanguage);
   await userEvent.click(screen.getByRole('button', { name: t('interview:interviewFlow.startInterview') }));
   await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST',
@@ -88,6 +89,7 @@ afterEach(async () => { cleanup(); await setUiLanguage('pl'); });
 it.each(['en', 'pl'])('defaults an embedded interview to %s and sends that document language', async (language) => {
   await setUiLanguage(language);
   render(<MemoryRouter><AiAssistant /></MemoryRouter>);
+  await userEvent.click(await screen.findByText(/^(Język CV:|CV language:)/));
   expect(await screen.findByRole('combobox', { name: t('interview:interviewFlow.newCvLanguage') })).toHaveValue(language);
   await userEvent.click(screen.getByRole('button', { name: t('interview:interviewFlow.startInterview') }));
   await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews', 'POST',
@@ -97,6 +99,7 @@ it.each(['en', 'pl'])('defaults an embedded interview to %s and sends that docum
 it('retains an explicit document language and sends a later selection independently of English UI', async () => {
   await setUiLanguage('en');
   render(<MemoryRouter><InterviewFlow initialSource={{ cv_data: state.cv, language: 'de' }} /></MemoryRouter>);
+  await userEvent.click(await screen.findByText(/^(Język CV:|CV language:)/));
   const selector = await screen.findByRole('combobox', { name: t('interview:interviewFlow.newCvLanguage') });
   expect(selector).toHaveValue('de');
   await userEvent.selectOptions(selector, 'en');

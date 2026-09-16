@@ -97,6 +97,8 @@ for (const width of [390, 834, 1280, 1920]) {
       await page.getByRole('button', { name: 'Interview', exact: true }).click();
       const flow = page.getByRole('region', { name: 'Career interview' });
       const languageField = flow.getByRole('combobox', { name: 'New CV language', exact: true });
+      await expect(languageField).toBeHidden();
+      await flow.locator('summary').filter({ hasText: /^CV language:/ }).click();
       await expect(languageField).toHaveValue('en');
       await languageField.focus();
       if (language === 'pl') {

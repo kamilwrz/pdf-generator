@@ -391,7 +391,9 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         <summary>{uiText('interview:interviewFlow.optionalNotes')}</summary>
         <label>{mode === 'tailor' ? uiText("interview:interviewFlow.additionalFactsForThisCv") : uiText("interview:interviewFlow.careerHistoryProjectsAndEducation")}<textarea rows={3} maxLength={5000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={uiText("interview:interviewFlow.describeRolesCompaniesEmploymentDatesAndAchievements")} /></label>
       </details>
-      <label>{uiText("interview:interviewFlow.newCvLanguage")}<select value={language} onChange={(e) => setLanguage(e.target.value)}>{Object.entries(languageLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+      <details className={classes.optionalNotes}><summary>{uiText('interview:interviewFlow.languageSetting', { language: languageLabels[language] })}</summary>
+        <label>{uiText("interview:interviewFlow.newCvLanguage")}<select value={language} onChange={(e) => setLanguage(e.target.value)}>{Object.entries(languageLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+      </details>
       <button className={classes.primary} disabled={!canAi} type="button" onClick={start}>{uiText("interview:interviewFlow.startInterview")}</button>
       <p className={classes.hint}>{uiText("interview:interviewFlow.questionsContentGenerationEditingAndVerificationUse")}</p>
       </>}
@@ -476,7 +478,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             <button disabled={busy} onClick={() => saveAnswer('unknown', '')}>{uiText("interview:interviewFlow.iCannotRemember")}</button>
             <button disabled={busy} onClick={() => saveAnswer('skipped', '')}>{uiText("ai:aiAssistant.skip")}</button>
           </div></details></div>}
-        {session.phase !== 'completed' && <div className={classes.actions}>
+        {session.phase !== 'completed' && !session.question && session.phase !== 'clarification' && <div className={classes.actions}>
           <button disabled={busy || Boolean(assistedAnswer && assistedAnswer.questionId === session.question?.id)} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
         </div>}
         {!session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}>

@@ -12,6 +12,22 @@ function Harness({ initial = role, saved, detachNotePaths = false }) {
   return <FactEditor detachNotePaths={detachNotePaths} facts={facts} onChange={(value) => { setFacts(value); saved?.(value); }} />;
 }
 
+it('offers only populated sections and a keyboard shortcut to empty notes without writing data', async () => {
+  const user = userEvent.setup();
+  const saved = vi.fn();
+  render(<Harness saved={saved} />);
+  expect(screen.queryByRole('button', { name: /Wykształcenie/ })).not.toBeInTheDocument();
+  const shortcut = screen.getByRole('button', { name: 'Notatki i odpowiedzi' });
+  shortcut.focus();
+  await user.keyboard('{Enter}');
+  await waitFor(() => expect(screen.getByRole('heading', { level: 3 })).toHaveFocus());
+  await user.click(screen.getByRole('button', { name: '+ Dodaj informację' }));
+  await user.type(screen.getByLabelText('Treść'), 'Draft to keep');
+  expect(screen.getByLabelText('Sekcja profilu')).toBeDisabled();
+  await user.keyboard('{Escape}');
+  expect(saved).not.toHaveBeenCalled();
+});
+
 it('shows source fields without edit, delete, addition or classification controls by default', async () => {
   const user = userEvent.setup();
   render(<Harness />);

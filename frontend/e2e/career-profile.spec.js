@@ -164,6 +164,8 @@ test('clearing an unavailable source restores focus without repopulating the pro
   });
   await page.goto('/app/career-profile');
   await expect(page.getByRole('combobox', { name: 'Źródło danych profilu', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Wyczyść profil', exact: true })).toBeHidden();
+  await page.getByText('Opcje profilu', { exact: true }).press('Enter');
   await page.getByRole('button', { name: 'Wyczyść profil', exact: true }).click();
   await page.getByRole('button', { name: /^Potwierd/ }).click();
   await expect(page.getByRole('button', { name: 'Moje informacje', exact: true })).toBeFocused();
