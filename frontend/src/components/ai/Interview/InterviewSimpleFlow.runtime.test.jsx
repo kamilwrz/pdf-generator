@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import InterviewFlow from './InterviewFlow';
@@ -64,6 +64,64 @@ async function start() {
   await screen.findByRole('textbox', { name: 'Twoja odpowiedź' });
 }
 
+/** Hold a real request boundary so intermediate UI cannot pass unnoticed. */
+function pauseRequest(action) {
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  const respond = interviewRequest.getMockImplementation();
+  interviewRequest.mockImplementation(async (path, ...args) => {
+    if (path.endsWith(`/${action}`)) await pending;
+    return respond(path, ...args);
+  });
+  return () => act(async () => { release(); });
+}
+
+it.each(['source', 'answer', 'resume'])('shows only progress while the next question is pending after %s', async entry => {
+  if (entry === 'answer') await start();
+  if (entry === 'resume') {
+    session = { ...session, phase: 'ready', confirmed: true,
+      evidence_profile: { revision: 0, facts: [fact] } };
+    mount({ sessionId: session.id, onClose: vi.fn() });
+    await screen.findByRole('button', { name: 'Następne pytanie' });
+    expect(writes()).toHaveLength(0);
+  }
+  const release = pauseRequest('next');
+  if (entry === 'source') {
+    mount();
+    await userEvent.click(await screen.findByRole('button', { name: 'Anna CV' }));
+  } else if (entry === 'answer') {
+    await userEvent.type(screen.getByRole('textbox', { name: 'Twoja odpowiedź' }), 'Raporty');
+    await userEvent.click(screen.getByRole('button', { name: 'Wyślij odpowiedź' }));
+    expect(session.answers).toHaveLength(1);
+  } else await userEvent.click(screen.getByRole('button', { name: 'Następne pytanie' }));
+
+  expect(await screen.findByRole('progressbar', { name: 'Dobór pytania przez AI' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Wybierz szablon', exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByText('Odpowiedź zapisana. Idziemy dalej?')).not.toBeInTheDocument();
+  expect(screen.getByText('Kredyty rozmowy')).toBeVisible();
+  await release();
+  expect(await screen.findByRole('textbox', { name: 'Twoja odpowiedź' })).toBeEnabled();
+  expect(screen.getByRole('heading', { name: 'Rozmowa o doświadczeniu' })).toHaveFocus();
+  expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+});
+
+it('keeps the answer and disabled form visible until persistence completes', async () => {
+  await start();
+  const release = pauseRequest('answers');
+  const field = screen.getByRole('textbox', { name: 'Twoja odpowiedź' });
+  await userEvent.type(field, 'Raporty');
+  await userEvent.click(screen.getByRole('button', { name: 'Wyślij odpowiedź' }));
+  expect(await screen.findByRole('heading', { name: 'Zapisujemy odpowiedź' })).toBeVisible();
+  expect(field).toBeVisible();
+  expect(field).toHaveValue('Raporty');
+  expect(field).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Wyślij odpowiedź' })).toBeDisabled();
+  expect(session.answers).toHaveLength(0);
+  await release();
+  expect(session.answers).toHaveLength(1);
+});
+
 it('choosing a CV confirms only its source and asks automatically, without review or account facts', async () => {
   await start();
   expect(writes().map(([path]) => path.split('/').at(-1))).toEqual(['interviews', 'confirm', 'next']);
@@ -94,10 +152,17 @@ it('saves each answer before asking again, then goes straight to templates at th
 
 it('retains a saved answer after the next question fails and retry does not submit it twice', async () => {
   await start(); failNext = true;
+  const release = pauseRequest('next');
   await userEvent.type(screen.getByRole('textbox', { name: 'Twoja odpowiedź' }), 'Raporty');
   await userEvent.click(screen.getByRole('button', { name: 'Wyślij odpowiedź' }));
+  await screen.findByRole('progressbar', { name: 'Dobór pytania przez AI' });
+  expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
+  await release();
   expect(await screen.findByRole('alert')).toHaveTextContent('Question failed');
   expect(session.answers).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Następne pytanie' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Wybierz szablon', exact: true })).toBeEnabled();
+  expect(screen.getByRole('heading', { name: 'Rozmowa o doświadczeniu' })).toHaveFocus();
   failNext = false;
   await userEvent.click(screen.getByRole('button', { name: 'Następne pytanie' }));
   await screen.findByRole('textbox', { name: 'Twoja odpowiedź' });

@@ -16,7 +16,7 @@ New files live beside the existing interview components and browser tests. Curre
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, 1–78.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, 1–246.
 - `frontend/src/components/ai/Interview/InterviewSourcePicker.runtime.test.jsx`, 1–53.
-- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–197.
 - `frontend/e2e/assistant-source-picker.spec.js`, 1–82.
 - `frontend/e2e/assistant-three-steps.spec.js`, 1–93.
 
@@ -204,7 +204,7 @@ Implementation and tests (verified full-file ranges):
 - `frontend/src/pages/Site/ConversationsPage.jsx`, 1–99, `ConversationsPage`.
 - `frontend/src/pages/Site/ConversationsPage.module.css`, 1–20, `conversation layout`.
 - `frontend/src/components/ai/Interview/Interview.module.css`, 1–115, `stage and template layout`.
-- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132, `transaction and recovery tests`.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–197, `transaction and recovery tests`.
 - `frontend/e2e/assistant-three-steps.spec.js`, 1–93, `PL/EN browser tests`.
 
 `ConversationsPage.jsx` replaces the removed profile page. Its CSS module is shared with `SavedConversationDetails`. `InterviewStages` replaces the four-stage selector with a three-step progress list. Existing templates, backend endpoints, database tables, dependencies and environment variables remain unchanged; deploy the frontend through the usual build pipeline. No saved data cleanup is part of deployment.
@@ -281,6 +281,10 @@ Browser regressions in `frontend/e2e/interviews.spec.js`, lines 88–114, check 
 
 The three-step assistant described above owns source selection, automatic questions and creation on template choice. Factual clarifications retain their explicit full-description confirmation, correction drafts, Escape/focus restoration and distinct unknown/skip meanings. Credits and recovery retain their existing ledger and server checks.
 
+While a question is being prepared, the conversation shows its existing operation status, elapsed time and credit receipt. The previous decision block, including “Answer saved. Ready to continue?”, “Next question” and “Choose a template”, is absent until the request settles. The answer form remains visible and disabled while the answer itself is being saved. On success, the new question appears and task-heading focus returns; on failure, the saved answer survives and the next-question/template actions return. Retrying requests only the next question. Opening a saved conversation still makes no paid request. This shared behaviour applies to standalone, embedded and guided interviews without changing CV/PDF output.
+
+Implementation: `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 503–516, the `InterviewFlow` next-step branch requires `!waiting`. `InterviewSimpleFlow.runtime.test.jsx`, lines 67–170, holds request boundaries to verify first questions, answer submission, embedded resume and recovery. `frontend/e2e/interview-simple-flow.spec.js`, lines 12–97, checks pending/success/failure transitions, keyboard focus, 44px recovery actions, reduced motion and overflow in PL/EN at 390/834/1280/1920px, with 200% text at 834px. Use the runtime and browser commands below; all requests use synthetic fixtures. [React conditional rendering](https://react.dev/learn/conditional-rendering) explains how this condition removes stale choices from both the visible interface and keyboard navigation.
+
 ### CV entry context in ordinary interviews
 
 Ordinary creation/enrichment questions show a read-only **Discussing now** block directly above the question: section, record title, and available company/school, location, period or language level. `InterviewQuestionContext` shares the offer-requirement surface and global design tokens. It adds no disclosure, focus stop, network request or AI charge, and never changes CV/PDF content. The same component serves the standalone interview and editor assistant.
@@ -302,7 +306,7 @@ The affected states include intake with and without optional notes, source revie
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571, function `InterviewFlow`, coordinates drafts, explicit operations and stage transitions; `goTo` persists changed information before leaving and retains it on failure.
 - `frontend/src/components/ai/Interview/Interview.module.css` owns the interview working layout. `InterviewCredits.jsx`, lines 13–75, and the adjacent `InterviewCredits.module.css` own the shared receipt; the CSS Module is the only new production file.
 - `frontend/src/i18n/locales/pl.json` and `en.json` are the source dictionaries. Generated workspace dictionaries come from `scripts/generate-locale-bundles.mjs`; edit source dictionaries only.
-- `InterviewFlowNavigation.runtime.test.jsx`, lines 1–299, covers primary actions, explicit paid boundaries and draft protection. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` and `InterviewLoading.runtime.test.jsx` cover confirmation, billing and operation feedback. `frontend/e2e/interview-simple-flow.spec.js`, lines 1–166, covers keyboard clarification, retained drafts and PL/EN at 390, 834, 1280 and 1920px, including enlarged text.
+- `InterviewFlowNavigation.runtime.test.jsx`, lines 1–299, covers primary actions, explicit paid boundaries and draft protection. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` and `InterviewLoading.runtime.test.jsx` cover confirmation, billing and operation feedback. `frontend/e2e/interview-simple-flow.spec.js`, lines 1–245, covers keyboard clarification, retained drafts and PL/EN at 390, 834, 1280 and 1920px, including enlarged text.
 
 From `frontend`, run `npm test`, `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js`, `npm run test:e2e -- interview-simple-flow.spec.js interview-workspace.spec.js interviews.spec.js interview-sources.spec.js interview-answer-help.spec.js interview-prerequisites.spec.js interview-discovery.spec.js --project=desktop-chromium --workers=2`, `npm run lint -- --quiet`, and `npm run build`. Browser tests intercept API calls and use synthetic candidates. They verify behaviour and layout; reduced cognitive effort has not been measured with users. This change adds no API, database schema, dependency, environment variable or deployment step.
 
@@ -4021,7 +4025,7 @@ Nowe pliki znajdują się obok istniejących komponentów wywiadu i testów prze
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, 1–78.
 - `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, 1–246.
 - `frontend/src/components/ai/Interview/InterviewSourcePicker.runtime.test.jsx`, 1–53.
-- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–197.
 - `frontend/e2e/assistant-source-picker.spec.js`, 1–82.
 - `frontend/e2e/assistant-three-steps.spec.js`, 1–93.
 
@@ -4211,7 +4215,7 @@ Implementacja i testy (sprawdzone zakresy całych plików):
 - `frontend/src/pages/Site/ConversationsPage.jsx`, 1–99, `ConversationsPage`.
 - `frontend/src/pages/Site/ConversationsPage.module.css`, 1–20, `conversation layout`.
 - `frontend/src/components/ai/Interview/Interview.module.css`, 1–115, `stage and template layout`.
-- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132, `transaction and recovery tests`.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–197, `transaction and recovery tests`.
 - `frontend/e2e/assistant-three-steps.spec.js`, 1–93, `PL/EN browser tests`.
 
 `ConversationsPage.jsx` zastępuje usuniętą stronę profilu. Jej moduł CSS jest współdzielony z `SavedConversationDetails`. `InterviewStages` zastępuje selektor czterech etapów listą trzech kroków. Szablony, endpointy backendu, tabele bazy, zależności i zmienne środowiskowe pozostają bez zmian; frontend wdraża się dotychczasowym procesem budowania. Wdrożenie nie usuwa zapisanych danych.
@@ -4288,6 +4292,10 @@ Regresje przeglądarkowe w `frontend/e2e/interviews.spec.js`, linie 88–114, sp
 
 Opisany powyżej trzyetapowy asystent odpowiada za wybór źródła, automatyczne pytania i tworzenie po wyborze szablonu. Doprecyzowanie faktów zachowuje jawną akceptację pełnego opisu, szkice korekty, Escape/przywrócenie fokusu oraz osobne znaczenia niewiedzy i pominięcia. Kredyty i odzyskiwanie nadal korzystają z istniejącego rejestru oraz kontroli serwera.
 
+Podczas przygotowywania pytania rozmowa pokazuje dotychczasowy status operacji, czas oczekiwania i rozliczenie kredytów. Poprzedni blok decyzji, w tym „Odpowiedź zapisana. Idziemy dalej?”, „Następne pytanie” i „Wybierz szablon”, nie jest wyświetlany do zakończenia żądania. Podczas zapisywania samej odpowiedzi formularz pozostaje widoczny i nieaktywny. Po sukcesie pojawia się nowe pytanie i wraca fokus nagłówka zadania; po błędzie zapisana odpowiedź pozostaje zachowana, a akcje następnego pytania i wyboru szablonu wracają. Ponowienie pobiera wyłącznie następne pytanie. Otwarcie zapisanej rozmowy nadal nie uruchamia płatnego żądania. Wspólne zachowanie obejmuje rozmowy samodzielne, osadzone i prowadzone w procesie dopasowania, bez zmian treści CV/PDF.
+
+Implementacja: `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 503–516, gałąź następnego kroku w `InterviewFlow` wymaga `!waiting`. `InterviewSimpleFlow.runtime.test.jsx`, linie 67–170, zatrzymuje żądania na ich granicach, sprawdzając pierwsze pytanie, wysłanie odpowiedzi, wznowienie osadzonej rozmowy i odzyskiwanie po błędzie. `frontend/e2e/interview-simple-flow.spec.js`, linie 12–97, sprawdza przejścia oczekiwanie/sukces/błąd, fokus klawiatury, 44px akcje odzyskiwania, ograniczony ruch i brak poziomego przepełnienia w PL/EN przy 390/834/1280/1920px, z tekstem 200% przy 834px. Użyj poniższych poleceń testów runtime i przeglądarkowych; wszystkie żądania korzystają z syntetycznych danych. [Renderowanie warunkowe React](https://react.dev/learn/conditional-rendering) wyjaśnia usuwanie nieaktualnych wyborów zarówno z widoku, jak i nawigacji klawiaturą.
+
 ### Kontekst wpisu CV w zwykłym wywiadzie
 
 Zwykłe pytania wywiadu tworzącego lub wzbogacającego CV pokazują bezpośrednio nad pytaniem blok **Teraz omawiamy**: sekcję, nazwę wpisu oraz dostępną firmę/uczelnię, lokalizację, okres lub poziom języka. `InterviewQuestionContext` współdzieli wygląd kontekstu wymagań oferty i globalne tokeny projektu. Nie dodaje rozwinięcia, przystanku fokusu, żądania sieciowego ani opłaty AI i nie zmienia treści CV/PDF. Ten sam komponent obsługuje samodzielny wywiad i asystenta edytora.
@@ -4309,7 +4317,7 @@ Zakres obejmuje rozpoczęcie z opcjonalną notatką i bez niej, przegląd źród
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–571, funkcja `InterviewFlow`, koordynuje szkice, jawne operacje i przejścia; `goTo` zapisuje zmienione informacje przed opuszczeniem etapu i zachowuje je po błędzie.
 - `frontend/src/components/ai/Interview/Interview.module.css` odpowiada za układ wywiadu. `InterviewCredits.jsx`, linie 13–75, i sąsiedni `InterviewCredits.module.css` odpowiadają za wspólne rozliczenie; moduł CSS jest jedynym nowym plikiem produkcyjnym.
 - `frontend/src/i18n/locales/pl.json` i `en.json` są słownikami źródłowymi. Słowniki robocze generuje `scripts/generate-locale-bundles.mjs`; edytuj wyłącznie słowniki źródłowe.
-- `InterviewFlowNavigation.runtime.test.jsx`, linie 1–299, sprawdza główne akcje, jawne granice płatnych operacji i ochronę szkiców. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` i `InterviewLoading.runtime.test.jsx` sprawdzają zatwierdzanie, rozliczenia i komunikaty operacji. `frontend/e2e/interview-simple-flow.spec.js`, linie 1–166, obejmuje doprecyzowanie klawiaturą, zachowanie szkiców oraz PL/EN przy 390, 834, 1280 i 1920px, w tym powiększony tekst.
+- `InterviewFlowNavigation.runtime.test.jsx`, linie 1–299, sprawdza główne akcje, jawne granice płatnych operacji i ochronę szkiców. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` i `InterviewLoading.runtime.test.jsx` sprawdzają zatwierdzanie, rozliczenia i komunikaty operacji. `frontend/e2e/interview-simple-flow.spec.js`, linie 1–245, obejmuje doprecyzowanie klawiaturą, zachowanie szkiców oraz PL/EN przy 390, 834, 1280 i 1920px, w tym powiększony tekst.
 
 W katalogu `frontend` uruchom `npm test`, `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js`, `npm run test:e2e -- interview-simple-flow.spec.js interview-workspace.spec.js interviews.spec.js interview-sources.spec.js interview-answer-help.spec.js interview-prerequisites.spec.js interview-discovery.spec.js --project=desktop-chromium --workers=2`, `npm run lint -- --quiet` oraz `npm run build`. Testy przeglądarkowe przechwytują API i używają syntetycznych danych kandydatów. Sprawdzają zachowanie i układ; zmniejszenie wysiłku poznawczego nie zostało zmierzone z użytkownikami. Zmiana nie dodaje API, schematu bazy, zależności, zmiennej środowiskowej ani kroku wdrożenia.
 

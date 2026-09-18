@@ -386,8 +386,8 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const clarificationQuestion = session?.question?.clarification ? session.question : null;
   const discoveryAnswers = session?.answers.filter((item) => !item.question?.clarification).length || 0;
   const hasAnswerDraft = Boolean(answer.trim());
-  // A saved answer never starts a paid request. The next explicit action follows
-  // the actual round boundary; early preparation stays available as an escape.
+  // Resumed sessions and failed automatic requests expose an explicit next step.
+  // Hide those choices while the save → next chain is already advancing the flow.
   const canAskNext = !session?.question && !session?.discovery_complete && !session?.discovery_round_complete
     && session?.phase !== 'clarification' && session?.answers.length < session?.question_limit;
   const canExtend = !session?.discovery_complete && session?.question_limit < 50
@@ -500,7 +500,7 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
         {hasPending && session.phase !== 'completed' && !session.question && session.phase !== 'clarification' && <div className={classes.actions}>
           <button disabled={busy || Boolean(assistedAnswer && assistedAnswer.questionId === session.question?.id)} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
         </div>}
-        {!session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}>
+        {!waiting && !session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}>
           <div>
             <h3>{uiText(canAskNext ? (discoveryAnswers ? 'interview:interviewFlow.continueConversation' : 'interview:interviewFlow.beginConversation') : 'interview:interviewFlow.readyToPrepareYourCv')}</h3>
             <p>{canAskNext ? uiText('interview:interviewFlow.nextQuestionHint') : hasPending ? uiText("interview:interviewFlow.continuingWillSaveNewOrChangedInformation") : session.discovery_complete ? uiText(session.discovery_exhausted ? "interview:interviewFlow.answerLimitReached" : "interview:interviewFlow.weHaveCoveredTheAvailableEntriesYou") : uiText("interview:interviewFlow.youCanContinueOrAnswerMoreQuestions")}</p>
