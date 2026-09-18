@@ -83,6 +83,7 @@ test("edit zoom survives assistant focus and canvas scrolling until the bare A4 
   const name = page.locator("#saved-name");
   const canvas = page.locator(".canvas-area");
   const zoomLabel = page.getByText("280%", { exact: true });
+  await expect(page.locator('[data-anchor="topbar-zoom"]')).toHaveText("200%");
   // This fixture's single-line field keeps a zero-height PDF baseline box;
   // dispatch the semantic click directly instead of asking Playwright to aim
   // at its editor-only pseudo hit area.
@@ -144,7 +145,7 @@ test("edit zoom survives assistant focus and canvas scrolling until the bare A4 
   const bareA4 = page.locator("[data-page-canvas]").first();
   await bareA4.dispatchEvent("pointerdown");
   await bareA4.dispatchEvent("click");
-  await expect(zoomLabel).toBeHidden();
+  await expect(page.locator('[data-anchor="topbar-zoom"]')).toHaveText("200%");
   api.assertHermetic();
 });
 

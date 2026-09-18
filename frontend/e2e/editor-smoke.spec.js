@@ -553,12 +553,6 @@ test.describe("CV Studio editor smoke", () => {
     });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
-    await page.getByRole("button", { name: "Powiększ" }).click();
-    await page.getByRole("button", { name: "Powiększ" }).click();
-    await page.getByRole("button", { name: "Powiększ" }).click();
-    await page.getByRole("button", { name: "Powiększ" }).click();
-    await page.getByRole("button", { name: "Powiększ" }).click();
-    await page.getByRole("button", { name: "Powiększ" }).click();
     await expect(page.getByText("200%", { exact: true })).toBeVisible();
 
     const body = page.locator("#flat-skills-body");

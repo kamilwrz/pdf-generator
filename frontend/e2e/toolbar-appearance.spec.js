@@ -399,8 +399,8 @@ for (const width of [390, 640]) {
     await expect(page.getByRole("button", { name: "Powiększ", exact: true })).toBeVisible();
     await page.evaluate(() => {
       const zoomIn = document.querySelector('[aria-label="Powiększ"]');
-      // The editor starts at 100%; reach the asserted 280% in 10-point steps.
-      for (let step = 0; step < 18; step += 1) zoomIn.click();
+      // The editor starts at 200%; reach the asserted 280% in 10-point steps.
+      for (let step = 0; step < 8; step += 1) zoomIn.click();
     });
     await page.locator("#skills-tools-title").evaluate((node) => node.scrollIntoView({ block: "center" }));
     await page.locator("#skills-tools-title").dispatchEvent("pointerenter");
