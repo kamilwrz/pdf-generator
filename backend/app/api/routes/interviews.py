@@ -32,6 +32,7 @@ from app.services.interview_editorial import (
     QUALITY_TASK, editorial_review_notes, CV_READABILITY_POLICY,
 )
 from app.services import interview_service as service
+from app.services.ai_telemetry import measure_operation
 from app.services.interview_credits import interview_credit_usage
 from app.services.interview_history import interview_summaries
 from app.services.interview_fit import initialise_fit, fit_preview
@@ -273,6 +274,7 @@ def get_interview_credits(session_id: str, user=Depends(get_current_user), db=De
 
 
 @router.post("/ai/interviews/{session_id}/answer-help")
+@measure_operation("interview", operation="answer-help")
 def help_interview_answer(session_id: str, request: AnswerHelpWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Prepare checked, unconfirmed help for one owned active narrative question."""
     return generate_answer_help(db, user, service.owned_session(db, user.id, session_id), request)
@@ -378,6 +380,7 @@ def skip_clarifications(session_id: str, request: SessionWrite, user=Depends(get
 
 
 @router.post("/ai/interviews/{session_id}/next")
+@measure_operation("interview", operation="next")
 def next_interview(session_id: str, request: SessionWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Run bounded discovery using the shared paid provider boundary."""
     return service.next_question(db, user, service.owned_session(db, user.id, session_id), request)
@@ -506,6 +509,7 @@ def refresh_interview_source(session_id: str, request: SourceRefresh, user=Depen
 
 
 @router.post("/ai/interviews/{session_id}/preview")
+@measure_operation("interview", operation="preview")
 def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Generate reviewable content and deterministic layout, preserving source CV."""
     row = service.owned_session(db, user.id, session_id)
@@ -622,6 +626,7 @@ def review_interview_preview(session_id: str, request: PreviewReviewWrite, user=
 
 
 @router.post("/ai/interviews/{session_id}/preview-fit")
+@measure_operation("interview", operation="fit-shorten")
 def fit_interview_preview(session_id: str, request: PreviewFitWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Finish browser page fitting, run one bounded shortening, or undo the fit."""
     return fit_preview(db, user, service.owned_session(db, user.id, session_id), request)

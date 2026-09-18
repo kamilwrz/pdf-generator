@@ -403,13 +403,14 @@ class AiAssistantExceptionHandlingTests(unittest.TestCase):
         self.assertIn("Uprość polecenie", detail["message"])
         self.assertNotIn("finish_reason", detail["message"])
 
-    def test_assistant_defaults_to_luna_with_high_reasoning(self):
-        # Interview analysis, questions, drafting and verification reuse improve;
-        # interview redaction reuses language, so both must share the default.
-        for action in sorted(ai_assistant_route.VALID_ACTIONS):
-            with self.subTest(action=action):
-                self.assertEqual(ai_assistant_service._model_for_action(action), "gpt-5.6-luna")
-                self.assertEqual(ai_assistant_service._reasoning_effort_for_action(action), "high")
+    def test_assistant_defaults_to_luna_with_task_specific_reasoning(self):
+        expected = {"grammar": "low", "improve": "medium", "language": "medium",
+                    "shorten": "medium", "translate": "medium"}
+        with patch.object(ai_assistant_service, "_ASSISTANT_REASONING_EFFORT", ""):
+            for action in sorted(ai_assistant_route.VALID_ACTIONS):
+                with self.subTest(action=action):
+                    self.assertEqual(ai_assistant_service._model_for_action(action), "gpt-5.6-luna")
+                    self.assertEqual(ai_assistant_service._reasoning_effort_for_action(action), expected.get(action, "high"))
 
     def test_assistant_provider_retains_configured_model_and_reasoning(self):
         response = SimpleNamespace(

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -104,6 +105,91 @@ class AiCreditReservationTests(unittest.TestCase):
 
     def test_zero_balance_never_calls_provider(self):
         self._exercise_assistant_budget(remaining=0, padding=0, rejected=True)
+
+    def test_compact_profile_success_replays_without_another_charge(self):
+        self._exercise_profile_patch_billing("success")
+
+    def test_compact_profile_validation_failure_cannot_be_charged_twice(self):
+        self._exercise_profile_patch_billing("invalid_id")
+
+    def test_compact_profile_invalid_json_cannot_be_charged_twice(self):
+        self._exercise_profile_patch_billing("invalid_json")
+
+    def test_compact_profile_timeout_retains_the_active_reservation(self):
+        self._exercise_profile_patch_billing("timeout")
+
+    def _exercise_profile_patch_billing(self, outcome):
+        """Run a bounded compact request through real SQL settlement and replay."""
+        import httpx
+        from openai import APITimeoutError
+        from app.api.routes import ai_assistant as route
+        from app.core.security import verify_token
+        from app.dependencies import get_db
+        from app.main import app
+        from app.services import ai_assistant_service as service
+        from app.services.cv_data import normalize_cv_data
+        from app.testing_support import ensure_test_auth_env
+
+        ensure_test_auth_env()
+        with self.Session() as db:
+            db.query(UsageCounter).filter_by(user_id=self.user_id).one().ai_actions_count = 198
+            db.commit()
+
+        def get_test_db():
+            with self.Session() as db:
+                yield db
+
+        # Luna can fund 16k output tokens with two credits on a short prompt.
+        # A long synthetic profile also exercises the conservative input bound.
+        before = " ".join(["I writes reports."] * 2000)
+        after = " ".join(["I write reports."] * 2000)
+        profile = normalize_cv_data({"name": "Alex Example", "summary": before})
+        payload = {"action": "grammar", "cv_language": "en", "cv_data": profile, "elements": [{
+            "element_id": "summary", "category": "textarea", "content": profile["summary"],
+            "cvDataBindings": [{"path": ["summary"]}],
+        }]}
+        raw = {"message": "Corrected grammar.", "tips": [], "changes": [{
+            "field_id": "unknown" if outcome == "invalid_id" else "f0", "value": after,
+        }]}
+        response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(
+            content="not JSON" if outcome == "invalid_json" else json.dumps(raw)), finish_reason="stop")],
+            usage=SimpleNamespace(prompt_tokens=1000, completion_tokens=1000, total_tokens=2000))
+        error = APITimeoutError(request=httpx.Request("POST", "https://example.test")) if outcome == "timeout" else None
+        app.dependency_overrides[verify_token] = lambda: {"sub": "reservation-owner"}
+        app.dependency_overrides[get_db] = get_test_db
+        try:
+            with patch.object(route, "resolve_user_from_payload", side_effect=lambda db, _: db.get(User, self.user_id)), \
+                 patch.object(service, "_PROFILE_PATCHES_ENABLED", True), \
+                 patch.object(service, "_MODEL", "gpt-5.6-luna"), \
+                 patch.object(service, "_ASSISTANT_REASONING_EFFORT", ""), \
+                 patch.object(service._client.chat.completions, "create", return_value=response, side_effect=error) as provider:
+                client = TestClient(app)
+                headers = {"Idempotency-Key": "compact-profile"}
+                first = client.post("/ai/assistant", json=payload, headers=headers)
+                self.assertEqual(first.status_code, 200 if outcome == "success" else 500, first.text)
+                with self.Session() as db:
+                    usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
+                    before_replay = (usage.ai_actions_count, usage.ai_credits_reserved)
+                replay = client.post("/ai/assistant", json=payload, headers=headers)
+                provider.assert_called_once()
+                kwargs = provider.call_args.kwargs
+                self.assertEqual(kwargs["response_format"]["json_schema"]["name"], "cv_profile_changes_v1")
+                self.assertLess(kwargs["max_completion_tokens"], 16_000)
+                if outcome == "success":
+                    self.assertEqual(replay.json(), first.json())
+                    self.assertEqual(first.json()["updated_cv_data"]["summary"], after)
+                    self.assertEqual(first.json()["corrections"], [{"element_id": "summary", "content": after}])
+                else:
+                    self.assertEqual(replay.status_code, 409, replay.text)
+                with self.Session() as db:
+                    usage = db.query(UsageCounter).filter_by(user_id=self.user_id).one()
+                    reservation = db.query(AiCreditReservation).filter_by(user_id=self.user_id).one()
+                    self.assertEqual((usage.ai_actions_count, usage.ai_credits_reserved), before_replay)
+                    self.assertEqual(reservation.status, "settled" if outcome == "success" else "pending" if outcome == "timeout" else "failed")
+                    self.assertEqual(usage.ai_actions_count, 198 if outcome == "timeout" else 199)
+                    self.assertEqual(usage.ai_credits_reserved, 2 if outcome == "timeout" else 0)
+        finally:
+            app.dependency_overrides.clear()
 
     def _exercise_assistant_budget(self, *, remaining, padding, content="Tworzę aplikacje internetowe.", rejected=False):
         """Exercise real route, prompt building, DB admission, settlement and replay."""

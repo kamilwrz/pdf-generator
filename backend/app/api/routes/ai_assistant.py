@@ -24,6 +24,7 @@ from app.services.ai_assistant_service import (
     analyze_action,
 )
 from app.services.ai_credit_budget import assistant_credit_budget
+from app.services.ai_telemetry import measure_operation
 from app.services.cv_audit import audit_read_only_result
 from app.services.ats_readability import AtsReadabilityError
 from app.services.scoped_ai import ScopedContent, review_scoped_content
@@ -186,6 +187,7 @@ class AssistantResponse(BaseModel):
 
 
 @router.post("/assistant", response_model=AssistantResponse, status_code=200)
+@measure_operation("assistant")
 def ai_assistant(
     request: AssistantRequest,
     http_request: HttpRequest,

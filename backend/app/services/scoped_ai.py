@@ -13,6 +13,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.services.cv_editorial_policy import IMPROVE_INSTRUCTION, STYLE_REVIEW_POLICY
+from app.services.ai_request_policy import task_name
+from app.services.ai_telemetry import measure_operation
 
 LANGUAGES = {"", "pl", "en", "de", "fr", "es", "uk", "it", "nl"}
 MAX_SCOPED_CHARS = 20_000
@@ -165,6 +167,7 @@ def validate_scoped_result(raw: dict, scope: ScopedContent, action: str) -> dict
     return result.model_dump()
 
 
+@measure_operation("scoped")
 def review_scoped_content(action: str, scope: ScopedContent) -> dict:
     """Run one metered review; preserve known provider usage on validation failure."""
     # Local import avoids a cycle with the legacy assistant dispatcher.
@@ -196,7 +199,8 @@ Zwróć WYŁĄCZNIE JSON z message w języku interfejsu oraz tablicami scoped_co
 Poprawka: {{"fragment_id":"id", "before":"dokładna treść wejściowa", "content":"pełny nowy tekst"}}.
 Wzór: {{"fragment_id":"id", "template":"tekst z [lukami]", "questions":["pytanie"]}}.
 Uwzględniaj tylko rzeczywiście zmienione fragmenty. Puste tablice są poprawną odpowiedzią."""
-    raw, usage = _gpt(system, json.dumps(scope.model_dump(), ensure_ascii=False), action=action)
+    raw, usage = _gpt(system, json.dumps(scope.model_dump(), ensure_ascii=False), action=action,
+                      task=task_name(action, workflow="scoped"))
     try:
         result = validate_scoped_result(raw, scope, action)
     except (ValueError, TypeError, KeyError) as exc:

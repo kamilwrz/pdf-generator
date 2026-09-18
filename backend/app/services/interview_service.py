@@ -22,6 +22,8 @@ from sqlalchemy.exc import IntegrityError
 from app.models.models import AiCreditReservation, CareerProfile, InterviewSession, Pdf
 from app.schemas.interview_schema import JobAnalysis, Discovery, CareerFact, provider_schema
 from app.services.ai_assistant_service import _gpt, AIServiceError, assistant_reservation_cost_pln
+from app.services.ai_request_policy import task_name
+from app.services.ai_telemetry import measure_operation
 from app.services.cv_data import normalize_cv_data
 from app.services.job_matching_policy import INTERVIEW_JOB_ANALYSIS_TASK
 from app.services.entitlements import (
@@ -506,6 +508,7 @@ def assemble_draft(raw, profile, language):
     return normalize_cv_data(result, require_name=True), changes
 
 
+@measure_operation("interview")
 def paid_model(db, user, row, request, operation, context, model, *, action="improve", generation=False, validate_output=None, attempt=None):
     """Reserve, validate and settle one deterministic operation key.
 
@@ -553,7 +556,8 @@ def paid_model(db, user, row, request, operation, context, model, *, action="imp
     if claim.replay_response is not None:
         return {**claim.replay_response, "_replayed": True}
     try:
-        raw, usage = _gpt(system, body, action=action, response_schema=provider_schema(model))
+        raw, usage = _gpt(system, body, action=action, response_schema=provider_schema(model),
+                          task=task_name(action, workflow="interview", operation=operation))
         try:
             output = model.model_validate(raw).model_dump()
             if validate_output:
