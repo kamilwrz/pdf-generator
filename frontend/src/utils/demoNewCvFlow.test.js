@@ -9,6 +9,6 @@ describe("demo new-CV flow integration", () => {
     const source = await readFile(canvasUrl, "utf8");
 
     assert.match(source, /hasActiveDocument=\{\(A4_Elements\.length > 0 && !isDemoContent\) \|\| hasInitialGuestDraft\}/);
-    assert.match(source, /allowUnconfirmedReplacement=\{isDemoContent\}/);
+    assert.ok(source.includes("<CvOnboarding"));
   });
 });

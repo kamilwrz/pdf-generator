@@ -16,7 +16,7 @@ for (const width of [390, 834, 1280, 1920]) {
     const dialog = page.getByRole("dialog", { name: "Importuj CV" });
     await dialog.getByRole("button", { name: "Zobacz historię importów" }).click();
     await dialog.locator("article").filter({ hasText: "CV-Kamil-Frontend-2026.pdf" })
-      .getByRole("button", { name: "Utwórz CV", exact: true }).click();
+      .getByRole("button", { name: "CV STUDIO", exact: true }).click();
     await dialog.getByRole("button", { name: /Monument/ }).click();
     await expect(dialog).toHaveCount(0);
 

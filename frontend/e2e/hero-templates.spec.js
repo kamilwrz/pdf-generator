@@ -12,9 +12,11 @@ for (const name of ["Sterling", "Meridian", "Linden"]) {
     await expect(hero.getByRole("link", { name: "Stwórz CV z tym szablonem" })).toHaveAttribute("href", `/cvstudio/guest?start=new&template=${name.toLowerCase()}`);
     const request = page.waitForRequest((request) => request.url().endsWith("/ai/fill_template") && request.method() === "POST");
     await hero.getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
+    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
     expect((await request).postDataJSON().template_id).toBe(name.toLowerCase());
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);
-    await expect(page.getByRole("dialog", { name: "Utwórz CV" })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "CV STUDIO" })).toHaveCount(0);
     await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
     api.assertHermetic();
   });
@@ -43,6 +45,8 @@ test("unavailable images retain template selection and a working CTA", async ({ 
   const hero = page.locator("#top");
   await expect(hero.getByText("Nie udało się wczytać podglądu. Wybierz szablon po nazwie i przejdź do edytora.")).toBeVisible();
   await hero.getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
+    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
 });
 
@@ -50,6 +54,7 @@ test("unknown template links fall back to the ordinary picker", async ({ page })
   await installMockApi(page);
   for (const id of ["unknown"]) {
     await page.goto(`/cvstudio/guest?start=new&template=${id}`);
+    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
     await expect(page.getByRole("radio", { name: /Meridian/ })).toBeChecked();
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);
   }
@@ -61,8 +66,8 @@ test("workspace and legacy redirects preserve a Free selection", async ({ page }
   for (const path of ["/cvstudio/guest", "/pdfcanvas"]) {
     await page.goto(`${path}?start=new&template=sterling`);
     await expect(page).toHaveURL(/\/cvstudio\/Kamil$/);
-    await expect(page.getByRole("heading", { name: /Wybrany szablon:/ })).toBeFocused();
-    await page.getByRole("button", { name: "Zmień szablon" }).click();
+    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Wybierz szablon dla swojego CV" })).toBeFocused();
     await expect(page.getByRole("radio", { name: /Sterling/ })).toBeChecked();
   }
 });
@@ -104,17 +109,19 @@ test("touch swipe changes selection and leaves vertical scrolling native", async
 });
 
 
-test("compact CTA starts editing directly and refresh restores the draft", async ({ page }) => {
+test("compact CTA preserves selection through onboarding and refresh restores the draft", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installMockApi(page);
   await page.goto("/");
   const hero = page.locator("#top");
   await hero.locator("label").filter({ hasText: "Meridian" }).click();
   await hero.getByRole("link", { name: "Stwórz CV z wybranym szablonem" }).click();
+    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
   await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Nowak");
   await expect.poll(() => page.evaluate(() => localStorage.getItem("cvstudio.guest.doc"))).not.toBeNull();
   await page.reload();
-  await expect(page.getByRole("dialog", { name: "Utwórz CV" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "CV STUDIO" })).toHaveCount(0);
   await expect(page).toHaveURL(/\/cvstudio\/guest$/);
 });

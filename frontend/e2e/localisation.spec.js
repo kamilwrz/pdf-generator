@@ -25,7 +25,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByLabel('Username', { exact: true }).fill('Unsubmitted name');
     await expect(page.getByLabel('Username', { exact: true })).toHaveValue('Unsubmitted name');
     await page.goto('/cvstudio/guest?start=new');
-    const setup = page.getByRole('dialog', { name: /^(Create CV|Utwórz CV)$/ });
+  await page.getByRole("button", { name: /^(Zaczynam od zera|Start from scratch)$/ }).click();
+    const setup = page.getByRole('dialog', { name: 'CV STUDIO', exact: true });
     await expect(setup).toBeVisible({ timeout: 25_000 });
     const language = setup.getByRole('combobox', { name: /^(CV language|Język CV)$/ });
     await expect(language).toHaveValue('en');
@@ -34,7 +35,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(setup.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
     expect(await setup.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     await page.screenshot({ path: `test-results/localisation-${width}.png`, fullPage: true });
-    await setup.getByRole('button', { name: 'Start editing', exact: true }).click();
+    await setup.getByRole('button', { name: 'Open CV in the editor', exact: true }).click();
     await expect(setup).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Application language' })).toHaveCount(0);
     api.assertHermetic();
@@ -58,6 +59,8 @@ test('English guest CV survives registration, verification and one PDF download'
   const api = await installMockApi(page);
   await page.goto('/');
   await page.locator('#top').getByRole('link', { name: 'Create a CV with this template', exact: true }).click();
+  await page.getByRole('button', { name: 'Start from scratch', exact: true }).click();
+  await page.getByRole('button', { name: 'Open CV in the editor', exact: true }).click();
   const name = page.locator('[contenteditable="true"][data-placeholder="Full name"]');
   await expect(name).toBeFocused();
   await name.fill('Anna Nowak');

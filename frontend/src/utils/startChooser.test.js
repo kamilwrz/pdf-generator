@@ -12,10 +12,10 @@ const freshEmptyDoc = {
 };
 
 describe("shouldShowStartChooser", () => {
-  it("never shows account onboarding for a guest or unresolved identity", () => {
-    assert.equal(shouldShowStartChooser({ ...freshEmptyDoc, isGuest: true }), false);
-    assert.equal(shouldShowStartChooser({ ...freshEmptyDoc, isGuest: undefined }), false);
-    assert.equal(shouldShowStartChooser(), false);
+  it("shows initial onboarding for guests and accounts", () => {
+    assert.equal(shouldShowStartChooser({ ...freshEmptyDoc, isGuest: true }), true);
+    assert.equal(shouldShowStartChooser({ ...freshEmptyDoc, isGuest: undefined }), true);
+    assert.equal(shouldShowStartChooser(), true);
   });
   it("shows for a fresh, empty, unsaved document (post-login landing)", () => {
     assert.equal(shouldShowStartChooser(freshEmptyDoc), true);

@@ -9,8 +9,8 @@ import Gallery from '../components/gallery/Gallery/Gallery';
 import Sidebar from '../components/editor/Sidebar/Sidebar';
 import Topbar from '../components/editor/Topbar/Topbar';
 import DemoBanner from '../components/editor/DemoBanner/DemoBanner';
-import StartChooser from '../components/editor/StartChooser/StartChooser';
-import NewCvSetupModal from '../components/editor/NewCvSetupModal/NewCvSetupModal';
+import CvOnboarding from '../components/editor/CvOnboarding/CvOnboarding';
+import { loadOnboarding } from '../utils/cvOnboarding';
 import A4 from "../components/canvas/A4/A4";
 import CanvasPageStage from "../components/canvas/CanvasPageStage/CanvasPageStage";
 import Editor from '../components/editor/Editor/Editor';
@@ -28,8 +28,8 @@ import CanvasElements from "../components/canvas/CanvasElements/CanvasElements";
 import SelectionOverlay from "../components/canvas/SelectionOverlay/SelectionOverlay";
 import AiCorrectionOverlay from "../components/canvas/AiCorrectionOverlay/AiCorrectionOverlay";
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { resolveStartTemplate, resolveFreeStartTemplate } from '../utils/cvTemplateSelection';
-import { getDocumentPath } from '../utils/siteRoutes';
+import { resolveStartTemplate } from '../utils/cvTemplateSelection';
+import { getDocumentPath, parseDocumentId } from '../utils/siteRoutes';
 import { loadOwnedDocument } from '../services/documents';
 import SiteLayout from '../components/common/SiteLayout/SiteLayout';
 import siteClasses from '../components/common/SiteLayout/SiteLayout.module.css';
@@ -137,11 +137,10 @@ import { preserveSavedTextLayouts } from '../utils/savedTextLayout';
  * surfaces are mutually exclusive so only one overlay owns focus at a time.
  */
 
-// Session-scoped flag so the template-first onboarding modal (see
-// markTemplatesModalSeen below) never re-triggers after being resolved once.
+// Retain the legacy template-picker completion marker for existing metrics
+// and guest claims. New documents enter CvOnboarding instead of this picker.
 const TEMPLATES_MODAL_SEEN_KEY = "cv-studio:templatesModalSeen";
 const LazyAiAssistant = lazy(() => import('../components/ai/AiAssistant/AiAssistant'));
-const LazyAiCvPanel = lazy(() => import('../components/ai/AiCvPanel/AiCvPanel'));
 
 function LazyAiFallback({ modal = false }) {
   useTranslation();
@@ -212,19 +211,19 @@ export function EditorController() {
   const [searchParams, setSearchParams] = useSearchParams();
   const startIntent = searchParams.get("start");
   const templateIntent = searchParams.get("template");
+  const initialSourceImportRef = useRef(parseDocumentId(searchParams.get("savedImport")));
   const location = useLocation();
   const routePathRef = useRef(location.pathname);
   useLayoutEffect(() => { routePathRef.current = location.pathname; }, [location.pathname]);
   // Capture the validated selection before consuming the URL. Closing setup
   // clears it so a later New CV action starts an independent configuration.
   const [startTemplateId, setStartTemplateId] = useState(() => (
-    ["new", "wizard"].includes(startIntent)
+    ["new", "wizard", "choose", "onboarding", "templates"].includes(startIntent)
       ? resolveStartTemplate(TEMPLATES, templateIntent)?.id || null
       : null
   ));
 
   const [hasInitialGuestDraft, setHasInitialGuestDraft] = useState(() => !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent);
-  const [quickStart] = useState(() => Boolean(resolveFreeStartTemplate(TEMPLATES, startTemplateId) && !getAccessToken() && !hasGuestDocument()));
   const pendingClaimDownloadRef = useRef(null);
   const [downloadReturn] = useState(() => startIntent === "download");
 
@@ -252,7 +251,7 @@ export function EditorController() {
   // default template picker before the requested flow is visible.
   const initialStartIntentRef = useRef(
     startIntent === "choose"
-      ? (getAccessToken() ? "choose" : "new")
+      ? "choose"
       : startIntent === "import"
       || startIntent === "new"
       || startIntent === "wizard"
@@ -260,6 +259,7 @@ export function EditorController() {
       || startIntent === "blank"
       || startIntent === "demo"
       || startIntent === "download"
+      || startIntent === "onboarding"
       ? startIntent
       : null,
   );
@@ -273,21 +273,20 @@ export function EditorController() {
   // Replaces 5 independent booleans that previously had no exclusivity at
   // all (e.g. Moje dokumenty + Szablony + Gallery could all be open together).
   const [dialog, setDialog] = useState(() => {
-    if (initialStartIntentRef.current === "import") return getAccessToken() ? "ai" : "importGate";
-    if (["new", "wizard"].includes(initialStartIntentRef.current)) return "newCv";
-    if (initialStartIntentRef.current === "templates") return "templates";
+    if (["new", "wizard", "choose", "import", "onboarding", "blank", "templates"].includes(initialStartIntentRef.current)) return "onboarding";
+    if (!documentId && !initialStartIntentRef.current && loadOnboarding(getSessionUsername())) return "onboarding";
     return null;
-  }); // 'docs' | 'templates' | 'ai' | 'importGate' | 'saveGate' | 'downloadGate' | 'newCv' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
+  }); // 'docs' | 'templates' | 'onboarding' | 'saveGate' | 'downloadGate' | 'plan' | 'changeTemplate' | 'unlockFreeform' | null
+  const [onboardingEntry, setOnboardingEntry] = useState(initialStartIntentRef.current);
+  const [onboardingKey, setOnboardingKey] = useState(0);
   const [panel, setPanel] = useState(null);   // 'upload' | 'gallery' | 'sections' | 'skills-layout' | null
   const isModalPdfs = dialog === 'docs' && Boolean(localStorage.getItem("token"));
   const isTemplates = dialog === 'templates';
-  const isAiPanel = dialog === 'ai';
-  const isNewCvSetupModal = dialog === 'newCv';
+  const isNewCvSetupModal = dialog === 'onboarding';
   const isPlanModal = dialog === 'plan';
   const isChangeTemplateModal = dialog === 'changeTemplate';
   const isUnlockFreeformModal = dialog === 'unlockFreeform';
   const isSaveGateModal = dialog === 'saveGate' || dialog === 'downloadGate';
-  const isImportGateModal = dialog === 'importGate' || (dialog === 'ai' && isGuest);
   const isClaimGuestModal = dialog === 'claimGuest';
   // Structured cv_data behind the CV currently on the canvas. It is created
   // by import or the A4 starter and restored from an owned document snapshot.
@@ -417,16 +416,11 @@ export function EditorController() {
   //FETCHED PDF's
   const [PDFs, setPDFs] = useState([]);
   // true once ModalPdfs' fetch-on-mount has resolved (success or failure) —
-  // distinguishes "no saved PDFs" from "still fetching" for T4's onboarding gate
+  // distinguishes an empty library from a request still in progress
   const [pdfsLoaded, setPdfsLoaded] = useState(false);
-  // true only while the CURRENT open TemplatesModal instance is the one that
-  // auto-opened for first-time onboarding (not a manual "Szablony" click) —
-  // used to scope the pick/dismiss metric to onboarding completion specifically.
-  // Mirrored into a ref (kept in lockstep by setAutoOpenedTemplates below) so
-  // handleShowTemplates can read the up-to-date value synchronously when it's
-  // invoked immediately after markTemplatesModalSeen() within the same click
-  // handler (TemplatesModal's handlePick/handleClose both do this) — the
-  // state value itself wouldn't have re-rendered yet at that point.
+  // Compatibility fields for the existing TemplatesModal metric callbacks.
+  // New onboarding does not auto-open that picker or set this flag to true.
+  // Keep the ref synchronous because legacy callbacks can run in one event.
   const [autoOpenedTemplates, setAutoOpenedTemplatesState] = useState(false);
   const autoOpenedTemplatesRef = useRef(false);
   const setAutoOpenedTemplates = useCallback((value) => {
@@ -1069,7 +1063,7 @@ export function EditorController() {
   // an editable field so the browser's native TEXT undo wins inside a textbox.
   useEffect(() => {
     const onKey = (e) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
+      if (dialog === "onboarding" || !(e.ctrlKey || e.metaKey)) return;
       const t = e.target;
       const editable = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
       if (editable) return;
@@ -1079,7 +1073,7 @@ export function EditorController() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [undo, redo])
+  }, [undo, redo, dialog])
 
   // Guest-mode autosave: guests have no account to save into, so their
   // in-progress work is persisted to localStorage (a backend write would 401).
@@ -1105,8 +1099,7 @@ export function EditorController() {
     if (next) setDialog(null);
   }, [panel])
 
-  // Called once the auto-opened templates modal is resolved (template
-  // picked or dismissed) so it never re-triggers again this session.
+  // Preserve the legacy completion marker when a guest draft or demo is loaded.
   const markTemplatesModalSeen = useCallback(() => {
     sessionStorage.setItem(TEMPLATES_MODAL_SEEN_KEY, "1");
     setAutoOpenedTemplates(false);
@@ -1132,58 +1125,6 @@ export function EditorController() {
     setDialog(next ? 'templates' : null);
     if (next) setPanel(null);
   }, [dialog, markTemplatesModalSeen])
-
-  // Template-first onboarding: auto-open the templates picker for a
-  // first-time user (no saved PDFs yet), once pdfsLoaded resolves so a
-  // returning user with saved PDFs never sees a false-positive flash while
-  // the fetch is still in flight. Guards on every open dialog so it never
-  // hijacks a manual action or an intent-aware landing flow. Fires at most
-  // once per browser session — see markTemplatesModalSeen.
-  useEffect(() => {
-    if (isGuest || documentId) return;
-    if (!pdfsLoaded || PDFs.length !== 0 || A4_Elements.length > 0) return;
-    // A landing-page CTA has already chosen a concrete first action. Do not
-    // obscure it with the default template picker before the intent is handled.
-    if (
-      startIntent === "import"
-      || startIntent === "new"
-      || startIntent === "wizard"
-      || startIntent === "templates"
-      || startIntent === "blank"
-      || startIntent === "demo"
-    ) {
-      return;
-    }
-    // Generic authenticated creation must remain on the three-path chooser
-    // after the URL intent is consumed. Without this guard, an empty account
-    // could briefly replace it with the automatic template picker.
-    if (["choose", "download"].includes(initialStartIntentRef.current)) return;
-    if (autoOpenedTemplates || dialog !== null) return;
-    if (sessionStorage.getItem(TEMPLATES_MODAL_SEEN_KEY) === "1") return;
-    setAutoOpenedTemplates(true);
-    setDialog('templates');
-    setPanel(null);
-  }, [isGuest, documentId, pdfsLoaded, PDFs.length, A4_Elements.length, autoOpenedTemplates, dialog, setAutoOpenedTemplates, startIntent])
-
-  // Blank freeform path: clear canvas once and skip the template picker.
-  const blankStartAppliedRef = useRef(false);
-  useEffect(() => {
-    if (initialStartIntentRef.current !== "blank" || blankStartAppliedRef.current) return;
-    blankStartAppliedRef.current = true;
-    commitDocumentSnapshot({
-      elements: [],
-      title: "",
-      pageCount: 1,
-      templateId: null,
-      editorMode: EDITOR_MODE_FREEFORM,
-      flowSpacing: DEFAULT_FLOW_SPACING,
-      cvData: null,
-      sourceImportId: null,
-      pdfId: null,
-      revision: null,
-    }, { markClean: true });
-    markTemplatesModalSeen();
-  }, [commitDocumentSnapshot, markTemplatesModalSeen])
 
   // Demo path: load the authored Linden starter once, no dialog, so the
   // visitor sees the exact Julia Bernat document used by the Linden picker
@@ -1213,24 +1154,14 @@ export function EditorController() {
     markTemplatesModalSeen();
   }, [commitDocumentSnapshot, flowSpacing, markTemplatesModalSeen, zoomIn]);
 
-  const handleShowAiPanel = useCallback(() => {
-    // Import belongs to an account. Gate every entry point before mounting
-    // the upload UI, including direct start links and a stale session.
-    if (!getAccessToken()) {
-      setDialog('importGate');
-      setPanel(null);
-      return;
-    }
-    const next = dialog !== 'ai';
-    setDialog(next ? 'ai' : null);
-    if (next) setPanel(null);
-  }, [dialog])
-
-  const handleShowNewCvSetup = useCallback(() => {
-    const next = dialog !== 'newCv';
-    setDialog(next ? 'newCv' : null);
-    if (next) setPanel(null);
-  }, [dialog])
+  const openOnboarding = useCallback((intent) => {
+    setOnboardingEntry(intent);
+    setOnboardingKey(key => key + 1);
+    setDialog('onboarding');
+    setPanel(null);
+  }, []);
+  const handleShowAiPanel = useCallback(() => openOnboarding('import'), [openOnboarding]);
+  const handleShowNewCvSetup = useCallback(() => openOnboarding('new'), [openOnboarding]);
 
   useEffect(() => {
     if (!initialStartIntentRef.current || !searchParams.has("start")) return;
@@ -1242,6 +1173,7 @@ export function EditorController() {
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("start");
     nextSearchParams.delete("template");
+    nextSearchParams.delete("savedImport");
     setSearchParams(nextSearchParams, { replace: true });
   }, [searchParams, setSearchParams, location.pathname]);
 
@@ -1712,7 +1644,7 @@ export function EditorController() {
   // The dirty guard runs before the one complete snapshot commit; no caller is
   // allowed to partially mutate document fields before confirmation succeeds.
   const startFreshDocument = useCallback(async (snapshot, options = {}) => {
-    // NewCvSetupModal owns the replacement confirmation for its complete flow.
+    // CvOnboarding owns the replacement confirmation for its complete flow.
     // Skipping the generic dirty guard here prevents two consecutive prompts,
     // while every other fresh-document entry point still uses the shared guard.
     if (!options.replacementConfirmed && !(await confirmDiscardActiveEdits())) return false;
@@ -1849,6 +1781,7 @@ export function EditorController() {
       errorMessage: uiText("editor:pdfCanvas.couldNotCreateANewCv"),
       spacing: DEFAULT_FLOW_SPACING,
     });
+    if (options.isCurrent?.() === false) return false;
     if (!isDocumentScopeCurrent(requestScope, { requireSameRevision: true })) {
       throw new Error(uiText("editor:pdfCanvas.theDocumentChangedDuringCreationOpenSetup"));
     }
@@ -1865,7 +1798,7 @@ export function EditorController() {
     return created;
   }, [captureDocumentScope, isDocumentScopeCurrent, loadAiElementsFresh]);
 
-  const handleRecoverLegacyDraft = useCallback(async () => {
+  const handleRecoverLegacyDraft = useCallback(async (isCurrent = () => true) => {
     if (!legacyDraft?.profile) return;
     const requested = TEMPLATES.find((template) => template.id === legacyDraft.selectedTemplateId);
     const template = requested && isTemplateAllowed(requested, entitlements)
@@ -1876,6 +1809,7 @@ export function EditorController() {
         errorMessage: uiText("editor:pdfCanvas.couldNotMoveTheOlderDraftTo"),
         spacing: DEFAULT_FLOW_SPACING,
       });
+      if (!isCurrent()) return false;
       const created = await loadAiElementsFresh(response.elements, uiText("interview:interviewFlow.myCv"), template.id, {
         cvData: legacyDraft.profile,
         flowSpacing: DEFAULT_FLOW_SPACING,
@@ -1898,6 +1832,7 @@ export function EditorController() {
         msg: uiText("editor:pdfCanvas.yourOlderWizardDataCanNowBe"),
         variant: "success",
       });
+      return true;
     } catch (error) {
       pushToast?.({
         title: uiText("editor:pdfCanvas.couldNotMoveTheDraft"),
@@ -1977,7 +1912,7 @@ export function EditorController() {
   // gate likewise keeps the draft local without sending its data.
   useEffect(() => {
     if (guestDocumentRestoredRef.current || getAccessToken()
-      || (initialStartIntentRef.current && !["import", "new", "wizard"].includes(initialStartIntentRef.current))) return;
+      || (initialStartIntentRef.current && !["import", "new", "wizard", "choose", "onboarding", "blank", "templates"].includes(initialStartIntentRef.current))) return;
     // Restoration belongs to entry, including when storage was initially empty.
     // Otherwise a later template commit can rerun this effect and overwrite the
     // new canvas with the old draft that the autosave debounce has not replaced.
@@ -2037,7 +1972,9 @@ export function EditorController() {
   ]);
 
   useEffect(() => {
-    if (claimOfferedRef.current || documentId) return;
+    // An auth round-trip from onboarding keeps the independent browser draft
+    // unclaimed. Import/setup must not be interrupted by another document flow.
+    if (claimOfferedRef.current || documentId || initialStartIntentRef.current === 'onboarding') return;
     const token = localStorage.getItem("token");
     if (!token) return;
     const guestDoc = loadGuestDocument();
@@ -2169,9 +2106,7 @@ export function EditorController() {
     }, { markClean: true });
   }, [commitDocumentSnapshot]);
 
-  const handleDemoUseOwnData = useCallback(() => {
-    setDialog('newCv');
-  }, []);
+  const handleDemoUseOwnData = useCallback(() => openOnboarding('new'), [openOnboarding]);
 
   const canvasValue = useMemo(() => ({
     A4_Elements,
@@ -2329,7 +2264,6 @@ export function EditorController() {
     showTemplates: handleShowTemplates,
     autoOpenedTemplates,
     markTemplatesModalSeen,
-    isAiPanel,
     showAiPanel: handleShowAiPanel,
     isNewCvSetupModal,
     showNewCvSetup: handleShowNewCvSetup,
@@ -2355,7 +2289,7 @@ export function EditorController() {
     requestAssistantAction,
   }), [
     isTemplates, handleShowTemplates, autoOpenedTemplates, markTemplatesModalSeen,
-    isAiPanel, handleShowAiPanel, isNewCvSetupModal, handleShowNewCvSetup,
+    handleShowAiPanel, isNewCvSetupModal, handleShowNewCvSetup,
     isPlanModal, handleShowPlanModal, isChangeTemplateModal, handleShowChangeTemplateModal,
     handleShowUnlockFreeform, isUnlockFreeformModal,
     isGallery, handleShowGallery, isSectionsPanel, handleShowSections,
@@ -2380,18 +2314,12 @@ export function EditorController() {
     PDFs, setPDFs, pdfsLoaded, setPdfsLoaded,
   ]);
 
-  // Account onboarding replaces the complete editor shell a signed-in user
-  // lands on with the three creation paths (manual setup / import / interview).
-  // Gating lives in the pure `shouldShowStartChooser` helper so it can be
-  // unit-tested without a DOM.
-  const showStartChooser = !documentId && shouldShowStartChooser({
-    isGuest,
-    elementsCount: A4_Elements.length,
-    isDemoContent,
-    isPdfLoading,
-    pdfId,
-    dismissed: startChooserDismissed,
-  });
+  // An explicit creation flow covers the shell without disposing its document.
+  // Passive empty-state entry waits for guest-draft restoration and excludes demo.
+  const showStartChooser = dialog === 'onboarding' || (!documentId && !hasInitialGuestDraft && shouldShowStartChooser({
+    elementsCount: A4_Elements.length, isDemoContent, isPdfLoading, pdfId,
+    dismissed: startChooserDismissed || ['demo', 'download'].includes(initialStartIntentRef.current),
+  }));
 
   const [documentRouteState, setDocumentRouteState] = useState(() => ({ id: documentId, loading: Boolean(documentId), error: null }));
   const [documentRouteRetry, setDocumentRouteRetry] = useState(0);
@@ -2453,35 +2381,6 @@ export function EditorController() {
               />
               <TemplatesModal />
               <PlanSelectModal />
-              {isAiPanel && !isGuest ? (
-                <Suspense fallback={<LazyAiFallback modal />}>
-                  <LazyAiCvPanel />
-                </Suspense>
-              ) : null}
-              {isNewCvSetupModal ? (
-                <NewCvSetupModal
-                  open
-                  initialTemplateId={startTemplateId}
-                  autoStart={quickStart}
-                  onClose={(reason) => {
-                    setStartTemplateId(null);
-                    setHasInitialGuestDraft(false);
-                    // Cancel returns to the restored/in-memory document. Only
-                    // an empty guest session needs the landing as its fallback.
-                    if (isGuest && reason !== "created" && A4_Elements.length === 0 && !hasInitialGuestDraft) {
-                      navigate("/", { replace: true });
-                      return;
-                    }
-                    setDialog(null);
-                  }}
-                  onCreate={handleCreateStarterCv}
-                  entitlements={entitlements}
-                  hasActiveDocument={(A4_Elements.length > 0 && !isDemoContent) || hasInitialGuestDraft}
-                  isGuest={isGuest}
-                  hasSavedDocument={pdfId != null}
-                  allowUnconfirmedReplacement={isDemoContent}
-                />
-              ) : null}
               <ChangeTemplateModal />
               <UnlockFreeformModal
                 open={isUnlockFreeformModal}
@@ -2489,8 +2388,8 @@ export function EditorController() {
                 onConfirm={confirmUnlockFreeform}
               />
               <SaveGateModal
-                open={isSaveGateModal || isImportGateModal}
-                purpose={isImportGateModal ? "import" : dialog === "downloadGate" ? "download" : "save"}
+                open={isSaveGateModal}
+                purpose={dialog === "downloadGate" ? "download" : "save"}
                 onCancel={() => setDialog(null)}
               />
               <ClaimGuestDocumentModal
@@ -2626,27 +2525,47 @@ export function EditorController() {
                 </div>
               ) : null}
               {showStartChooser ? (
-                <StartChooser
+                <CvOnboarding
+                  key={`${onboardingKey}:${getSessionUsername() || 'guest'}`}
+                  initialTemplateId={startTemplateId}
+                  initialIntent={onboardingEntry}
+                  initialImportId={onboardingKey === 0 ? initialSourceImportRef.current : null}
                   entitlements={entitlements}
-                  onNew={() => {
-                    handleShowNewCvSetup();
-                  }}
-                  onImport={() => {
-                    // Import follows the same return path as the wizard:
-                    // closing its modal restores the start screen, while a
-                    // successful import replaces the empty workspace.
-                    handleShowAiPanel();
-                  }}
-                  onDocuments={() => {
-                    navigate('/app/documents');
-                  }}
-                  onContinue={(id) => navigate(getDocumentPath(id))}
-                  documents={PDFs}
-                  documentsLoaded={pdfsLoaded}
-                  legacyDraftAvailable={Boolean(legacyDraft)}
-                  legacyDraftNeedsOwnershipConfirmation={!isGuest && legacyDraft?.source === "browser"}
+                  refreshEntitlements={refreshEntitlements}
+                  isGuest={isGuest}
+                  hasActiveDocument={(A4_Elements.length > 0 && !isDemoContent) || hasInitialGuestDraft}
+                  hasSavedDocument={pdfId != null}
+                  legacyDraftAvailable={Boolean(legacyDraft?.profile)}
                   onRecoverLegacyDraft={handleRecoverLegacyDraft}
-                  onLogout={handleLogout}
+                  onCreate={handleCreateStarterCv}
+                  onImportCreate={async (cvData, templateId, source, options) => {
+                    const scope = captureDocumentScope();
+                    const result = await fillTemplate(cvData, templateId, { spacing: DEFAULT_FLOW_SPACING });
+                    if (options.isCurrent?.() === false) return false;
+                    if (!isDocumentScopeCurrent(scope, { requireSameRevision: true })) throw new Error(uiText('onboarding:documentChanged'));
+                    const created = await loadAiElementsFresh(result.elements, uiText('interview:interviewFlow.myCv'), templateId, {
+                      cvData, sourceImportId: source.kind === 'import' ? source.id : null,
+                      flowSpacing: DEFAULT_FLOW_SPACING, replacementConfirmed: options.replacementConfirmed,
+                    });
+                    if (created && getAccessToken()) logEvent('new_cv_created');
+                    return created;
+                  }}
+                  onNavigate={async (path, isCurrent) => {
+                    if (!(await confirmDiscardActiveEdits()) || !isCurrent()) return false;
+                    flushGuestDraft();
+                    allowNextNavigation();
+                    navigate(path);
+                    return true;
+                  }}
+                  onClose={(reason) => {
+                    setStartTemplateId(null);
+                    setHasInitialGuestDraft(false);
+                    setStartChooserDismissed(true);
+                    setDialog(null);
+                    if (reason !== 'created' && A4_Elements.length === 0 && !hasInitialGuestDraft) {
+                      navigate(isGuest ? '/' : '/app/documents', { replace: true });
+                    }
+                  }}
                 />
               ) : null}
               {!showStartChooser ? <Gallery /> : null}

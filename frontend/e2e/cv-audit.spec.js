@@ -77,7 +77,7 @@ function auditResponse() {
 async function openAssistant(page, language = 'pl') {
   if (language === 'en') await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
   await login(page);
-  await page.getByText(language === 'en' ? 'Continue latest CV' : 'Kontynuuj ostatnie CV', { exact: true }).click();
+  await page.goto('/app/documents/41');
   await page.getByRole('button', { name: language === 'en' ? 'Open AI assistant' : 'Otwórz asystenta AI' }).click();
   return page.getByRole('button', { name: language === 'en' ? 'Check CV' : 'Sprawdź CV', exact: true });
 }

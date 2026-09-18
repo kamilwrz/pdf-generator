@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { installMockApi } from './support/mockApi.js';
 
-// Explicit manual-creation links must reach setup without asking users to
-// choose the same creation method again. Interview source recovery shares the link.
+// Legacy manual-creation links enter the common creation flow. Returning to a
+// saved source still bypasses onboarding through the document route.
 for (const language of ['pl', 'en']) {
   for (const width of [390, 834, 1280, 1920]) {
-    test(`manual creation opens setup directly: ${language} ${width}px`, async ({ page }) => {
+    test(`manual creation enters shared onboarding: ${language} ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       const api = await installMockApi(page, { documents: [], imports: [] });
@@ -27,9 +27,10 @@ for (const language of ['pl', 'en']) {
         await expect(link).toHaveAttribute('href', '/cvstudio/Kamil?start=new');
         await link.focus();
         await page.keyboard.press('Enter');
-        const setup = page.getByRole('dialog', { name: en ? 'Create CV' : 'Utwórz CV', exact: true });
+        const setup = page.getByRole('dialog', { name: 'CV STUDIO', exact: true });
         await expect(setup).toBeVisible();
-        await expect(setup.getByRole('radio', { name: /Meridian/ })).toBeFocused();
+        await setup.getByRole('button', { name: en ? 'Start from scratch' : 'Zaczynam od zera', exact: true }).click();
+        await expect(setup.locator('#onboarding-heading')).toBeFocused();
         if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
         expect(await setup.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
         await page.screenshot({ path: `../tmp/direct-setup-${language}-${width}.png` });

@@ -44,13 +44,12 @@ test("document lifecycle context exposes the operation commit contract", async (
 });
 
 test("all asynchronous template fills reject stale document revisions", async () => {
-  const [applyHook, importPanel, canvas] = await Promise.all([
+  const [applyHook, canvas] = await Promise.all([
     read("../hooks/useApplyCvTemplate.js"),
-    read("../components/ai/AiCvPanel/AiCvPanel.jsx"),
     read("../pages/PdfCanvas.jsx"),
   ]);
 
-  for (const source of [applyHook, importPanel, canvas]) {
+  for (const source of [applyHook, canvas]) {
     assert.match(source, /const requestScope = captureDocumentScope\(\)/);
     assert.match(source, /isDocumentScopeCurrent\(requestScope, \{ requireSameRevision: true \}\)/);
   }
@@ -88,11 +87,10 @@ test("document management uses one dialog state and recovery suspends standard d
 });
 
 test("complete replacements share one atomic snapshot commit", async () => {
-  const [canvas, documents, imports, setup, templates] = await Promise.all([
+  const [canvas, documents, setup, templates] = await Promise.all([
     read("../pages/PdfCanvas.jsx"),
     read("../components/modals/ModalPdfs/ModalPdfs.jsx"),
-    read("../components/ai/AiCvPanel/AiCvPanel.jsx"),
-    read("../components/editor/NewCvSetupModal/NewCvSetupModal.jsx"),
+    read("../components/editor/CvOnboarding/CvOnboarding.jsx"),
     read("../components/modals/TemplatesModal/TemplatesModal.jsx"),
   ]);
   const commit = canvas.match(
@@ -107,8 +105,7 @@ test("complete replacements share one atomic snapshot commit", async () => {
     assert.match(commit, new RegExp(`${setter}\\(`), `${setter} must belong to the commit boundary`);
   }
   assert.match(documents, /commitDocumentSnapshot\(\{[\s\S]*pdfId: id[\s\S]*serverRevision:/);
-  assert.match(imports, /loadAiElements\([\s\S]*\{[\s\S]*cvData,[\s\S]*sourceImportId: importId/);
-  assert.match(setup, /await onCreate\(config, \{[\s\S]*replacementConfirmed: hasActiveDocument/);
+  assert.ok(setup.includes("await onCreate(draft.config, { replacementConfirmed, isCurrent: current })"));
   assert.match(canvas, /loadAiElementsFresh\(response\.elements[\s\S]*\{[\s\S]*cvData,/);
   assert.match(templates, /loadAiElements\([\s\S]*\{ cvData: profile \}/);
 });
@@ -119,12 +116,11 @@ test("controller/view and AI lazy boundaries are explicit", async () => {
   assert.match(canvas, /export function EditorView\(/);
   assert.match(canvas, /export function EditorController\(/);
   assert.match(canvas, /<EditorView[\s\S]*documentLifecycle=\{documentLifecycle\}/);
-  for (const component of ["AiAssistant", "AiCvPanel"]) {
+  for (const component of ["AiAssistant"]) {
     assert.match(canvas, new RegExp(`lazy\\(\\(\\) => import\\('[^']*${component}`));
     assert.doesNotMatch(canvas, new RegExp(`^import ${component} from`, "m"));
   }
-  assert.match(canvas, /\{isAiPanel && !isGuest \? \([\s\S]*<Suspense[\s\S]*<LazyAiCvPanel/);
-  assert.match(canvas, /\{isNewCvSetupModal \? \([\s\S]*<NewCvSetupModal/);
+  assert.ok(canvas.includes("<CvOnboarding"));
 });
 
 test("dirty guard saves before continuing and retains failures", async () => {
@@ -163,17 +159,4 @@ test("central dirty guard covers router and browser exits", async () => {
   assert.match(source, /window\.addEventListener\("beforeunload"/);
   assert.match(source, /window\.addEventListener\("pagehide"/);
   assert.match(source, /flushGuestDraftRef\.current\?\.\(\)/);
-});
-
-test("import history keeps extracted PII out of list rows and fetches detail on demand", async () => {
-  const source = await read("../components/ai/AiCvPanel/AiCvPanel.jsx");
-
-  assert.match(source, /response\.items \|\| response\.imports \|\| \[\]/);
-  assert.match(source, /response\.next_cursor \|\| null/);
-  assert.match(source, /Pokaż starsze importy/);
-  assert.match(source, /ENDPOINTS\.AI\.IMPORT\(snapshot\.id\),\s*"GET"/s);
-  assert.match(source, /detail\.cv_data/);
-  assert.match(source, /snapshot\.filename/);
-  assert.doesNotMatch(source, /snapshot\.cv_data|snapshot\.summary/);
-  assert.match(source, /<button\s+type="button"\s+className={`\$\{classes\.dropzone}/s);
 });

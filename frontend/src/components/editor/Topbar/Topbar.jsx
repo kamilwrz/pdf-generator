@@ -125,7 +125,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                     <button
                         type="button"
                         className={`${classes.feature} ${classes.labeled}`}
-                        onClick={showNewCvSetup}
+                        data-onboarding-trigger onClick={showNewCvSetup}
                         aria-label={uiText("editor:topbar.newCv")}
                         title={uiText("editor:newCvSetupModal.createANewCv")}
                     >

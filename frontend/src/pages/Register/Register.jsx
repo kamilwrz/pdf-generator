@@ -49,7 +49,7 @@ export default function Register() {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const requestedStart = searchParams.get("start");
-    const startIntent = ["import", "new", "wizard", "templates", "download"].includes(requestedStart)
+    const startIntent = ["import", "new", "wizard", "templates", "download", "onboarding"].includes(requestedStart)
         ? (requestedStart === "wizard" ? "new" : requestedStart)
         : null;
     // Landing CTAs may pass ?plan=pro (legacy standard/premium remap on backend).

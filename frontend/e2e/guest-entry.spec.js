@@ -1,40 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { installMockApi, login } from "./support/mockApi.js";
 
-const accountChooser = (page) => page.getByRole("heading", { name: "Jak chcesz zacząć?" });
-const importGate = (page) => page.getByRole("dialog", { name: "Kontynuuj import na swoim koncie" });
-
-for (const width of [390, 834, 1280, 1920]) {
-  test(`guest new CV and import account gate at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 950 });
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    const api = await installMockApi(page);
-    await page.goto("/");
-    await page.locator('#top').getByRole("link", { name: "Stwórz CV z tym szablonem", exact: true }).click();
-    const setup = page.getByRole("dialog", { name: "Utwórz CV" });
-    await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
-    await expect(setup).toHaveCount(0);
-    await expect(accountChooser(page)).toHaveCount(0);
-    const trigger = page.getByRole("button", { name: "Importuj PDF", exact: true });
-    await trigger.click();
-    const gate = importGate(page);
-    await expect(gate).toBeVisible();
-    await expect(gate.getByText("Na tym etapie nie wybieramy pliku i nie zmieniamy obecnego dokumentu.")).toBeVisible();
-    await expect(gate.getByText("1 import")).toBeVisible();
-    await expect(page.locator('input[type="file"]')).toHaveCount(0);
-    await expect(gate.getByRole("button", { name: "Utwórz darmowe konto" })).toBeFocused();
-    const box = await gate.boundingBox();
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(width);
-    await page.keyboard.press("Escape");
-    await expect(trigger).toBeFocused();
-    await trigger.click();
-    await gate.getByRole("button", { name: "Utwórz darmowe konto", exact: true }).click();
-    await expect(page).toHaveURL(/\/register\?start=import$/);
-    expect(api.calls.filter((call) => /extract_cv|import-history/.test(call.path))).toEqual([]);
-    api.assertHermetic();
-  });
-}
+const accountChooser = (page) => page.getByRole("heading", { name: "Przygotujmy Twoje CV" });
+const importGate = (page) => page.getByRole("dialog", { name: "CV STUDIO" });
 
 for (const width of [390, 834, 1280, 1920]) {
   test(`guest download opens download-specific account copy at ${width}px`, async ({ page }) => {
@@ -42,7 +10,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await page.goto("/cvstudio/guest?start=new");
-    await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
+  await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
     await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Gość");
     await page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" }).fill("CV do pobrania");
 
@@ -64,7 +33,8 @@ for (const width of [390, 834, 1280, 1920]) {
 test("guest authored A4 survives refresh without account onboarding", async ({ page }) => {
   const api = await installMockApi(page);
   await page.goto("/cvstudio/guest?start=new");
-  await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
+  await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   const name = page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]');
   await expect(name).toBeFocused();
   await name.fill("Anna Gość");
@@ -89,13 +59,13 @@ for (const path of ["/cvstudio/guest?start=import", "/cvstudio/OtherUser?start=i
     await expect(importGate(page)).toBeVisible();
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);
     await expect(accountChooser(page)).toHaveCount(0);
-    await importGate(page).getByRole("button", { name: "Zaloguj się", exact: true }).click();
-    await expect(page).toHaveURL(/\/login\?start=import$/);
+    await importGate(page).getByRole("button", { name: "Zaloguj się", exact: true }).last().click();
+    await expect(page).toHaveURL(/\/login\?start=onboarding$/);
     await page.getByLabel("Nazwa użytkownika").fill("Kamil");
     await page.getByLabel("Hasło").fill("local-test-password");
     await page.getByRole("button", { name: "Zaloguj się", exact: true }).click();
     await expect(page).toHaveURL(/\/cvstudio\/Kamil/);
-    await expect(importGate(page)).toHaveCount(0);
+    await expect(importGate(page)).toBeVisible();
     await expect(page.locator('input[type="file"]')).toHaveCount(1);
     api.assertHermetic();
   });
@@ -105,8 +75,7 @@ test("fresh guest reload stays in editor while login retains account onboarding"
   const api = await installMockApi(page);
   await page.goto("/cvstudio/guest");
   await page.reload();
-  await expect(page.getByRole("button", { name: "Nowe CV", exact: true })).toBeVisible();
-  await expect(accountChooser(page)).toHaveCount(0);
+  await expect(accountChooser(page)).toBeVisible();
   await login(page);
   await expect(accountChooser(page)).toBeVisible();
   api.assertHermetic();
@@ -118,7 +87,8 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await page.goto("/cvstudio/guest?start=new");
-    await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
+  await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
     await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Gość");
     await page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" }).fill("Szkic Anny");
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cvstudio.guest.doc") || "null")?.title)).toBe("Szkic Anny");

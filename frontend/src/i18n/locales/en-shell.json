@@ -8,7 +8,9 @@
     "registerTitle": "Create account",
     "homeTitle": "CV builder",
     "verificationTitle": "Email verification",
-    "editorTitle": "CV editor"
+    "editorTitle": "CV editor",
+    "yes": "Yes",
+    "no": "No"
   },
   "editor": {
     "app.loadingView": "Loading view",

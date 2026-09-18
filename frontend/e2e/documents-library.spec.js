@@ -43,9 +43,10 @@ test('saved import opens its extracted data in template selection without extrac
   await page.goto('/app/documents');
   await page.getByRole('tab', { name: 'Zapisane importy' }).click();
   await page.getByRole('tabpanel', { name: 'Zapisane importy' }).getByRole('link', { name: 'Utwórz CV' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Importuj CV' });
+  const dialog = page.getByRole('dialog', { name: 'CV STUDIO' });
   await expect(dialog.getByText(SAVED_DOCUMENT.cv_data.name, { exact: true })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Następny krok' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Wybierz szablon', exact: true })).toBeEnabled();
+  expect(api.calls.filter(call => call.path.includes('extract_cv'))).toHaveLength(0);
   api.assertHermetic();
 });
 

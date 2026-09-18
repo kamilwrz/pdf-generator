@@ -24,7 +24,7 @@ for (const width of [390, 768, 1280, 1920]) {
     }))];
     const api = await installMockApi(page, { savedElements, savedDocument: SAVED_DOCUMENT });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
 
     for (const field of fields) {
       const node = page.locator(`[id="${field.id}"]`);

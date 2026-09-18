@@ -8,7 +8,7 @@ for (const width of [390, 834, 1280, 1920]) {
       assistantResponses: [{ message: 'Ocena ATS gotowa.', rating: 8, tips: [], corrections: [] }],
     });
     await login(page);
-    await page.getByText('Kontynuuj ostatnie CV', { exact: true }).click();
+    await page.goto('/app/documents/41');
     await page.getByRole('button', { name: 'Otwórz asystenta AI' }).click();
     const panel = page.getByRole('complementary', { name: 'Asystent AI' });
     const ats = panel.getByRole('button', { name: 'Oceń ATS', exact: true });

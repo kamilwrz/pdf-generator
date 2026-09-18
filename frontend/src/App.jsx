@@ -39,7 +39,7 @@ const CheckoutResult = workspacePage(() => import('./pages/Billing/CheckoutResul
 function RequireSession({ children }) {
   useTranslation();
   const location = useLocation();
-  return getAccessToken() ? children : <Navigate to={`/login?${new URLSearchParams({ returnTo: location.pathname })}`} replace />;
+  return getAccessToken() ? children : <Navigate to={`/login?${new URLSearchParams({ returnTo: location.pathname + location.search })}`} replace />;
 }
 
 /** The same boundary retains the canvas when its first save assigns an address. */
@@ -58,19 +58,12 @@ function StartRoute({ start }) {
   return <Navigate to={getEditorPath({ start, template: params.get('template') })} replace />;
 }
 
-/**
- * Resolves the generic creation entry according to the visitor's context.
- *
- * Guests keep the shortest path into the free A4 setup. Authenticated users
- * enter the account creation hub, where manual setup, import and interview
- * remain equally discoverable. Template-specific links bypass the chooser,
- * including older `/app/new?template=...` addresses.
- */
+/** Every new CV enters onboarding; explicit resume restores its safe journal. */
 function CreateCvRoute() {
   useTranslation();
   const [params] = useSearchParams();
   const template = params.get("template");
-  const start = !getAccessToken() || template ? "new" : "choose";
+  const start = params.get("resume") === "1" ? "onboarding" : "choose";
   return <Navigate to={getEditorPath({ start, template })} replace />;
 }
 

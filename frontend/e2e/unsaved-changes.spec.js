@@ -7,7 +7,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     const title = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
     await expect(title).toHaveValue("CV Smoke");
     // Browser unload uses the same dirty decision as route/replacement guards.
@@ -53,7 +53,7 @@ for (const width of [390, 834, 1280, 1920]) {
 test("failed save keeps edits and successful retry continues navigation", async ({ page }) => {
   const api = await installMockApi(page);
   await login(page);
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   const title = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
   await title.fill("CV do zapisania");
   await page.getByRole("button", { name: "Wyloguj się" }).click();
@@ -77,9 +77,9 @@ test("new CV explains that no account version exists at 200 percent text zoom", 
   await page.emulateMedia({ reducedMotion: "reduce" });
   const api = await installMockApi(page);
   await login(page);
-  await page.getByRole("button", { name: /Utwórz nowe CV/ }).click();
-  const setup = page.getByRole("dialog", { name: "Utwórz CV" });
-  await setup.getByRole("button", { name: "Rozpocznij edycję" }).click();
+  await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+  const setup = page.getByRole("dialog", { name: "CV STUDIO" });
+  await setup.getByRole("button", { name: "Otwórz CV w edytorze" }).click();
   await expect(setup).toHaveCount(0);
   await page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" }).fill("Nowe CV");
   await page.getByRole("button", { name: "Wyloguj się" }).click();

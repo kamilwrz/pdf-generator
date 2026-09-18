@@ -6,7 +6,7 @@ test('task home and explicit correction review reflow without changing PDF conte
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const api = await installMockApi(page, { assistantResponses: [{ message: 'Propozycja do przejrzenia.', tips: [], corrections: [{ element_id: 'saved-name', content: 'Kamil Nowak' }] }] });
   await login(page);
-  await page.getByText('Kontynuuj ostatnie CV', { exact: true }).click();
+  await page.goto('/app/documents/41');
   await page.getByRole('button', { name: 'Otwórz asystenta AI' }).click();
   const panel = page.getByRole('complementary', { name: 'Asystent AI' });
   for (const width of [390, 834, 1280, 1920]) {
@@ -45,7 +45,7 @@ test('task home and explicit correction review reflow without changing PDF conte
 test('offer source drafts survive navigation and only the selected source is sent', async ({ page }) => {
   const api = await installMockApi(page, { assistantResponses: [{ message: 'Analiza gotowa.', tips: [], corrections: [], job_requirements: [] }] });
   await login(page);
-  await page.getByText('Kontynuuj ostatnie CV', { exact: true }).click();
+  await page.goto('/app/documents/41');
   await page.getByRole('button', { name: 'Otwórz asystenta AI' }).click();
   await page.getByRole('button', { name: 'Dopasuj do oferty', exact: true }).click();
   await page.locator('#ai-job-offer-url').fill('https://example.com/job');

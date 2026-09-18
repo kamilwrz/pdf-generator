@@ -41,7 +41,7 @@ for (const kind of ["contacts", "skills", "languages", "settings"]) {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     let selector;
     if (kind === "contacts") {
       await hoverVisibleText(page, page.locator("#contact-email"));
@@ -132,7 +132,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     // Keep the compact appearance fixture at its original scale; separate
     // cases exercise the default 200% view and the animated edit zoom.
     const zoomOut = page.getByRole("button", { name: "Pomniejsz", exact: true });
@@ -277,7 +277,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
   await page.setViewportSize({ width: 1280, height: 1000 });
   const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
   await login(page);
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   await hoverVisibleText(page, page.locator("#skills-heading"));
   const toolbar = page.locator('[data-canvas-toolbar-key="heading:skills-heading"]');
   const more = toolbar.getByRole("button", { name: "Więcej działań" });
@@ -402,7 +402,7 @@ for (const width of [390, 640]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     await expect(page.getByRole("button", { name: "Powiększ", exact: true })).toBeVisible();
     await page.evaluate(() => {
       const zoomIn = document.querySelector('[aria-label="Powiększ"]');

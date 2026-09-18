@@ -8,7 +8,9 @@
     "registerTitle": "Rejestracja",
     "homeTitle": "Kreator CV",
     "verificationTitle": "Weryfikacja adresu e-mail",
-    "editorTitle": "Edytor CV"
+    "editorTitle": "Edytor CV",
+    "yes": "Tak",
+    "no": "Nie"
   },
   "editor": {
     "app.loadingView": "Ładowanie widoku",

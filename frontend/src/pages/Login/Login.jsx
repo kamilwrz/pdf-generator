@@ -34,7 +34,7 @@ export default function Login() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const requestedStart = searchParams.get("start");
-    const startIntent = ["import", "new", "wizard", "templates", "download"].includes(requestedStart)
+    const startIntent = ["import", "new", "wizard", "templates", "download", "onboarding"].includes(requestedStart)
         ? (requestedStart === "wizard" ? "new" : requestedStart)
         : null;
 
@@ -128,7 +128,9 @@ export default function Login() {
         setPassword(e.target.value)
     }
 
-    const selectedStartLabel = startIntent === "download"
+    const selectedStartLabel = startIntent === "onboarding"
+        ? uiText("onboarding:resume")
+        : startIntent === "download"
         ? uiText("auth:login.afterSigningInConfirmTheDraftIs")
         : startIntent === "import"
         ? uiText("auth:login.afterSigningInContinueToCvImport")

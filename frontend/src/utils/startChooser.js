@@ -1,41 +1,16 @@
 /**
- * Visibility rule for the authenticated creation and empty-state surface
- * (`StartChooser`), which offers three focused paths — one-screen A4 setup,
- * CV import and a Pro interview — instead of dropping the user onto a blank
- * canvas.
- *
- * The rule is kept as a pure function (no React) so the exact gating can be
- * unit-tested without a DOM, matching this project's `node --test` convention
- * for editor logic.
- */
-
-/**
- * Whether to show the start chooser for the current canvas state.
- *
- * Shown only for an authenticated user's fresh, unsaved, empty document. It deliberately
- * does NOT reappear when a
- * user empties an already-saved CV mid-session (`pdfId` is set once the
- * document has been persisted), during a setup-to-editor handoff, over the
- * guest demo, or mid-load.
- *
- * @param {object} state
- * @param {boolean} state.isGuest - guests never enter account onboarding
- * @param {number} state.elementsCount - number of elements on the canvas
- * @param {boolean} state.isDemoContent - true while the guest demo CV is loaded
- * @param {boolean} state.isPdfLoading - true while a document is loading/saving
- * @param {number|string|null|undefined} state.pdfId - persisted document id, null/undefined until first save
- * @param {boolean} state.dismissed - true once the user has started or opened a document
- * @returns {boolean}
+ * Shared visibility rule for a fresh, unsaved and empty editor. Both guests
+ * and accounts enter onboarding; loading, saved documents, demos and a
+ * deliberately dismissed flow keep their current editor surface.
+ * Undefined element counts represent an empty canvas before hydration.
  */
 export function shouldShowStartChooser({
-  isGuest = true,
   elementsCount,
   isDemoContent,
   isPdfLoading,
   pdfId,
   dismissed,
 } = {}) {
-  if (isGuest) return false;
   if (dismissed) return false;
   if (isDemoContent) return false;
   if (isPdfLoading) return false;

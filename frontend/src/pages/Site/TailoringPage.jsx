@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { t, getUiLanguage } from '../../i18n';
 import { getAccessToken } from '../../utils/authSession';
 import { interviewRequest } from '../../services/interviews';
-import { ApiClient, ENDPOINTS } from '../../services/api';
-import { CV_IMPORT_REQUEST_OPTIONS } from '../../utils/cvImportRequest';
+import { ENDPOINTS } from '../../services/api';
+import { extractCvPdf } from '../../services/cvImport';
 import { fetchOwnedPdfDownload, triggerBlobDownload } from '../../utils/download';
 import { useEntitlements } from '../../hooks/useEntitlements';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
@@ -170,11 +170,7 @@ function Workspace({ id }) {
   }
   async function upload() {
     if (!file) return;
-    const form = new FormData(); form.append('file', file);
-    const api = new ApiClient({ Authorization: `Bearer ${getAccessToken()}` });
-    const result = await api.httpRequest(ENDPOINTS.AI.EXTRACT_CV, 'POST', form, t('tailoring:importError'), {
-      ...CV_IMPORT_REQUEST_OPTIONS, headers: { 'Idempotency-Key': importKey.current },
-    });
+    const result = await extractCvPdf(file, importKey.current);
     const value = { ...current.current, source_kind: 'import', source_id: result.import.id };
     await save(value);
     current.current = value; setDraft(value); setDirty(false); setFile(null);

@@ -21,7 +21,7 @@ async function openDocument(page, options = {}) {
       achievement_templates: [], ...options.response }],
   });
   await login(page);
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   await expect(page.locator("#summary-body")).toBeVisible();
   return api;
 }

@@ -7,7 +7,8 @@ for (const width of [390, 834, 960, 1280, 1366, 1600, 1760, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await page.goto("/cvstudio/guest?start=new");
-    await page.getByRole("button", { name: "Rozpocznij edycję", exact: true }).click();
+  await page.getByRole("button", { name: /^(Zaczynam od zera|Start from scratch)$/ }).click();
+    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
     const group = page.getByRole("group", { name: "Szablon CV", exact: true });
     const change = group.getByRole("button", { name: "Zmień szablon", exact: true });
     await expect(change).toBeEnabled();
@@ -87,7 +88,7 @@ test("renaming and saving use the relocated field; spread keeps rail positions",
     savedDocument: { ...SAVED_DOCUMENT, editor_mode: "freeform" },
   });
   await login(page);
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   const name = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
   await page.getByRole("button", { name: "Zmień nazwę dokumentu" }).click();
   await expect(name).toBeFocused();

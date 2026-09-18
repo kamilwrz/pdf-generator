@@ -47,7 +47,7 @@ for (const width of [390, 834, 1280, 1920]) {
       });
     });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     const elementNode = (element) => page.locator(`[id="${element.element_id}"]`);
     await expect(elementNode(heading)).toBeAttached();
     await page.evaluate(() => document.fonts.ready);

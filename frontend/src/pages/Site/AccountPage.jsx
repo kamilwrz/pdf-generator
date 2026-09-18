@@ -17,6 +17,7 @@ import PlanSelectModal from '../../components/modals/PlanSelectModal/PlanSelectM
 import GoogleSignInButton from '../../components/common/GoogleSignInButton/GoogleSignInButton';
 import { linkGoogle } from '../../services/authApi';
 import { deleteAccount, downloadAccountData } from '../../services/accountApi';
+import { loadOnboarding } from '../../utils/cvOnboarding';
 import DialogShell from '../../components/common/DialogShell/DialogShell';
 
 export default function AccountPage() {
@@ -68,6 +69,7 @@ export default function AccountPage() {
   const metrics = [[uiText("account:accountPage.cvProjects"), 'projects', 'max_projects', <FiFolder key="projects" />], [uiText("account:accountPage.pdfDownloadsPerMonth"), 'exports_count', 'max_exports_per_month', <FiDownload key="exports" />], [uiText("account:accountPage.cvImportsPerMonth"), 'cv_imports_count', 'max_cv_imports_per_month', <FiUpload key="imports" />], [uiText("account:accountPage.aiCredits"), 'ai_credits_used', 'monthly_ai_credits', <FiZap key="ai" />]];
   return <SiteLayout workspace title={uiText("interview:interviewFlow.accountAndPlan")} eyebrow={uiText("account:accountPage.yourWorkspace")} intro={uiText("account:accountPage.checkPlanUsageConnectSignInMethods")}
     heroAside={<HeroNote icon={<FiUser />} label={uiText("account:accountPage.yourAccount")} title={username || uiText("account:accountPage.signedInUser")}><p>{uiText("account:accountPage.documentsAndSettingsInOnePlace")}</p><Link to="/app/documents">{uiText("editor:pdfCanvas.backToDocuments")}</Link></HeroNote>}>
+    {loadOnboarding(username) && <p className={classes.notice}><Link to="/app/new?resume=1">{uiText('onboarding:resume')}</Link></p>}
     {requestedTemplate && <p className={classes.notice}>{uiText("account:accountPage.selectedTemplate")} {requestedTemplate.name}. <Link to={getEditorPath({ start: "new", template: requestedTemplate.id })}>{uiText("account:accountPage.backToCvSetup")}</Link></p>}
     {loading && <div role="status"><p>{uiText("account:accountPage.loadingCurrentAllowances")}</p><div className={classes.metrics}>{metrics.map(([label]) => <div key={label} className={classes.skeleton} aria-hidden="true" />)}</div></div>}
     {error && <div className={classes.error} role="alert"><p>{error.message}</p>{error.status === 401 ? <Link to="/login?returnTo=%2Fapp%2Faccount">{uiText("editor:pdfCanvas.signInAgain")}</Link> : <button className={classes.secondary} onClick={refresh}>{uiText("errors:errorBoundary.tryAgain")}</button>}</div>}

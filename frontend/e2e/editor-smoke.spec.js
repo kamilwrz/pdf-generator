@@ -11,7 +11,7 @@ test.describe("CV Studio editor smoke", () => {
     const api = await installMockApi(page);
     await login(page);
 
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
 
     const title = page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
     await expect(title).toHaveValue("CV Smoke");
@@ -58,12 +58,13 @@ test.describe("CV Studio editor smoke", () => {
     await login(page);
 
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.getByRole("button", { name: /Utwórz nowe CV/ }).click();
-    const setup = page.getByRole("dialog", { name: "Utwórz CV" });
+    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    const setup = page.getByRole("dialog", { name: "CV STUDIO" });
     await expect(setup).toBeVisible();
     await expect(setup.getByRole("radio", { name: /Meridian/ })).toBeChecked();
 
     await setup.getByRole("button", { name: "Dostosuj zawartość" }).click();
+    await setup.getByRole("button", { name: /^Sekcje CV/ }).click();
     // Exercise both accessible reorder paths. The buttons remain the reliable
     // keyboard/touch fallback for native pointer drag-and-drop.
     await setup.getByRole("button", { name: "Przenieś Doświadczenie niżej" }).click();
@@ -72,16 +73,20 @@ test.describe("CV Studio editor smoke", () => {
     const summary = setup.locator("li").filter({ hasText: "Podsumowanie" });
     await projects.dragTo(summary);
 
+    await setup.getByRole("button", { name: "Szablony", exact: true }).click();
     await setup.getByRole("button", { name: "Więcej szablonów" }).click();
     await setup.getByRole("radio", { name: /Slate/ }).click();
+    await setup.getByRole("button", { name: "Dostosuj zawartość" }).click();
+    await setup.getByRole("button", { name: "Nagłówek i kontakt" }).click();
     await setup.getByRole("checkbox", { name: /Zdjęcie/ }).check();
+    await setup.getByRole("button", { name: "Szablony", exact: true }).click();
     await setup.getByRole("radio", { name: /Meridian/ }).click();
     await expect(setup.getByText(/nie obsługuje zdjęcia/)).toBeVisible();
 
     const fillRequest = page.waitForRequest((request) => (
       request.method() === "POST" && new URL(request.url()).pathname === "/api/ai/fill_template"
     ));
-    await setup.getByRole("button", { name: "Rozpocznij edycję" }).click();
+    await setup.getByRole("button", { name: "Otwórz CV w edytorze" }).click();
     const fill = await fillRequest;
     expect(fill.postDataJSON()).toMatchObject({
       template_id: "meridian",
@@ -182,7 +187,7 @@ test.describe("CV Studio editor smoke", () => {
     const api = await installMockApi(page);
     await login(page);
 
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
 
     const toolsTitle = page.locator("#skills-tools-title");
     await expect(toolsTitle).toHaveText("Narzędzia");
@@ -270,7 +275,7 @@ test.describe("CV Studio editor smoke", () => {
       savedElements: placeholderElements,
     });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
 
     // Legacy generated headings have no semantic section type. Renaming must
     // stamp it before the visible label stops matching "Umiejętności", so all
@@ -407,7 +412,7 @@ test.describe("CV Studio editor smoke", () => {
   test("adds a skill through a grouped canvas form", async ({ page }) => {
     const api = await installMockApi(page);
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
 
     const toolsBody = page.locator("#skills-tools-body");
     const toolsCategory = page.locator("#skills-tools-title");
@@ -552,7 +557,7 @@ test.describe("CV Studio editor smoke", () => {
       savedElements: flatElements,
     });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     await expect(page.getByText("200%", { exact: true })).toBeVisible();
 
     const body = page.locator("#flat-skills-body");

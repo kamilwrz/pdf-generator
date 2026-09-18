@@ -101,7 +101,7 @@ for (const templateId of ["slate", "monument"]) {
       });
     });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     const field = page.locator(`[id="${name.element_id}"]`);
     const elementField = (element) => page.locator(`[id="${element.element_id}"]`);
     await expect(field).toBeVisible();

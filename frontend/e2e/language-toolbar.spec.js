@@ -24,7 +24,7 @@ for (const gridKind of ["languages", "entries"]) {
     const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...languageElements] });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
 
     // Measure actual screen coordinates: CSS source assertions alone cannot
     // catch a Languages preset being routed into the generic gutter branch.

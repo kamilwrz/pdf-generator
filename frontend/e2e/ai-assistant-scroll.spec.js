@@ -39,7 +39,7 @@ test("AI assistant uses the wider panel and shifts a single A4 only when space a
   const api = await installMockApi(page);
   await login(page);
 
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
 
   const a4 = page.locator("[data-page-canvas]").first();
   const before = await a4.boundingBox();
@@ -78,7 +78,7 @@ test("edit zoom survives assistant focus and canvas scrolling until the bare A4 
   const api = await installMockApi(page);
   await login(page);
 
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
 
   const name = page.locator("#saved-name");
   const canvas = page.locator(".canvas-area");
@@ -158,7 +158,7 @@ test("AI assistant keeps consecutive quick-action results visible without a free
   });
   await login(page);
 
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
 
   await expect(page.getByRole("button", { name: "Asystent CV", exact: true })).toBeFocused();
@@ -204,7 +204,7 @@ test("job-offer form restores its height after a long tailoring result", async (
   });
   await login(page);
 
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   await page.getByRole("button", { name: "Otwórz asystenta AI" }).click();
 
   const matchJobButton = page.getByRole("button", { name: "Dopasuj do oferty", exact: true });

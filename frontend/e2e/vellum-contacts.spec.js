@@ -38,7 +38,7 @@ for (const [index, palette] of VELLUM_PALETTES.entries()) {
       await route.fulfill({ body: await readFile(new URL(`../../backend/template_assets/${asset}`, import.meta.url)), contentType: "image/png" });
     });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     const email = contacts.find((contact) => contact.contactChannel === "email");
     const field = page.locator(`[id="${email.element_id}"]`);
     await expect(field).toBeVisible();

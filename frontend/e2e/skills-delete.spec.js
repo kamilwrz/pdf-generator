@@ -7,7 +7,7 @@ for (const style of ["W linii", "Lista", "Owalne z tłem", "Owalne z obrysem",
   test(`deletes one skill and restores it with undo: ${style}`, async ({ page, isMobile }) => {
     const api = await installMockApi(page);
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     if (style !== "W linii") {
       // Enter the rendered glyphs with the real pointer. A synthetic enter
       // during document hydration can be cleared before the toolbar opens.
@@ -82,7 +82,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const api = await installMockApi(page);
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     const body = page.locator("#skills-tools-body");
     await body.focus();
     await page.keyboard.press("Shift+F10");
@@ -119,7 +119,7 @@ test("deletes the hovered second skill while its shared field is being edited", 
   await page.emulateMedia({ reducedMotion: "reduce" });
   const api = await installMockApi(page);
   await login(page);
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   const body = page.locator("#skills-tools-body");
   await body.focus();
   await page.keyboard.press("Enter");
@@ -154,7 +154,7 @@ test("trash stays on the entered fragment of a wrapped skill during pointer appr
     element.element_id === "skills-tools-body" ? { ...element, content, width: 180 } : element
   )) });
   await login(page);
-  await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+  await page.goto('/app/documents/41');
   const body = page.locator("#skills-tools-body");
   await body.scrollIntoViewIfNeeded();
   const fragments = await body.evaluate((node, label) => {

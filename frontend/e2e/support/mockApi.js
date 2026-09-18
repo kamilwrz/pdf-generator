@@ -189,6 +189,7 @@ export const PRO_ENTITLEMENTS = Object.freeze({
   allowed_template_ids: null,
   ai_assistant: true,
   scoped_ai: true,
+  extract_cv: true,
   features: { ai_assistant: true },
   limits: {
     max_projects: null,
@@ -415,6 +416,13 @@ export async function installMockApi(
         ],
       });
     }
+    if (method === "GET" && path === "/tailoring/sources") {
+      return json(route, { documents: documents.filter(item => item.cv_data?.name), imports: currentImports.filter(item => item.status === 'succeeded') });
+    }
+    if (method === "GET" && /^\/ai\/imports\/\d+$/.test(path)) {
+      const item = currentImports.find(item => item.id === Number(path.split('/').at(-1)));
+      return json(route, item ? { ...item, cv_data: SAVED_DOCUMENT.cv_data } : { detail: 'Missing import' }, item ? 200 : 404);
+    }
     if (method === "GET" && path === "/ai/imports") {
       return json(route, { items: currentImports, next_cursor: null });
     }
@@ -460,5 +468,5 @@ export async function login(page) {
   await expect(page).toHaveURL(/\/app\/documents$/);
   // Existing editor scenarios explicitly exercise the retained workspace entry.
   await page.goto("/cvstudio/Kamil");
-  await expect(page.getByRole("heading", { name: /^(Jak chcesz zacząć\?|How would you like to start\?)$/ })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole("heading", { name: /^(Przygotujmy Twoje CV|Let’s prepare your CV)$/ })).toBeVisible({ timeout: 20000 });
 }

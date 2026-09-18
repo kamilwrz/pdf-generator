@@ -12,7 +12,7 @@ const analysis = {
 
 async function open(page) {
   await login(page);
-  await page.getByText('Kontynuuj ostatnie CV', { exact: true }).click();
+  await page.goto('/app/documents/41');
   await page.getByRole('button', { name: 'Otwórz asystenta AI' }).click();
   await page.getByRole('button', { name: 'Dopasuj do oferty', exact: true }).click();
 }

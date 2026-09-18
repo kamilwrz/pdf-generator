@@ -117,7 +117,7 @@ export function getEditorPath(options = {}) {
   const base = `/cvstudio/${slug}`;
   if (start) {
     const params = new URLSearchParams({ start: String(start) });
-    if (["new", "wizard"].includes(start) && options.template) {
+    if (["new", "wizard", "choose", "onboarding", "templates"].includes(start) && options.template) {
       params.set("template", String(options.template));
     }
     return `${base}?${params}`;
@@ -149,6 +149,7 @@ export function clearLocalAccountData() {
     "cvstudio.guest.doc",
     "cvstudio.guest.wizardDraft",
     "cvstudio.pending-auth-intent",
+    "cvstudio.onboarding.v1",
     // Data created by versions released before anonymous buffering was retired.
     "cvstudio.guest.events",
   ];

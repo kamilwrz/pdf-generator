@@ -92,7 +92,7 @@ for (const width of [390, 1280]) {
     await page.goto('/cvstudio/Kamil');
     // The first editor entry loads its workspace bundle; allow the same cold
     // development-server startup window as the shared login fixture.
-    await expect(page.getByRole('heading', { name: 'Jak chcesz zacząć?' })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('heading', { name: 'Przygotujmy Twoje CV' })).toBeVisible({ timeout: 20000 });
     const entry = page.getByRole('link', { name: 'Asystent CV Rozpocznij rozmowę', exact: true });
     await expect(entry).toBeVisible();
     await expect(entry).toHaveAttribute('href', '/app/interview');

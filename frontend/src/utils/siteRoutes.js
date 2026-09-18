@@ -21,7 +21,18 @@ export function getDocumentPath(id) {
 
 /** Only known application destinations may survive authentication. */
 export function safeReturnTo(value) {
-  if (['/app', DOCUMENTS_PATH, '/app/account', '/app/import', '/app/new', '/app/career-profile', '/app/conversations', '/app/assistant', '/app/interview', '/app/tailor'].includes(value)) return value;
+  if (typeof value === 'string' && value.startsWith('/app/interview?')) {
+    const params = new URLSearchParams(value.slice(value.indexOf('?') + 1));
+    const kind = params.get('source');
+    const sourceId = parseDocumentId(params.get('sourceId'));
+    if (['document', 'import'].includes(kind) && sourceId) {
+      const safe = new URLSearchParams({ source: kind, sourceId: String(sourceId) });
+      if (['pl', 'en'].includes(params.get('language'))) safe.set('language', params.get('language'));
+      return `/app/interview?${safe}`;
+    }
+    return null;
+  }
+  if (['/app', DOCUMENTS_PATH, '/app/account', '/app/account?purchase=pro', '/app/import', '/app/new', '/app/new?resume=1', '/app/career-profile', '/app/conversations', '/app/assistant', '/app/interview', '/app/tailor'].includes(value)) return value;
   if (typeof value === 'string' && /^\/app\/tailor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) return value;
   if (typeof value === 'string' && /^\/app\/interview\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) return value;
   if (typeof value === 'string' && value.startsWith(`${DOCUMENTS_PATH}/`)) {
@@ -70,7 +81,7 @@ export function postAuthPath(params) {
   const destination = safeReturnTo(params.get('returnTo'));
   if (destination) return destination;
   const start = params.get('start');
-  if (['import', 'new', 'wizard', 'templates', 'download'].includes(start)) {
+  if (['import', 'new', 'wizard', 'templates', 'download', 'onboarding'].includes(start)) {
     return getEditorPath({ start, template: params.get('template') });
   }
   if (params.get('plan') === 'pro') return '/app/account?purchase=pro';

@@ -27,7 +27,7 @@ for (const [id, template] of [["regent", regentTemplate], ["meridian", meridianT
       await route.fulfill({ body: await readFile(new URL(`../../backend/template_assets/${asset}`, import.meta.url)), contentType: "image/png" });
     });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     const name = elements.find((element) => element.mastheadRole === "name");
     const title = elements.find((element) => element.mastheadRole === "title");
     const phone = elements.find((element) => element.contactChannel === "phone" && element.category === "textarea");
@@ -120,11 +120,11 @@ for (const id of ["regent", "meridian"]) {
       await route.fulfill({ body: await readFile(new URL(`../../backend/template_assets/${asset}`, import.meta.url)), contentType: "image/png" });
     });
     await login(page);
-    await page.getByRole("button", { name: /Utwórz nowe CV/ }).click();
-    const setup = page.getByRole("dialog", { name: "Utwórz CV" });
+    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+    const setup = page.getByRole("dialog", { name: "CV STUDIO" });
     if (id === "regent") await setup.getByRole("button", { name: "Więcej szablonów" }).click();
     await setup.getByRole("radio", { name: new RegExp(id, "i") }).check();
-    await setup.getByRole("button", { name: "Rozpocznij edycję" }).click();
+    await setup.getByRole("button", { name: "Otwórz CV w edytorze" }).click();
     const name = page.locator('[data-page-canvas] [data-placeholder="Imię i nazwisko"]');
     await expect(name).toBeVisible();
     const summary = page.getByText("PODSUMOWANIE ZAWODOWE", { exact: true });

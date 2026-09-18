@@ -41,7 +41,7 @@ for (const [index, palette] of palettes.entries()) {
       await route.fulfill({ body: await readFile(new URL(`../../backend/template_assets/${asset}`, import.meta.url)), contentType: "image/png" });
     });
     await login(page);
-    await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    await page.goto('/app/documents/41');
     const field = (channel) => page.locator(`[data-page-canvas] [data-placeholder="${contactChannelPlaceholder(channel)}"]`);
     await expect(field("location")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);

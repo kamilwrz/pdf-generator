@@ -1,12 +1,17 @@
 import { expect, test } from "@playwright/test";
 import { installMockApi } from "./support/mockApi.js";
 
+// Each case checks four cancellation routes and a full landing round-trip.
+test.setTimeout(60_000);
+
 const titleField = (page) => page.getByRole("textbox", { name: "Nazwa bieżącego dokumentu" });
 const confirmation = (page) => page.getByRole("dialog", { name: "Utworzyć nowe CV?" });
 const storedDraft = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("cvstudio.guest.doc") || "null"));
 
 async function authorDraft(page) {
   await page.goto("/cvstudio/guest?start=new&template=linden");
+  await page.getByRole("button", { name: /^(Zaczynam od zera|Start from scratch)$/ }).click();
+  await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Zachowana");
   await titleField(page).fill("Szkic Anny");
   await expect.poll(async () => (await storedDraft(page))?.title).toBe("Szkic Anny");
@@ -22,24 +27,26 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 834, height: 950 }
     const trigger = page.getByRole("button", { name: "Nowe CV", exact: true });
     for (const action of ["resume", "escape", "close", "cancel-setup"]) {
       await trigger.click();
+      await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+      await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
       const dialog = confirmation(page);
       await expect(dialog).toContainText("Rozpoczęcie edycji nowego CV zastąpi obecny szkic.");
-      await expect(dialog.getByRole("button", { name: "Wróć do obecnego CV" })).toBeFocused();
+      await expect(dialog.getByRole("button", { name: "Wróć do wyboru" })).toBeFocused();
       const bounds = await dialog.boundingBox();
       expect(bounds.x).toBeGreaterThanOrEqual(0);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
       expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
       if (action === "resume") {
         await page.screenshot({ path: `../tmp/guest-recovery-${viewport.width}.png` });
-        await dialog.getByRole("button", { name: "Wróć do obecnego CV" }).click();
+        await dialog.getByRole("button", { name: "Wróć do wyboru" }).click();
       } else if (action === "escape") {
         await page.keyboard.press("Escape");
       } else if (action === "close") {
         await dialog.getByRole("button", { name: "Zamknij: Utworzyć nowe CV?" }).click();
       } else {
-        await dialog.getByRole("button", { name: "Utwórz nowe CV" }).click();
-        await page.getByRole("button", { name: "Anuluj", exact: true }).click();
+        await dialog.getByRole("button", { name: "Wróć do wyboru" }).click();
       }
+      await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(trigger).toBeFocused();
       await expect(titleField(page)).toHaveValue("Szkic Anny");
@@ -50,7 +57,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 834, height: 950 }
     await expect(titleField(page)).toHaveValue("Szkic Anny");
     await expect(page.getByText("Anna Zachowana", { exact: true })).toHaveCSS("visibility", "visible");
     await page.goto("/cvstudio/guest?start=new&template=sterling");
-    await confirmation(page).getByRole("button", { name: "Wróć do obecnego CV" }).click();
+  await page.getByRole("button", { name: /^(Zaczynam od zera|Start from scratch)$/ }).click();
+    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
+    await confirmation(page).getByRole("button", { name: "Wróć do wyboru" }).click();
+    await page.keyboard.press("Escape");
     await expect(titleField(page)).toHaveValue("Szkic Anny");
     await page.reload();
     await expect(titleField(page)).toHaveValue("Szkic Anny");
@@ -64,12 +74,14 @@ test("guest draft is replaced only after successful explicit creation", async ({
   await authorDraft(page);
   const original = await storedDraft(page);
   await page.getByRole("button", { name: "Nowe CV", exact: true }).click();
-  await confirmation(page).getByRole("button", { name: "Utwórz nowe CV" }).click();
+  await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
   await page.route("**/api/ai/fill_template", (route) => route.fulfill({ status: 500, json: { detail: "Błąd tworzenia" } }), { times: 1 });
-  await page.getByRole("button", { name: "Rozpocznij edycję" }).click();
+  await page.getByRole("button", { name: "Otwórz CV w edytorze" }).click();
+  await confirmation(page).getByRole("button", { name: "Utwórz nowe CV" }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible();
   expect((await storedDraft(page)).elements).toEqual(original.elements);
-  await page.getByRole("button", { name: "Spróbuj ponownie" }).click();
+  await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
+  await confirmation(page).getByRole("button", { name: "Utwórz nowe CV" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect.poll(async () => (await storedDraft(page))?.templateId).toBe("meridian");
   await page.reload();

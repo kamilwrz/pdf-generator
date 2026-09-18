@@ -7,6 +7,8 @@ const claimDialog = (page) => page.getByRole("dialog", { name: "Czy ten szkic na
 async function prepareDownload(page) {
   await page.goto("/");
   await page.locator("#top").getByRole("link", { name: "Stwórz CV z tym szablonem", exact: true }).click();
+  await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   await expect(nameField(page)).toBeFocused();
   await nameField(page).fill("Anna Nowak");
   // Do not wait for autosave: the output action must flush the latest edits.
@@ -59,7 +61,7 @@ for (const width of [390, 834, 1280, 1920, 640]) {
     await confirm.click();
     expect((await download).suggestedFilename()).toMatch(/\.pdf$/i);
     await expect(claimDialog(page)).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Jak chcesz zacząć?" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Przygotujmy Twoje CV" })).toHaveCount(0);
     const exports = api.calls.filter((call) => call.path === "/pdf/render_pdf");
     expect(exports).toHaveLength(1);
     expect(exports[0].body).toContain("Anna Nowak");
@@ -121,10 +123,13 @@ test("a returning guest must confirm replacement and cancellation retains the dr
   await prepareDownload(page);
   await page.goto("/");
   await page.locator("#top").getByRole("link", { name: "Stwórz CV z tym szablonem", exact: true }).click();
+  await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
+  await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   const confirmation = page.getByRole("dialog", { name: "Utworzyć nowe CV?" });
   await expect(confirmation).toBeVisible();
   expect(api.calls.filter((call) => call.path === "/ai/fill_template")).toHaveLength(1);
-  await confirmation.getByRole("button", { name: "Wróć do obecnego CV", exact: true }).click();
+  await confirmation.getByRole("button", { name: "Wróć do wyboru", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/cvstudio\/guest$/);
   expect(await page.evaluate(() => localStorage.getItem("cvstudio.guest.doc"))).toContain("Anna Nowak");
   api.assertHermetic();
@@ -153,7 +158,7 @@ for (const start of ["new", "import"]) {
     await page.getByRole("button", { name: "Utwórz konto", exact: true }).click();
     await verifyAndLogin(page, start);
     await expect(page).toHaveURL(/\/cvstudio\/Kamil/);
-    if (start === "new") await expect(page.getByRole("dialog", { name: "Utwórz CV" })).toBeVisible();
+    if (start === "new") await expect(page.getByRole("dialog", { name: "CV STUDIO" })).toBeVisible();
     else await expect(page.locator('input[type="file"]')).toHaveCount(1);
     api.assertHermetic();
   });

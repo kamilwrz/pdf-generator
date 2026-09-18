@@ -81,7 +81,7 @@ for (const width of [390, 834, 1280, 1920]) {
       await page.emulateMedia({ reducedMotion: "reduce" });
       const api = await installMockApi(page, { savedElements: outlineElements(background) });
       await login(page);
-      await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+      await page.goto('/app/documents/41');
 
       const authoredBefore = await page.locator("#projects-tools-body").evaluate((element) => ({
         text: element.textContent, left: element.style.left, top: element.style.top,

@@ -41,6 +41,7 @@ export default function DialogShell({
     role = "dialog",
     initialFocusSelector,
     restoreFocusSelector,
+    shouldRestoreFocus,
     layer = "standard",
     children,
 }) {
@@ -51,6 +52,7 @@ export default function DialogShell({
     const isDecision = variant === "decision";
     const dialogRef = useRef(null);
     const previousFocusRef = useRef(null);
+    const restoreFocusPolicy = useRef(shouldRestoreFocus);
     const onCloseRef = useRef(onClose);
     const titleId = useId();
     const subtitleId = useId();
@@ -60,7 +62,8 @@ export default function DialogShell({
         // ref so their re-renders do not restart the focus lifecycle and replace
         // the original opener with a control that is already inside the dialog.
         onCloseRef.current = onClose;
-    }, [onClose]);
+        restoreFocusPolicy.current = shouldRestoreFocus;
+    }, [onClose, shouldRestoreFocus]);
 
     useEffect(() => {
         if (!renderedOpen) return undefined;
@@ -129,7 +132,9 @@ export default function DialogShell({
                 : restoreFocusSelector
                     ? document.querySelector(restoreFocusSelector)
                     : null;
-            if (focusTarget instanceof HTMLElement) {
+            // A completed creation hands focus to its newly mounted editor field.
+            // Cancellation still restores the original trigger.
+            if (restoreFocusPolicy.current?.() !== false && focusTarget instanceof HTMLElement) {
                 focusTarget.focus({ preventScroll: true });
             }
         };

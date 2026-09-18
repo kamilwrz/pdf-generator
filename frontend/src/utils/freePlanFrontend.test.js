@@ -40,7 +40,7 @@ test("plan modal keeps loading, fallback, current, and pending states explicit",
 test("registration, import, and account gates communicate the real Free limits", async () => {
     const [register, importPanel, saveGate, sidebar] = await Promise.all([
         source("pages/Register/Register.jsx"),
-        source("components/ai/AiCvPanel/AiCvPanel.jsx"),
+        source("components/editor/CvOnboarding/CvOnboarding.jsx"),
         source("components/editor/SaveGateModal/SaveGateModal.jsx"),
         source("components/editor/Sidebar/Sidebar.jsx"),
     ]);
@@ -55,8 +55,8 @@ test("registration, import, and account gates communicate the real Free limits",
     assert.match(register, /ArrowRight/);
     assert.match(register, /ArrowLeft/);
     assert.match(register, /JSON\.stringify\(\{ username: username\.trim\(\), email, password, plan: selectedPlanSlug \}\)/);
-    assert.match(importPanel, /1 udany import CV miesięcznie/);
-    assert.match(importPanel, /odczytamy dane i wypełnimy nimi wybrany szablon/);
+    assert.ok(importPanel.includes("remaining?.cv_imports"));
+    assert.ok(importPanel.includes("extractCvPdf(file, key)"));
     assert.doesNotMatch(importPanel, /AI wypełni dowolny szablon/);
     assert.match(saveGate, /value: "1 CV"/);
     assert.match(saveGate, /value: "3 pliki PDF"/);
@@ -71,7 +71,7 @@ test("registration, import, and account gates communicate the real Free limits",
 test("new CV setup uses Meridian while saved documents stay template-owned", async () => {
     const [starter, setup, canvas] = await Promise.all([
         source("utils/cvStarter.js"),
-        source("components/editor/NewCvSetupModal/NewCvSetupModal.jsx"),
+        source("components/editor/CvOnboarding/CvOnboarding.jsx"),
         source("pages/PdfCanvas.jsx"),
     ]);
 
@@ -81,7 +81,7 @@ test("new CV setup uses Meridian while saved documents stay template-owned", asy
     assert.match(canvas, /loadAiElementsFresh\(response\.elements, "Moje CV", template\.id/);
     assert.match(canvas, /commitDocumentSnapshot\(\{\s*\.\.\.guestDoc,/);
     assert.match(canvas, /normalizeSterlingFamilyPersistence\(guestDoc\.elements, guestDoc\.templateId\)/);
-    assert.match(setup, /isTemplateAllowed\(template, entitlements\)/);
+    assert.match(setup, /isTemplateAllowed\(template, templateEntitlements\)/);
 });
 
 test("render-on-demand proves legacy paid-template ownership with the saved PDF id", async () => {

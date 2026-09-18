@@ -26,17 +26,11 @@ test("top-level routes are lazy and share a branded error element", async () => 
   );
 });
 
-test("generic CV creation sends accounts to the chooser and guests to setup", async () => {
+test("generic CV creation and explicit resume share onboarding and retain template selection", async () => {
   const source = await readFile(sourceUrl, "utf8");
-
-  assert.match(
-    source,
-    /function CreateCvRoute\(\)[\s\S]*?!getAccessToken\(\) \|\| template \? "new" : "choose";/,
-  );
-  assert.match(
-    source,
-    /path: "\/app\/new", element: <CreateCvRoute \/>/,
-  );
+  assert.ok(source.includes('params.get("resume") === "1" ? "onboarding" : "choose"'));
+  assert.ok(source.includes('getEditorPath({ start, template })'));
+  assert.ok(source.includes('path: "/app/new", element: <CreateCvRoute />'));
 });
 
 test("the A4 workspace uses a grey base with a translucent white overlay", async () => {
