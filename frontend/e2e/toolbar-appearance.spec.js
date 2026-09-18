@@ -61,7 +61,7 @@ for (const kind of ["contacts", "skills", "languages", "settings"]) {
     await expect(page.locator(selector).first()).toBeVisible();
     await page.mouse.move(1, 1);
     const expected = controlSize;
-    let previous = kind === "settings" ? 280 : 100;
+    let previous = kind === "settings" ? 280 : 200;
     await expect.poll(async () => (await page.locator(selector).first().boundingBox()).height)
       .toBeCloseTo(expected(previous), 0);
 
@@ -133,6 +133,13 @@ for (const width of [390, 834, 1280, 1920]) {
     const api = await installMockApi(page, { savedElements: [...SAVED_ELEMENTS, ...extraElements] });
     await login(page);
     await page.getByText("Kontynuuj ostatnie CV", { exact: true }).click();
+    // Keep the compact appearance fixture at its original scale; separate
+    // cases exercise the default 200% view and the animated edit zoom.
+    const zoomOut = page.getByRole("button", { name: "Pomniejsz", exact: true });
+    await zoomOut.evaluate((button) => {
+      for (let step = 0; step < 10; step++) button.click();
+    });
+    await expect(page.locator('[data-page-canvas]')).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
 
     const checkControl = async (control, size, danger = false) => {
       await expect(control).toBeVisible();
@@ -214,7 +221,7 @@ for (const width of [390, 834, 1280, 1920]) {
       visibleTextBox(page.locator("#contact-email")),
       deleteContact.locator("..").boundingBox(),
     ]);
-    expect(deleteSurfaceBox.x + deleteSurfaceBox.width / 2).toBeCloseTo(contactBox.x + contactBox.width / 2, 0);
+    expect(deleteSurfaceBox.x - (contactBox.x + contactBox.width)).toBeCloseTo(5, 0);
     expect(deleteSurfaceBox.y + deleteSurfaceBox.height / 2).toBeCloseTo(contactBox.y + contactBox.height / 2, 0);
     await hoverVisibleText(page, page.locator("#contact-email"));
     await checkControl(page.getByRole("button", { name: "Dodaj kontakt", exact: true }), controlSize(100));
@@ -286,7 +293,7 @@ test("toolbar geometry and menu text grow monotonically through animated canvas 
   // authored hover target underneath it and legitimately claim the toolbar.
   await page.mouse.move(1, 1);
 
-  let previousHeight = controlSize(100);
+  let previousHeight = controlSize(200);
   for (const targetZoom of [280, 140, 100, 50, 200, 300, 160]) {
     // Native clicks avoid pointer movement away from the pinned toolbar. Sample
     // every animation frame: final-state checks miss transient rescaling.

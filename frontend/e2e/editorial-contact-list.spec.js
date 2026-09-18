@@ -8,6 +8,9 @@ import { materializeElementSpecs } from "../src/utils/materializeElementSpecs.js
 import { applyChannelRelayout } from "../src/utils/contactBandOps.js";
 import { CHANNEL_NAMES, contactChannelPlaceholder } from "../src/utils/contactChannelNames.js";
 import { installMockApi, login, SAVED_DOCUMENT } from "./support/mockApi.js";
+import { ensureWorkspaceMessages } from "../src/i18n/index.js";
+
+test.beforeAll(() => ensureWorkspaceMessages());
 
 for (const [templateId, template, palettes, applyPalette] of [
   ["regent", regentTemplate, REGENT_PALETTES, applyRegentPalette],
@@ -80,9 +83,13 @@ for (const [index, palette] of palettes.entries()) {
         name: `Usuń kontakt: ${CHANNEL_NAMES[channel]}`, exact: true,
       });
       await expect(remove).toBeVisible();
-      const target = await remove.boundingBox();
-      expect(target.x + target.width / 2).toBeCloseTo(bounds.x + bounds.width / 2, 0);
+      let target = await remove.boundingBox();
+      expect(target.x - (bounds.x + bounds.width)).toBeCloseTo(5, 0);
       expect(target.y + target.height / 2).toBeCloseTo(bounds.y + bounds.height / 2, 0);
+      // At high zoom the right edge can require horizontal canvas scrolling.
+      await remove.scrollIntoViewIfNeeded();
+      target = await remove.boundingBox();
+      await page.mouse.move(target.x - 8, target.y + target.height / 2);
       await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 15 });
       await expect.poll(() => remove.evaluate((node) => node.matches(":hover"))).toBe(true);
       return remove;
@@ -114,7 +121,7 @@ for (const [index, palette] of palettes.entries()) {
       await assertCentred(channels);
     }
     const deleteEmail = await reachDelete("email");
-    await page.screenshot({ path: testInfo.outputPath("centred-contact-delete.png") });
+    await page.screenshot({ path: testInfo.outputPath("right-contact-delete.png") });
     // Click at the reached position without locator auto-hover masking a
     // changed deletion target. Only this channel and its icon may disappear.
     const deleteBox = await deleteEmail.boundingBox();

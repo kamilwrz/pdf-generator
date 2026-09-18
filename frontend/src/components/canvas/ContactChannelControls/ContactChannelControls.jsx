@@ -29,6 +29,7 @@ import cluster from "../SectionRecordAdd/SectionRecordAdd.module.css";
 import classes from "./ContactChannelControls.module.css";
 
 const HIDE_AFTER_LEAVE_MS = 600;
+const DELETE_GAP_SCREEN_PX = 5;
 
 export default function ContactChannelControls({ bandId, chips, inactive }) {
   useTranslation();
@@ -69,7 +70,7 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
     }, HIDE_AFTER_LEAVE_MS);
   }, [clearHide, releaseExclusive]);
 
-  // Attach hover listeners to each chip's label node so the trash appears over
+  // Attach hover listeners to each chip's label node so the trash appears beside
   // the chip the pointer is on, and the `+` becomes visible while any chip in
   // the band is hovered. Chips are addressed by element id, the same way
   // SectionRecordAdd binds to a heading node.
@@ -119,18 +120,24 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
   const hoveredVisualBounds = hoverBounds?.channel === hoverChannel
     ? hoverBounds
     : hoveredChip;
+  // Keep the complete delete surface outside the field. Inverse-scale only
+  // the requested gap so it remains five screen pixels during live A4 zoom.
+  const deletePosition = hoveredVisualBounds ? {
+    left: hoveredVisualBounds.left + hoveredVisualBounds.width + DELETE_GAP_SCREEN_PX / zoom,
+    top: hoveredVisualBounds.top + hoveredVisualBounds.height / 2,
+  } : null;
   // The `+` sits just past the last chip in reading order (usually the
   // right-most on its line). Its authored width can be zero or stale, so a
   // small fixed offset keeps the add action clear of the visible label.
   const lastChip = chips[chips.length - 1] || null;
   const addPosition = lastChip ? { left: lastChip.left + 44, top: lastChip.top - 1 } : null;
-  if (addPosition && hoveredVisualBounds) {
+  if (addPosition && deletePosition) {
     // A short final contact can put the existing plus directly over the new
-    // centred trash. Move only a colliding plus beyond the complete surface;
+    // right-side trash. Move only a colliding plus beyond the complete surface;
     // keeping the current channel while hovering controls makes this stable.
     const surfaceSize = buttonSize + 2 * (gap + borderWidth);
-    const trashLeft = hoveredVisualBounds.left + (hoveredVisualBounds.width - surfaceSize) / 2;
-    const trashTop = hoveredVisualBounds.top + (hoveredVisualBounds.height - surfaceSize) / 2;
+    const trashLeft = deletePosition.left;
+    const trashTop = deletePosition.top - surfaceSize / 2;
     if (addPosition.left < trashLeft + surfaceSize && addPosition.left + surfaceSize > trashLeft
       && addPosition.top < trashTop + surfaceSize && addPosition.top + surfaceSize > trashTop) {
       addPosition.left = trashLeft + surfaceSize + offset;
@@ -143,16 +150,13 @@ export default function ContactChannelControls({ bandId, chips, inactive }) {
         <div
           className={cluster.anchor}
           data-editor-control="true"
-          style={{
-            left: hoveredVisualBounds.left + hoveredVisualBounds.width / 2,
-            top: hoveredVisualBounds.top + hoveredVisualBounds.height / 2,
-          }}
+          style={deletePosition}
         >
           <div
             className={cluster.cluster}
             // Translate the whole surface, including its shared border and
-            // padding, so the button stays centred at every canvas zoom.
-            style={{ gap, transform: "translate(-50%, -50%)" }}
+            // padding, to keep it vertically centred without covering text.
+            style={{ gap, transform: "translateY(-50%)" }}
             onPointerEnter={() => {
               clearHide();
               claimExclusive();
