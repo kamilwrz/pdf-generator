@@ -3,7 +3,7 @@
 import json
 import unittest
 
-from app.services.job_offer_service import (
+from app.services.tailoring.offers import (
     JobOfferError,
     resolve_job_offer,
     validate_job_offer_url,

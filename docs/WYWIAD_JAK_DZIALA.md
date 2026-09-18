@@ -509,15 +509,15 @@ Pełne typy pól, ograniczenia długości i formaty odpowiedzi znajdują się w 
 
 - `backend/app/api/routes/interviews.py`, linie 1–592 — wszystkie endpointy profilu i sesji, w tym początkowe planowanie, przeliczanie źródła i unieważnianie planu dopasowania.
 - `backend/app/schemas/interview_schema.py`, linie 1–165 — wejścia publiczne oraz ścisłe schematy wyników AI.
-- `backend/app/services/interview_service.py`, linie 1–555 — fakty, rewizje, serializacja planu starszych sesji, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
-- `backend/app/services/interview_clarification.py`, linie 1–213 — kolejka doprecyzowań, limit, deduplikacja i tworzenie faktów z odpowiedzi.
-- `backend/app/services/interview_recovery.py`, linie 1–90 — bezpieczny fallback oraz odzyskiwanie opłaconych wyników.
+- `backend/app/services/interviews/service.py`, linie 1–555 — fakty, rewizje, serializacja planu starszych sesji, pytania, walidacja dowodów, rezerwacje i rozliczenie AI.
+- `backend/app/services/interviews/clarification.py`, linie 1–213 — kolejka doprecyzowań, limit, deduplikacja i tworzenie faktów z odpowiedzi.
+- `backend/app/services/interviews/recovery.py`, linie 1–90 — bezpieczny fallback oraz odzyskiwanie opłaconych wyników.
 - `backend/app/models/models.py`, linie 336–359 — `CareerProfile` i `InterviewSession`.
 - `backend/alembic/versions/20260910_0017_career_interviews.py`, linie 1–42 — tabele i indeks właściciela.
 
 ### Testy opisujące kontrakt
 
-- `backend/app/services/interview_discovery.py`, linie 1–330 — kolejka wpisów, maksymalny plan, wspólny limit odpowiedzi, liczenie pytań z historii i lokalne pytania zastępcze.
+- `backend/app/services/interviews/discovery.py`, linie 1–330 — kolejka wpisów, maksymalny plan, wspólny limit odpowiedzi, liczenie pytań z historii i lokalne pytania zastępcze.
 - `backend/tests/test_interview_discovery.py`, linie 1–265 — zmiany nazw tematów, osobne projekty, doświadczenia, języki, plan z CV/odświeżenia, limity, starsze sesje i brak płatnych pętli.
 - `backend/tests/test_interviews.py`, linie 1–733 — własność, tryby, statusy odpowiedzi, fallback planu, doprecyzowania, limity, koszty, weryfikacja, zapis dokumentu i zmiana źródła.
 - `backend/tests/test_interview_recovery.py` — odzyskiwanie oraz bezpieczne odrzucanie niepotwierdzonych zmian.

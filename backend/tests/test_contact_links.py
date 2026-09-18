@@ -3,15 +3,15 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.contact_links import (
+from app.services.cv.contact_links import (
     categorize_contact_url,
     contact_display_label,
     extract_contact_fields_from_raw,
     merge_contact_fields,
 )
-from app.services.cv_data import normalize_cv_data
-from app.services.cv_templates.registry import generate_resume
-from app.services.cv_templates.shared.contact import (
+from app.services.cv.data import normalize_cv_data
+from app.services.cv.templates.registry import generate_resume
+from app.services.cv.templates.shared.contact import (
     _contact_channel_items,
     _place_wrapping_icon_contacts,
 )

@@ -14,11 +14,11 @@ from app.dependencies import get_db
 from app.core.security import get_current_user
 from app.models.database import Base
 from app.models.models import User, InterviewSession, CareerProfile, Pdf
-from app.services import interview_service as service
-from app.services.cv_data import normalize_cv_data
-from app.services.entitlements import seed_plans, set_user_plan
-from app.services.account_data_service import build_account_export, delete_account_data
-from app.services.interview_editorial import PROSE_PATH
+from app.services.interviews import service
+from app.services.cv.data import normalize_cv_data
+from app.services.billing.entitlements import seed_plans, set_user_plan
+from app.services.accounts.data import build_account_export, delete_account_data
+from app.services.interviews.editorial import PROSE_PATH
 
 
 def editorial(draft):
@@ -243,8 +243,8 @@ def test_free_can_edit_profile_but_cannot_start_interview(environment):
 def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environment, wording_advice):
     from app.api.routes import interviews
     from app.schemas.pdf_schema import PDFCreateRequest
-    from app.utils.build_pdf import build_pdf_to_buffer
-    from app.utils.image_src_to_path import image_src_to_local_path
+    from app.services.documents.rendering.build import build_pdf_to_buffer
+    from app.services.storage.image_resolver import image_src_to_local_path
     import pymupdf
 
     client, db, user, _ = environment

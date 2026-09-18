@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.pdf_generator import PDF_Generator
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 def _capturing_generator():

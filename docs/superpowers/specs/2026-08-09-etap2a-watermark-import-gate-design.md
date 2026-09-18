@@ -53,12 +53,12 @@ This spec closes both gaps without touching plan structure, pricing, or template
 **Mechanics:** `PDF_Generator.render_elements(elements, resolver, pages, watermark=False)` — after the existing per-page element drawing loop completes for a page, if `watermark` is true, an overlay step (`_draw_watermark(canvas, page_width, page_height)`) draws the repeated diagonal text using `canvas.saveState()` / `setFillAlpha` / `rotate` / `restoreState()`, so it never interferes with the coordinate system element drawing relies on.
 
 **Call sites:**
-- `create_pdf_document` / `update_pdf_document` (`document_service.py`): compute `watermark = (get_entitlements(db, user)["plan_slug"] == "free")` before calling `render_elements`, so the file on disk/S3 already matches the plan at save time (fast path — most downloads follow a recent save).
+- `create_pdf_document` / `update_pdf_document` (`documents/service.py`): compute `watermark = (get_entitlements(db, user)["plan_slug"] == "free")` before calling `render_elements`, so the file on disk/S3 already matches the plan at save time (fast path — most downloads follow a recent save).
 - `download_pdf` (`pdf.py`): **before** serving, re-fetch the owned `Pdf` row's `PdfElements`, recompute `watermark` from the account's *current* plan, call `render_elements` again into the same file path (local) or re-upload (S3), then serve. This is the step that makes a post-upgrade download come back clean without the user needing to re-save.
 
 ## 5. Import gating
 
-`assert_can_extract_cv(db, user)` (in `entitlements.py`) changes from:
+`assert_can_extract_cv(db, user)` (in `billing/entitlements.py`) changes from:
 
 ```python
 if not entitlements["extract_cv"]:

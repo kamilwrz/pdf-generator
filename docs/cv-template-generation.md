@@ -1,6 +1,6 @@
 # Jak generowane są szablony CV
 
-Ten dokument opisuje pełną ścieżkę od danych kandydata do elementów na płótnie A4: **gdzie kończy się AI, a gdzie zaczyna deterministyczny Python** w `backend/app/services/cv_generator.py`.
+Ten dokument opisuje pełną ścieżkę od danych kandydata do elementów na płótnie A4: **gdzie kończy się AI, a gdzie zaczyna deterministyczny Python** w `backend/app/services/cv/generator.py`.
 
 ---
 
@@ -101,7 +101,7 @@ Kolejność po stronie serwera:
 
 ```python
 # ai_service.generate_resume
-from app.services.cv_generator import generate_resume as _python_layout
+from app.services.cv.generator import generate_resume as _python_layout
 return _python_layout(template_id, cv_data)
 ```
 
@@ -132,7 +132,7 @@ Frontendowe pliki JS (`slate.js`, `sterling.js`, …) to **statyczny mock** z pr
 
 ---
 
-## 5. Normalizacja danych (`cv_data.py`)
+## 5. Normalizacja danych (`cv/data.py`)
 
 Zanim generator zobaczy dane, `normalize_cv_data` robi z nich stabilny profil:
 
@@ -171,7 +171,7 @@ Generator **ufnie zakłada** ten schemat — nie odpytuje AI o brakujące pola.
 
 ---
 
-## 6. Serce systemu: `cv_generator.py`
+## 6. Serce systemu: `cv/generator.py`
 
 ### 6.1 Publiczne API
 
@@ -244,7 +244,7 @@ Liczba bloków doświadczenia = liczba wpisów w `cv_data["experience"]`. Jeśli
 
 ### 6.5 Rodziny szablonów (tagi layoutu)
 
-Każdy z 14 szablonów ma osobny plik `cv_templates/templates/<id>.py` z funkcją `_gen_<id>`. Wspólna jest tylko warstwa helperów (`shared/records.py`, `shared/extras.py`, `shared/text.py`, `shared/icons.py`) oraz tagi w `TEMPLATE_LAYOUTS`:
+Każdy z 14 szablonów ma osobny plik `cv/templates/generators/<id>.py` z funkcją `_gen_<id>`. Wspólna jest tylko warstwa helperów (`shared/records.py`, `shared/extras.py`, `shared/text.py`, `shared/icons.py`) oraz tagi w `TEMPLATE_LAYOUTS`:
 
 | Tag layoutu | Szablony |
 |---|---|
@@ -340,7 +340,7 @@ Czyli: generator buduje **punkt startowy**; canvas + asystent to dalsza edycja.
 ## 10. Jak dodać / zmiennić szablon (mentalny checklist)
 
 1. Design próbki w `frontend/src/templates/<id>.js` + wpis w `index.js`.
-2. Generator `_gen_<id>` (lub wpis w istniejącym motywie) w `cv_generator.py`.
+2. Generator `_gen_<id>` (lub wpis w istniejącym motywie) w `cv/generator.py`.
 3. Rejestracja w `_GENERATORS`.
 4. Testy w `test_cv_template_layouts.py` (np. czy sidebar dostaje skills, czy dekoracje są `fixedToPage`).
 5. Assety w `backend/template_assets/` jeśli szablon używa `image`.
@@ -366,14 +366,14 @@ Bez kroku 2–3 podgląd w bibliotece istnieje, ale **fill_template rzuci „Nie
 
 | Plik | Rola |
 |---|---|
-| `backend/app/services/ai_service.py` | PDF → tekst / obrazy skanów → Workers AI; cienka fasada `generate_resume` |
-| `backend/app/services/cv_source_layout.py` | Dokładne aliasy nagłówków + geometria linii, grubość fontu i struktura list PDF → osobne kolumny / sekcje bez fałszywych granic w zdaniach → pełne podsumowanie, zagnieżdżone umiejętności i języki, ochrona stanowiska i referencje |
-| `backend/app/services/cloudflare_pricing.py` | Telemetria stawek Llama/Gemma/Qwen i sumowanie prób fallbacku; bez bramki kredytów asystenta |
-| `backend/app/services/cv_data.py` | Normalizacja / walidacja profilu CV |
-| `backend/app/services/cv_generator.py` | **Deterministyczny silnik layoutu** (ten dokument) |
+| `backend/app/services/imports/extraction.py` | PDF → tekst / obrazy skanów → Workers AI; cienka fasada `generate_resume` |
+| `backend/app/services/imports/source_layout.py` | Dokładne aliasy nagłówków + geometria linii, grubość fontu i struktura list PDF → osobne kolumny / sekcje bez fałszywych granic w zdaniach → pełne podsumowanie, zagnieżdżone umiejętności i języki, ochrona stanowiska i referencje |
+| `backend/app/services/ai/pricing/cloudflare.py` | Telemetria stawek Llama/Gemma/Qwen i sumowanie prób fallbacku; bez bramki kredytów asystenta |
+| `backend/app/services/cv/data.py` | Normalizacja / walidacja profilu CV |
+| `backend/app/services/cv/generator.py` | **Deterministyczny silnik layoutu** (ten dokument) |
 | `backend/app/api/routes/ai.py` | HTTP: extract_cv, fill_template, draft bio |
-| `backend/app/services/pdf_generator.py` | Pomiar wysokości textarea + eksport PDF |
-| `backend/app/services/ai_assistant_service.py` | Asystent po wygenerowaniu (osobny tor AI) |
+| `backend/app/services/documents/rendering/pdf.py` | Pomiar wysokości textarea + eksport PDF |
+| `backend/app/services/ai/assistant/service.py` | Asystent po wygenerowaniu (osobny tor AI) |
 | `frontend/src/templates/*.js` | Statyczne próbki designu |
 | `frontend/src/templates/index.js` | Katalog 14 szablonów (id muszą = `_GENERATORS`) |
 | `backend/tests/test_cv_template_layouts.py` | Strażnik zachowania layoutu |

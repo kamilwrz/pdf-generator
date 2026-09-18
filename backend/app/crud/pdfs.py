@@ -15,11 +15,11 @@ import datetime
 from typing import Any, Mapping
 
 from app.schemas.pdf_schema import PdfElement
-from app.services.cv_generator_primitives import (
+from app.services.cv.layout.primitives import (
     DEFAULT_FLOW_SPACING,
     normalize_spacing_px,
 )
-from app.utils.document_integrity import current_template_id
+from app.services.documents.integrity import current_template_id
 
 
 def serialize_runs(element) -> list[dict[str, Any]] | None:

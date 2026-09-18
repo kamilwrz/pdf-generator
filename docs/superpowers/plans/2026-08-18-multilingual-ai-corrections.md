@@ -26,7 +26,7 @@
 
 ## File Structure
 
-- `backend/app/services/ai_assistant_service.py` — add detector, prompt-directive helper, tense-rules helper; thread `language_code` into 4 handlers; thread `cv_language` through `analyze_action`; reconcile `_detect_language_mix` target.
+- `backend/app/services/ai/assistant/service.py` — add detector, prompt-directive helper, tense-rules helper; thread `language_code` into 4 handlers; thread `cv_language` through `analyze_action`; reconcile `_detect_language_mix` target.
 - `backend/app/api/routes/ai_assistant.py` — shared `SUPPORTED_LANGUAGES` constant; `cv_language` on request/response; validation.
 - `backend/tests/test_ai_language_detection.py` — new: detector + helper unit tests.
 - `backend/tests/test_ai_content_language.py` — new: per-action prompt-language tests.
@@ -40,7 +40,7 @@
 ## Task 1: Language detector core
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py` (add near existing language helpers, after `_header_language_vote` ~line 273)
+- Modify: `backend/app/services/ai/assistant/service.py` (add near existing language helpers, after `_header_language_vote` ~line 273)
 - Test: `backend/tests/test_ai_language_detection.py` (create)
 
 **Interfaces:**
@@ -142,11 +142,11 @@ if __name__ == "__main__":
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_ai_language_detection.py -v` (from `backend/`)
-Expected: FAIL — `AttributeError: module 'app.services.ai_assistant_service' has no attribute '_detect_cv_language'`
+Expected: FAIL — `AttributeError: module 'app.services.ai.assistant.service' has no attribute '_detect_cv_language'`
 
 - [ ] **Step 3: Write minimal implementation**
 
-Add to `backend/app/services/ai_assistant_service.py` after `_header_language_vote` (~line 273). Add `import unicodedata`? Not needed — use a Cyrillic regex.
+Add to `backend/app/services/ai/assistant/service.py` after `_header_language_vote` (~line 273). Add `import unicodedata`? Not needed — use a Cyrillic regex.
 
 ```python
 # Supported CV languages for auto-detection and content corrections. Mirrors the
@@ -280,7 +280,7 @@ Expected: PASS (all 6 tests)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_language_detection.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_language_detection.py
 git commit -m "feat(ai): deterministic CV language detector (8 languages, body-wins)"
 ```
 
@@ -289,7 +289,7 @@ git commit -m "feat(ai): deterministic CV language detector (8 languages, body-w
 ## Task 2: Language directive + tense-rules helpers
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py` (add after `_detect_cv_language`; `_tense_rules_for` after `_TENSE_RULES_PL` ~line 1324)
+- Modify: `backend/app/services/ai/assistant/service.py` (add after `_detect_cv_language`; `_tense_rules_for` after `_TENSE_RULES_PL` ~line 1324)
 - Test: `backend/tests/test_ai_language_detection.py` (extend)
 
 **Interfaces:**
@@ -341,7 +341,7 @@ Expected: FAIL — `_content_language_directive` / `_tense_rules_for` not define
 
 - [ ] **Step 3: Write minimal implementation**
 
-Add below `_TRANSLATE_LANGUAGE_NAMES` (~line 1539) in `ai_assistant_service.py`:
+Add below `_TRANSLATE_LANGUAGE_NAMES` (~line 1539) in `ai/assistant/service.py`:
 
 ```python
 # Language-neutral tense rule for non-Polish CVs. It states the finished-vs-
@@ -395,7 +395,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_language_detection.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_language_detection.py
 git commit -m "feat(ai): language directive + neutral tense-rules helpers"
 ```
 
@@ -404,7 +404,7 @@ git commit -m "feat(ai): language directive + neutral tense-rules helpers"
 ## Task 3: Thread language into the four content actions
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py`
+- Modify: `backend/app/services/ai/assistant/service.py`
   - `_fix_grammar` (~1280), `_check_style` (~1327), `_improve_content` (~1405), `_shorten_content` (~1469)
 - Test: `backend/tests/test_ai_content_language.py` (create)
 
@@ -624,7 +624,7 @@ Prefer to implement Task 5 immediately, then run the Task 3 test file.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_content_language.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_content_language.py
 git commit -m "feat(ai): content actions honor CV language for corrections"
 ```
 
@@ -633,7 +633,7 @@ git commit -m "feat(ai): content actions honor CV language for corrections"
 ## Task 4: Reconcile `_detect_language_mix` to dominant body language
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py` — `_detect_language_mix` (~292–393)
+- Modify: `backend/app/services/ai/assistant/service.py` — `_detect_language_mix` (~292–393)
 - Test: `backend/tests/test_ai_language_detection.py` (extend)
 
 **Interfaces:**
@@ -697,7 +697,7 @@ Expected: PASS (all classes)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_language_detection.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_language_detection.py
 git commit -m "feat(ai): language-mix fix targets the dominant body language"
 ```
 
@@ -706,7 +706,7 @@ git commit -m "feat(ai): language-mix fix targets the dominant body language"
 ## Task 5: Wire detection + override through `analyze_action`
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py` — `analyze_action` (~2127–2194)
+- Modify: `backend/app/services/ai/assistant/service.py` — `analyze_action` (~2127–2194)
 - Test: `backend/tests/test_ai_content_language.py` (extend)
 
 **Interfaces:**
@@ -835,7 +835,7 @@ Expected: PASS (Task 3 and Task 5 tests all green now)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_content_language.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_content_language.py
 git commit -m "feat(ai): detect + override CV language in analyze_action dispatch"
 ```
 
@@ -1101,7 +1101,7 @@ In the Features section, document the multilingual correction behavior:
 - Content actions (grammar/language/improve/shorten) now detect the CV's language (pl/en/de/fr/es/uk/it/nl) and return corrections in that language; advice stays Polish.
 - Mixed CVs: the body language wins; header inconsistency is still reported by the rating.
 - Optional `cv_language` override (request field + UI selector), auto-detect by default.
-- Reference exact symbols: `_detect_cv_language`, `_content_language_directive`, `_tense_rules_for` in `backend/app/services/ai_assistant_service.py`; `cv_language` on `AssistantRequest`/`AssistantResponse` in `backend/app/api/routes/ai_assistant.py`.
+- Reference exact symbols: `_detect_cv_language`, `_content_language_directive`, `_tense_rules_for` in `backend/app/services/ai/assistant/service.py`; `cv_language` on `AssistantRequest`/`AssistantResponse` in `backend/app/api/routes/ai_assistant.py`.
 
 - [ ] **Step 3: Update README (Polish section)**
 

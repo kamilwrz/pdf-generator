@@ -15,15 +15,15 @@
 - **Row-level Y alignment between a sidebar entry and a specific main-column record is out of scope** (spec §2, §10) — a bucket's content starts at the top of that page's rail, independent of main-column cursor position.
 - **Never invent a page.** A sidebar bucket for page P only exists once the main column's real measurement shows it already uses page P (spec §2, §6).
 - `plan_columns`'s signature and `ColumnPlan`'s shape are a **breaking change** — Sterling is the only caller in the repo (confirmed via grep) and is updated in the same change.
-- Every step that changes `backend/app/services/cv_templates/shared/column_planner.py` or `backend/app/services/cv_templates/templates/sterling.py` must update `README.md` (English + Polish) in the same task per the repository's documentation policy — done in Task 5.
-- Budgets (Sterling, spec §5.4): `page1_sidebar_budget = 760 - content_top`, `continuation_sidebar_budget = 760 - PAGE_TOP`, `page1_main_budget = 770 - content_top`, `continuation_main_budget = 770 - PAGE_TOP`. `PAGE_TOP` (66) and the literal `770`/`760` bounds are existing constants from `app/services/cv_generator_primitives.py`; Sterling already uses the `770`/`760` literals today and does not override `continuation_top()`.
+- Every step that changes `backend/app/services/cv/templates/shared/column_planner.py` or `backend/app/services/cv/templates/generators/sterling.py` must update `README.md` (English + Polish) in the same task per the repository's documentation policy — done in Task 5.
+- Budgets (Sterling, spec §5.4): `page1_sidebar_budget = 760 - content_top`, `continuation_sidebar_budget = 760 - PAGE_TOP`, `page1_main_budget = 770 - content_top`, `continuation_main_budget = 770 - PAGE_TOP`. `PAGE_TOP` (66) and the literal `770`/`760` bounds are existing constants from `app/services/cv/layout/primitives.py`; Sterling already uses the `770`/`760` literals today and does not override `continuation_top()`.
 
 ---
 
 ## Task 1: Generalize the pure partitioner to N sidebar buckets
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/shared/column_planner.py`
+- Modify: `backend/app/services/cv/templates/shared/column_planner.py`
 - Test: `backend/tests/test_column_planner.py`
 
 **Interfaces:**
@@ -39,7 +39,7 @@ Replace the full contents of `backend/tests/test_column_planner.py` with:
 These exercise the partitioning algorithm with synthetic heights, independent
 of the CV generation stack, so the balancing rules are pinned precisely.
 """
-from app.services.cv_templates.shared.column_planner import (
+from app.services.cv.templates.shared.column_planner import (
     ColumnPlan,
     PlaceableSection,
     SidebarBucket,
@@ -200,7 +200,7 @@ Expected: FAIL — `ImportError: cannot import name 'SidebarBucket'` (and/or `Ty
 
 - [ ] **Step 3: Implement the generalized partitioner**
 
-Replace the full contents of `backend/app/services/cv_templates/shared/column_planner.py` with:
+Replace the full contents of `backend/app/services/cv/templates/shared/column_planner.py` with:
 
 ```python
 """Balance-driven two-column section placement for sidebar CV templates.
@@ -444,7 +444,7 @@ Expected: PASS — all 11 tests green.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/column_planner.py backend/tests/test_column_planner.py
+git add backend/app/services/cv/templates/shared/column_planner.py backend/tests/test_column_planner.py
 git commit -m "feat: generalize column planner to N page-scoped sidebar buckets"
 ```
 
@@ -453,7 +453,7 @@ git commit -m "feat: generalize column planner to N page-scoped sidebar buckets"
 ## Task 2: Add the multi-page orchestrator (`plan_columns_multi_page`)
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/shared/column_planner.py`
+- Modify: `backend/app/services/cv/templates/shared/column_planner.py`
 - Test: `backend/tests/test_column_planner.py`
 
 **Interfaces:**
@@ -465,7 +465,7 @@ git commit -m "feat: generalize column planner to N page-scoped sidebar buckets"
 In `backend/tests/test_column_planner.py`, replace the import block at the top of the file:
 
 ```python
-from app.services.cv_templates.shared.column_planner import (
+from app.services.cv.templates.shared.column_planner import (
     ColumnPlan,
     PlaceableSection,
     SidebarBucket,
@@ -476,7 +476,7 @@ from app.services.cv_templates.shared.column_planner import (
 with:
 
 ```python
-from app.services.cv_templates.shared.column_planner import (
+from app.services.cv.templates.shared.column_planner import (
     ColumnPlan,
     MainMeasurement,
     PlaceableSection,
@@ -593,7 +593,7 @@ Expected: FAIL — `ImportError: cannot import name 'MainMeasurement'` (and/or `
 
 - [ ] **Step 3: Implement the orchestrator**
 
-Append to the end of `backend/app/services/cv_templates/shared/column_planner.py`:
+Append to the end of `backend/app/services/cv/templates/shared/column_planner.py`:
 
 ```python
 @dataclass(frozen=True)
@@ -677,7 +677,7 @@ Expected: PASS — all 15 tests green (11 from Task 1 + 4 new).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/column_planner.py backend/tests/test_column_planner.py
+git add backend/app/services/cv/templates/shared/column_planner.py backend/tests/test_column_planner.py
 git commit -m "feat: add plan_columns_multi_page orchestrator for continuation-page sidebar buckets"
 ```
 
@@ -686,13 +686,13 @@ git commit -m "feat: add plan_columns_multi_page orchestrator for continuation-p
 ## Task 3: Wire Sterling to the multi-page orchestrator
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/templates/sterling.py`
+- Modify: `backend/app/services/cv/templates/generators/sterling.py`
 
 **Interfaces:**
-- Consumes: `SidebarBucket` (unused directly — via `plan_columns_multi_page`), `MainMeasurement`, `PlaceableSection`, `plan_columns_multi_page` (Task 2). `PAGE_TOP` from `app.services.cv_generator_primitives`.
+- Consumes: `SidebarBucket` (unused directly — via `plan_columns_multi_page`), `MainMeasurement`, `PlaceableSection`, `plan_columns_multi_page` (Task 2). `PAGE_TOP` from `app.services.cv.layout.primitives`.
 - Produces: no new public interface — `_gen_sterling`'s return shape (`list[dict]`) is unchanged; sidebar elements may now carry `page` values > 1.
 
-- [ ] **Step 1: Replace `backend/app/services/cv_templates/templates/sterling.py` in full**
+- [ ] **Step 1: Replace `backend/app/services/cv/templates/generators/sterling.py` in full**
 
 ```python
 from __future__ import annotations
@@ -739,20 +739,20 @@ docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md.
 Layout decisions are deterministic Python (never sent to the model).
 """
 
-from app.services.cv_data import skill_groups
-from app.services.cv_generator_primitives import (
+from app.services.cv.data import skill_groups
+from app.services.cv.layout.primitives import (
     Builder,
     get_spacing,
     PAGE_TOP,
     _line,
     _text,
 )
-from app.services.cv_templates.shared.column_planner import (
+from app.services.cv.templates.shared.column_planner import (
     MainMeasurement,
     PlaceableSection,
     plan_columns_multi_page,
 )
-from app.services.cv_templates.shared.extras import (
+from app.services.cv.templates.shared.extras import (
     _extra_sections,
     _fit_sidebar_sections,
     _fitted_sidebar_body_elements,
@@ -760,7 +760,7 @@ from app.services.cv_templates.shared.extras import (
     _sidebar_education_type_sizes,
     _sidebar_wrapped_height,
 )
-from app.services.cv_templates.shared.records import (
+from app.services.cv.templates.shared.records import (
     _education_record_height,
     _experience_record_height,
     _place_education_record,
@@ -768,7 +768,7 @@ from app.services.cv_templates.shared.records import (
     _sidebar_education_entries,
     _sidebar_education_section_height,
 )
-from app.services.cv_templates.shared.text import (
+from app.services.cv.templates.shared.text import (
     _compact_text,
     _contact_line,
     _labels,
@@ -1237,7 +1237,7 @@ Expected: PASS — unchanged, since the current Sterling starter/demo CV (Jan Ko
 - [ ] **Step 3: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/templates/sterling.py
+git add backend/app/services/cv/templates/generators/sterling.py
 git commit -m "feat: wire Sterling to the multi-page column planner"
 ```
 
@@ -1347,14 +1347,14 @@ git commit -m "test: cover Sterling placing overflow sidebar content on a contin
 In `README.md`, replace the paragraph starting `**Section placement is balance-driven.**` (currently the paragraph right after the Sterling section's opening paragraph, referencing `plan_columns`) with:
 
 ```markdown
-**Section placement is balance-driven, and generalizes to every page the main column occupies.** Rather than filling the sidebar first, Sterling measures every section's height in both column widths and calls `plan_columns_multi_page` (`backend/app/services/cv_templates/shared/column_planner.py`), which partitions sections into the main column and one `SidebarBucket` per page — minimising imbalance on each. Experience is anchored to the main column; every other section is movable, and may render in any column/bucket. Because a sidebar bucket cannot paginate, its assignment is a hard per-page fit, while the main column may overflow onto later pages (that overflow is therefore not counted as wasted space). Because which sections belong in the sidebar depends on how many pages the main column needs, and vice versa, `plan_columns_multi_page` resolves this with a bounded iteration (≤3 passes): partition with the pure `plan_columns` planner, measure the resulting main-column order's real page count by rendering it into a throwaway `Builder`, derive one `SidebarBucket` per page ≥ 2 that measurement found, and repeat until the bucket list and main budget stop changing. A CV whose main column fits on page 1 never derives a bucket beyond page 1, so this reduces to exactly the original single-page behavior. In practice Education follows Experience in the main column, and moves into the sidebar only when a long Experience block already fills page 1; a short extra section (e.g. Certifications) that doesn't fit page 1's rail can land on page 2's rail instead of the main column, once the main column actually spans 2 pages. The pure partitioner itself is a small greedy local search: seed each sidebar-affinity section by first-fit across buckets in ascending page order, force every bucket under budget (evicting the lowest-priority overflow back to main), then repeatedly apply the single move that most reduces `max(empty_main, *empty_buckets)` until the columns are balanced or no move clears a minimum-improvement threshold. See `docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md` for the full design, including the circular-dependency resolution and rejected alternatives (e.g. simulating pagination per candidate move, rejected for latency).
+**Section placement is balance-driven, and generalizes to every page the main column occupies.** Rather than filling the sidebar first, Sterling measures every section's height in both column widths and calls `plan_columns_multi_page` (`backend/app/services/cv/templates/shared/column_planner.py`), which partitions sections into the main column and one `SidebarBucket` per page — minimising imbalance on each. Experience is anchored to the main column; every other section is movable, and may render in any column/bucket. Because a sidebar bucket cannot paginate, its assignment is a hard per-page fit, while the main column may overflow onto later pages (that overflow is therefore not counted as wasted space). Because which sections belong in the sidebar depends on how many pages the main column needs, and vice versa, `plan_columns_multi_page` resolves this with a bounded iteration (≤3 passes): partition with the pure `plan_columns` planner, measure the resulting main-column order's real page count by rendering it into a throwaway `Builder`, derive one `SidebarBucket` per page ≥ 2 that measurement found, and repeat until the bucket list and main budget stop changing. A CV whose main column fits on page 1 never derives a bucket beyond page 1, so this reduces to exactly the original single-page behavior. In practice Education follows Experience in the main column, and moves into the sidebar only when a long Experience block already fills page 1; a short extra section (e.g. Certifications) that doesn't fit page 1's rail can land on page 2's rail instead of the main column, once the main column actually spans 2 pages. The pure partitioner itself is a small greedy local search: seed each sidebar-affinity section by first-fit across buckets in ascending page order, force every bucket under budget (evicting the lowest-priority overflow back to main), then repeatedly apply the single move that most reduces `max(empty_main, *empty_buckets)` until the columns are balanced or no move clears a minimum-improvement threshold. See `docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md` for the full design, including the circular-dependency resolution and rejected alternatives (e.g. simulating pagination per candidate move, rejected for latency).
 ```
 
 Then replace the `Implementation:` bullet list's `column_planner.py` and `sterling.py` lines with:
 
 ```markdown
-- `backend/app/services/cv_templates/shared/column_planner.py`, `SidebarBucket` / `PlaceableSection` / `ColumnPlan` / `plan_columns` — the pure, balance-driven partitioner (main column + N page-scoped sidebar buckets), and `MainMeasurement` / `plan_columns_multi_page` — the orchestrator that derives buckets for continuation pages via a bounded iteration around a caller-supplied `measure_main` callback
-- `backend/app/services/cv_templates/templates/sterling.py`, function `_gen_sterling` — centered letterhead masthead + closing rule, `sidebar_kicker`, per-section descriptor building (measures each section in both column widths), `plan_columns_multi_page` call (with a `measure_main` closure that renders a candidate main-column order into a throwaway `Builder` via the shared `_render_main_column`), then per-bucket sidebar rendering (`_render_sidebar_bucket`, reusing `_fit_sidebar_sections` / `_fitted_sidebar_body_elements`) and main-column rendering (`_render_main_column`, reusing `_place_experience_record` / `_place_education_record` / `_place_skills_section` / `_extra_sections`)
+- `backend/app/services/cv/templates/shared/column_planner.py`, `SidebarBucket` / `PlaceableSection` / `ColumnPlan` / `plan_columns` — the pure, balance-driven partitioner (main column + N page-scoped sidebar buckets), and `MainMeasurement` / `plan_columns_multi_page` — the orchestrator that derives buckets for continuation pages via a bounded iteration around a caller-supplied `measure_main` callback
+- `backend/app/services/cv/templates/generators/sterling.py`, function `_gen_sterling` — centered letterhead masthead + closing rule, `sidebar_kicker`, per-section descriptor building (measures each section in both column widths), `plan_columns_multi_page` call (with a `measure_main` closure that renders a candidate main-column order into a throwaway `Builder` via the shared `_render_main_column`), then per-bucket sidebar rendering (`_render_sidebar_bucket`, reusing `_fit_sidebar_sections` / `_fitted_sidebar_body_elements`) and main-column rendering (`_render_main_column`, reusing `_place_experience_record` / `_place_education_record` / `_place_skills_section` / `_extra_sections`)
 ```
 
 Then, in the `Tests:` bullet list for the Sterling section, replace the `test_column_planner.py` line with:
@@ -1374,14 +1374,14 @@ And add a new bullet immediately after the existing `test_sterling_balances_educ
 In `README.md`, replace the paragraph starting `**Rozmieszczanie sekcji jest sterowane balansem.**` with:
 
 ```markdown
-**Rozmieszczanie sekcji jest sterowane balansem i uogólnia się na każdą stronę, którą zajmuje kolumna główna.** Zamiast najpierw wypełniać sidebar, Sterling mierzy wysokość każdej sekcji w obu szerokościach kolumn i wywołuje `plan_columns_multi_page` (`backend/app/services/cv_templates/shared/column_planner.py`), który dzieli sekcje między kolumnę główną a po jednym `SidebarBucket` na stronę — minimalizując nierównowagę na każdej z nich. Doświadczenie jest zakotwiczone w kolumnie głównej; każda inna sekcja jest ruchoma i może wyrenderować się w dowolnej kolumnie/kubełku. Ponieważ pojedynczy kubełek sidebara nie może dzielić się na strony, jego przydział to twarde dopasowanie na daną stronę, podczas gdy kolumna główna może przechodzić na kolejne strony (jej nadmiar nie jest więc liczony jako zmarnowane miejsce). Ponieważ to, które sekcje należą do sidebara, zależy od liczby stron potrzebnych kolumnie głównej — i odwrotnie — `plan_columns_multi_page` rozwiązuje to ograniczoną iteracją (≤3 przebiegi): partycjonuje czystym planerem `plan_columns`, mierzy rzeczywistą liczbę stron wynikowego porządku kolumny głównej, renderując go do jednorazowego `Builder`, wyprowadza po jednym `SidebarBucket` dla każdej strony ≥ 2, którą wykazał pomiar, i powtarza, aż lista kubełków i budżet kolumny głównej przestaną się zmieniać. CV, którego kolumna główna mieści się na stronie 1, nigdy nie wyprowadza kubełka poza stroną 1, więc sprowadza się to dokładnie do pierwotnego zachowania jednostronicowego. W praktyce Wykształcenie następuje po Doświadczeniu w kolumnie głównej i przechodzi do sidebara tylko wtedy, gdy długie Doświadczenie zapełnia już stronę 1; krótka sekcja dodatkowa (np. Certyfikaty), która nie mieści się w szynie strony 1, może trafić do szyny strony 2 zamiast do kolumny głównej, gdy kolumna główna faktycznie zajmuje 2 strony. Sam czysty partycjoner to małe zachłanne przeszukiwanie lokalne: zasiej każdą sekcję o przynależności do sidebara metodą first-fit po kubełkach w rosnącej kolejności stron, wepchnij każdy kubełek poniżej budżetu (wypychając nadmiar o najniższym priorytecie z powrotem do głównej), a następnie wielokrotnie zastosuj pojedynczy ruch najbardziej redukujący `max(puste_główna, *puste_kubełki)`, aż kolumny się zrównoważą lub żaden ruch nie przekroczy progu minimalnej poprawy. Pełny opis projektu, w tym rozwiązanie cyklicznej zależności i odrzucone alternatywy (np. symulacja paginacji dla każdego kandydującego ruchu, odrzucona ze względu na opóźnienia), znajduje się w `docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md`.
+**Rozmieszczanie sekcji jest sterowane balansem i uogólnia się na każdą stronę, którą zajmuje kolumna główna.** Zamiast najpierw wypełniać sidebar, Sterling mierzy wysokość każdej sekcji w obu szerokościach kolumn i wywołuje `plan_columns_multi_page` (`backend/app/services/cv/templates/shared/column_planner.py`), który dzieli sekcje między kolumnę główną a po jednym `SidebarBucket` na stronę — minimalizując nierównowagę na każdej z nich. Doświadczenie jest zakotwiczone w kolumnie głównej; każda inna sekcja jest ruchoma i może wyrenderować się w dowolnej kolumnie/kubełku. Ponieważ pojedynczy kubełek sidebara nie może dzielić się na strony, jego przydział to twarde dopasowanie na daną stronę, podczas gdy kolumna główna może przechodzić na kolejne strony (jej nadmiar nie jest więc liczony jako zmarnowane miejsce). Ponieważ to, które sekcje należą do sidebara, zależy od liczby stron potrzebnych kolumnie głównej — i odwrotnie — `plan_columns_multi_page` rozwiązuje to ograniczoną iteracją (≤3 przebiegi): partycjonuje czystym planerem `plan_columns`, mierzy rzeczywistą liczbę stron wynikowego porządku kolumny głównej, renderując go do jednorazowego `Builder`, wyprowadza po jednym `SidebarBucket` dla każdej strony ≥ 2, którą wykazał pomiar, i powtarza, aż lista kubełków i budżet kolumny głównej przestaną się zmieniać. CV, którego kolumna główna mieści się na stronie 1, nigdy nie wyprowadza kubełka poza stroną 1, więc sprowadza się to dokładnie do pierwotnego zachowania jednostronicowego. W praktyce Wykształcenie następuje po Doświadczeniu w kolumnie głównej i przechodzi do sidebara tylko wtedy, gdy długie Doświadczenie zapełnia już stronę 1; krótka sekcja dodatkowa (np. Certyfikaty), która nie mieści się w szynie strony 1, może trafić do szyny strony 2 zamiast do kolumny głównej, gdy kolumna główna faktycznie zajmuje 2 strony. Sam czysty partycjoner to małe zachłanne przeszukiwanie lokalne: zasiej każdą sekcję o przynależności do sidebara metodą first-fit po kubełkach w rosnącej kolejności stron, wepchnij każdy kubełek poniżej budżetu (wypychając nadmiar o najniższym priorytecie z powrotem do głównej), a następnie wielokrotnie zastosuj pojedynczy ruch najbardziej redukujący `max(puste_główna, *puste_kubełki)`, aż kolumny się zrównoważą lub żaden ruch nie przekroczy progu minimalnej poprawy. Pełny opis projektu, w tym rozwiązanie cyklicznej zależności i odrzucone alternatywy (np. symulacja paginacji dla każdego kandydującego ruchu, odrzucona ze względu na opóźnienia), znajduje się w `docs/superpowers/specs/2026-08-12-multi-page-column-planner-design.md`.
 ```
 
 Then replace the `Implementacja:` bullet list's `column_planner.py` and `sterling.py` lines with:
 
 ```markdown
-- `backend/app/services/cv_templates/shared/column_planner.py`, `SidebarBucket` / `PlaceableSection` / `ColumnPlan` / `plan_columns` — czysty, sterowany balansem partycjoner (kolumna główna + N kubełków sidebara przypisanych do stron), oraz `MainMeasurement` / `plan_columns_multi_page` — orkiestrator wyprowadzający kubełki dla stron kontynuacyjnych w ograniczonej iteracji wokół dostarczonego przez wywołującego callbacku `measure_main`
-- `backend/app/services/cv_templates/templates/sterling.py`, funkcja `_gen_sterling` — wycentrowany masthead w stylu papieru firmowego + zamykająca linia, `sidebar_kicker`, budowa deskryptorów sekcji (mierzy każdą sekcję w obu szerokościach kolumn), wywołanie `plan_columns_multi_page` (z domknięciem `measure_main`, które renderuje kandydujący porządek kolumny głównej do jednorazowego `Builder` przez wspólne `_render_main_column`), a następnie renderowanie każdego kubełka sidebara (`_render_sidebar_bucket`, reużywające `_fit_sidebar_sections` / `_fitted_sidebar_body_elements`) i kolumny głównej (`_render_main_column`, reużywające `_place_experience_record` / `_place_education_record` / `_place_skills_section` / `_extra_sections`)
+- `backend/app/services/cv/templates/shared/column_planner.py`, `SidebarBucket` / `PlaceableSection` / `ColumnPlan` / `plan_columns` — czysty, sterowany balansem partycjoner (kolumna główna + N kubełków sidebara przypisanych do stron), oraz `MainMeasurement` / `plan_columns_multi_page` — orkiestrator wyprowadzający kubełki dla stron kontynuacyjnych w ograniczonej iteracji wokół dostarczonego przez wywołującego callbacku `measure_main`
+- `backend/app/services/cv/templates/generators/sterling.py`, funkcja `_gen_sterling` — wycentrowany masthead w stylu papieru firmowego + zamykająca linia, `sidebar_kicker`, budowa deskryptorów sekcji (mierzy każdą sekcję w obu szerokościach kolumn), wywołanie `plan_columns_multi_page` (z domknięciem `measure_main`, które renderuje kandydujący porządek kolumny głównej do jednorazowego `Builder` przez wspólne `_render_main_column`), a następnie renderowanie każdego kubełka sidebara (`_render_sidebar_bucket`, reużywające `_fit_sidebar_sections` / `_fitted_sidebar_body_elements`) i kolumny głównej (`_render_main_column`, reużywające `_place_experience_record` / `_place_education_record` / `_place_skills_section` / `_extra_sections`)
 ```
 
 Then, in the `Testy:` bullet list for the Sterling section, replace the `test_column_planner.py` line with:

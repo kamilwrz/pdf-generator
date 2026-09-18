@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.readiness import ReadinessResult, readiness_gate
+from app.core.readiness import ReadinessResult, readiness_gate
 
 
 @pytest.fixture(autouse=True)

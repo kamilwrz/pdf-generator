@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- No changes to `entitlements.py`, `billing.py`, `pdf_generator.py`, or the `plans` table (spec §5).
+- No changes to `billing/entitlements.py`, `billing.py`, `documents/rendering/pdf.py`, or the `plans` table (spec §5).
 - No watermarking, no import-gating changes, no Stripe, no Google OAuth, no CV Score (spec §5).
 - PDF import (`start=import` CTA, `AiCvPanel`) stays behind registration exactly as today — copy-only tweaks at most, no routing change (spec §4.5).
 - Every new guest code path must make **zero** backend calls until the visitor has a JWT (spec §4.1–§4.3). Where an existing component makes an unconditional authenticated call on mount/open, it must be guarded, not left to fail with a raw 401.

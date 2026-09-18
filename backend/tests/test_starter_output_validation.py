@@ -3,7 +3,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.schemas.pdf_schema import PdfElement
-from app.services.document_service import _require_starter_name
+from app.services.documents.service import _require_starter_name
 
 
 def starter_name(content: str) -> PdfElement:

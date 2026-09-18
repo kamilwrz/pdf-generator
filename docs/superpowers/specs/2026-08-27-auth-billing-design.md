@@ -51,7 +51,7 @@ oraz zostawione „szwy" pod Stripe. Ta specyfikacja dodaje trzy funkcje:
   `UserSubscription.stripe_customer_id/stripe_subscription_id`; tabela `Payment`
   (provider, provider_ref, amount_cents, currency, status, raw). Model danych
   Stripe jest gotowy.
-- `backend/app/services/entitlements.py` — `set_user_plan(pro)` startuje
+- `backend/app/services/billing/entitlements.py` — `set_user_plan(pro)` startuje
   30-dniowy pass i resetuje kredyty AI; `bootstrap_billing` seeduje katalog.
 - Frontend: JWT w `localStorage` (`token`), helpery w
   `frontend/src/utils/authSession.js`; strony `/login`, `/register`;
@@ -92,7 +92,7 @@ użytkownik po migracji ma `is_verified=True`.
 
 ### Backend
 
-- **Nowy moduł** `backend/app/services/email_service.py`:
+- **Nowy moduł** `backend/app/services/accounts/email.py`:
   - `send_verification_email(to: str, verify_url: str) -> None` — klient HTTP
     Resend. Gdy `RESEND_API_KEY` jest pusty, moduł loguje i pomija wysyłkę
     (tryb lokalny/dev), nie rzuca wyjątku blokującego rejestrację.

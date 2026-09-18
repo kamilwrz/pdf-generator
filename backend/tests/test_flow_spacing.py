@@ -10,9 +10,9 @@ from sqlalchemy.orm import sessionmaker
 
 from app.crud.pdfs import create_new_pdf, request_pdf_by_id, serialize_spacing_px
 from app.models.models import Base, User
-from app.services.cv_data import normalize_cv_data
-from app.services.cv_generator import generate_resume, get_spacing, use_spacing
-from app.services.cv_generator_primitives import DEFAULT_FLOW_SPACING, normalize_spacing_px
+from app.services.cv.data import normalize_cv_data
+from app.services.cv.generator import generate_resume, get_spacing, use_spacing
+from app.services.cv.layout.primitives import DEFAULT_FLOW_SPACING, normalize_spacing_px
 from app.testing_support import ensure_test_auth_env
 
 

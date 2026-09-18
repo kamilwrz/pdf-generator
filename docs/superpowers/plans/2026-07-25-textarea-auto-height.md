@@ -4,7 +4,7 @@
 
 **Goal:** A textarea's `height` always reflects its content at its current width — live while typing, and recomputed whenever width changes — so the exported PDF stops silently clipping text whose stored height had drifted out of sync.
 
-**Architecture:** A new shared helper, `measureTextareaHeight(content, width, fontSize, lineHeight)`, ports the character-count wrap formula `backend/app/services/cv_generator.py`'s `Builder.block` already uses. Live typing (`Textarea.jsx`) uses a real DOM `scrollHeight` measurement of the editing `<textarea>` itself — more accurate, and available since the box is actively mounted. Width-resize (`useA4Elements.js`) uses the ported helper instead, since resizing doesn't require the box to be in edit mode, so there's no live textarea DOM node to measure. Creation (`handleAddTextarea`) uses the same helper for its initial height instead of a hardcoded `90`.
+**Architecture:** A new shared helper, `measureTextareaHeight(content, width, fontSize, lineHeight)`, ports the character-count wrap formula `backend/app/services/cv/generator.py`'s `Builder.block` already uses. Live typing (`Textarea.jsx`) uses a real DOM `scrollHeight` measurement of the editing `<textarea>` itself — more accurate, and available since the box is actively mounted. Width-resize (`useA4Elements.js`) uses the ported helper instead, since resizing doesn't require the box to be in edit mode, so there's no live textarea DOM node to measure. Creation (`handleAddTextarea`) uses the same helper for its initial height instead of a hardcoded `90`.
 
 **Tech Stack:** React (frontend only — no backend or PDF-generation changes). No JS test framework exists in this repo; verification is manual in a running browser.
 
@@ -13,7 +13,7 @@
 - Height is never clamped to fit the page — an overflowing box is a visible signal, not silently lost content. Only the page-bounds check for `width`/`left` remains (unchanged).
 - Existing saved documents are untouched. This only takes effect as a textarea is created or actively edited (content typed, or width resized) going forward.
 - Manual height dragging is removed. The four corner resize handles keep their existing visual/interaction footprint (`Resize.jsx` is unchanged) — only their effect changes: vertical drag movement no longer does anything for a textarea.
-- No backend change. `backend/app/services/pdf_generator.py` keeps using stored `height` as-is; this plan is what makes that value trustworthy.
+- No backend change. `backend/app/services/documents/rendering/pdf.py` keeps using stored `height` as-is; this plan is what makes that value trustworthy.
 
 Reference: `docs/superpowers/specs/2026-07-25-textarea-auto-height-design.md`
 
@@ -26,14 +26,14 @@ Reference: `docs/superpowers/specs/2026-07-25-textarea-auto-height-design.md`
 - Modify: `frontend/src/hooks/useA4Elements.js` (`handleAddTextarea`, `handleResizeElement`'s `category === "textarea"` branch)
 
 **Interfaces:**
-- Produces: `measureTextareaHeight(content: string, width: number, fontSize: number, lineHeight: number) -> number` — pure function, no DOM access. Verbatim port of `cv_generator.py`'s `Builder.block` wrap-height formula (lines 79-95 of that file): `cpl = max(10, floor(width / (fontSize × 0.52)))`, one line per `\n`-split segment (`ceil(len(seg)/cpl)` if non-blank, else `1`), `total × lineHeight + 6`.
+- Produces: `measureTextareaHeight(content: string, width: number, fontSize: number, lineHeight: number) -> number` — pure function, no DOM access. Verbatim port of `cv/generator.py`'s `Builder.block` wrap-height formula (lines 79-95 of that file): `cpl = max(10, floor(width / (fontSize × 0.52)))`, one line per `\n`-split segment (`ceil(len(seg)/cpl)` if non-blank, else `1`), `total × lineHeight + 6`.
 
 - [ ] **Step 1: Create the helper**
 
 Create `frontend/src/utils/textareaHeight.js`:
 
 ```js
-// Ports the backend's character-count wrap heuristic (cv_generator.py's
+// Ports the backend's character-count wrap heuristic (cv/generator.py's
 // Builder.block) so the frontend can keep a textarea's height in sync with
 // its content without needing a mounted, editable DOM node to measure —
 // e.g. during a width-resize drag, when the box isn't in edit mode.

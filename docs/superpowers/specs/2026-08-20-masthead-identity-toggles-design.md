@@ -35,7 +35,7 @@ re-laying itself out deterministically so the **canvas stays the PDF authority**
 ### 1.1 Why the naive approaches fail
 
 - **CSS-only uppercase breaks parity.** The PDF renderer draws the stored
-  `content` string literally (`renderText`, `pdf_generator.py:544`). Uppercasing
+  `content` string literally (`renderText`, `documents/rendering/pdf.py:544`). Uppercasing
   the name with CSS `text-transform` would show `NAME` on the canvas but render
   `Name` in the PDF.
 - **Rewriting the stored string is irreversible.** Overwriting `content` with the
@@ -147,7 +147,7 @@ regenerated.
 
 - A shared helper `tag_masthead_identity(name_el, title_el, *, band_id,
   name_default_uppercase, title_block_pt, contact_band_id=None) -> dict` in
-  `app/services/cv_templates/shared/masthead.py` (new module). It stamps
+  `app/services/cv/templates/shared/masthead.py` (new module). It stamps
   `mastheadRole` on the name and title elements, sets `textTransform` on the name
   to `"uppercase"` when `name_default_uppercase`, captures the title `spec`, and
   returns the identity anchor (via a `build_masthead_identity_anchor`).
@@ -156,8 +156,8 @@ regenerated.
   uppercase, compute `title_block_pt` from its own header geometry, call the
   helper, and append the returned anchor to its element list. `contact_band_id`
   is the template's existing `"contact-main"`.
-- The PDF renderer's `renderText` (`pdf_generator.py:544`) and its call site
-  (`pdf_generator.py:1134`) read `textTransform` and uppercase `content` before
+- The PDF renderer's `renderText` (`documents/rendering/pdf.py:544`) and its call site
+  (`documents/rendering/pdf.py:1134`) read `textTransform` and uppercase `content` before
   drawing when it is `"uppercase"`. (Single-line `text` only — name and title are
   both `text` elements; `renderTextarea` is unchanged in this phase.)
 
@@ -285,11 +285,11 @@ Existing PDFs are byte-stable because the previously-baked uppercase becomes
 Backend:
 - `app/schemas/pdf_schema.py` — `textTransform`, `mastheadRole`, `mastheadBandId`,
   anchor `mastheadIdentity` descriptor; regenerate `shared/pdf-element.schema.json`.
-- `app/services/cv_templates/shared/masthead.py` (new) — `tag_masthead_identity`,
+- `app/services/cv/templates/shared/masthead.py` (new) — `tag_masthead_identity`,
   `build_masthead_identity_anchor`.
-- `app/services/cv_templates/templates/{harbor,atrium,portico,cardinal,tessera,
+- `app/services/cv/templates/generators/{harbor,atrium,portico,cardinal,tessera,
   slate,nova,volt}.py` — drop inline `.upper()`, call the helper, append anchor.
-- `app/services/pdf_generator.py` — `renderText` honors `textTransform`.
+- `app/services/documents/rendering/pdf.py` — `renderText` honors `textTransform`.
 - `app/crud/pdfs.py` — pack/unpack the new fields in `extra_properties`.
 
 Frontend:

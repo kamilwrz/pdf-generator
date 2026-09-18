@@ -27,7 +27,7 @@ Full detail gathered via Explore-agent audit before any recommendation was made:
 1. **The "analyzer/corrector" the owner wants already exists and is good.**
    `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` — a floating chat FAB,
    currently unlabeled — wired to `POST /ai/assistant` →
-   `backend/app/services/ai_assistant_service.py` (749 lines). 8 canned actions:
+   `backend/app/services/ai/assistant/service.py` (749 lines). 8 canned actions:
    overall CV rating, design rating, job-description fit, grammar, style, "make
    bullets stronger," ATS score, layout/alignment check — plus free-text chat, with
    per-element corrections the user can Accept/Reject individually or apply all.
@@ -36,7 +36,7 @@ Full detail gathered via Explore-agent audit before any recommendation was made:
 2. **A second, differently-named "AI" feature causes direct confusion.**
    `AiCvPanel.jsx` (Topbar button "CV AI") does something completely different:
    upload a PDF → GPT-4o vision extracts structured data (`extract_cv_data()`,
-   `ai_service.py:27-78`) → refill a chosen template. Zero scoring/critique. Two
+   `imports/extraction.py:27-78`) → refill a chosen template. Zero scoring/critique. Two
    features both branded "AI" + "CV", doing unrelated things, is a naming collision.
 3. **Onboarding has no template-first moment.** Register → auto-redirect to
    `/pdfcanvas` → blank A4 canvas. Template selection requires the user to
@@ -52,11 +52,11 @@ Full detail gathered via Explore-agent audit before any recommendation was made:
    exists (`Hero.jsx:25,253`; confirmed absent in `App.jsx`).
 6. **Templates: 16 CV / 3 deck / 1 article** (`frontend/src/templates/index.js`).
    CV templates dominate and have the deepest backend investment — dedicated
-   generator functions per template in `cv_generator.py`. Deck (3) and article (1)
+   generator functions per template in `cv/generator.py`. Deck (3) and article (1)
    are comparatively thin. A CV-only pivot strands real but bounded work.
 7. **Dead code found (not caused by this plan, pre-existing):** ~250 lines of
-   unused GPT-prompt-style `_TEMPLATES` dict in `ai_service.py:144-390` (never
-   called — `generate_resume()` delegates to the deterministic `cv_generator.py`
+   unused GPT-prompt-style `_TEMPLATES` dict in `imports/extraction.py:144-390` (never
+   called — `generate_resume()` delegates to the deterministic `cv/generator.py`
    engine instead); 7 orphaned template-preview entries in `TemplatesModal.jsx`
    (blueprint/monolith/prism/aria/sterling/solstice/axiom) that don't exist in the
    real `TEMPLATES` array at all.
@@ -267,7 +267,7 @@ existing surfaces (8 files exactly). **Split, owner-approved:**
    autosave beyond normal behavior — whichever state is current after the toast
    resolves is what the next 2s autosave tick persists, same as any other edit.
 7. **Proactive AI score surfacing.** Auto-run a quick analyzer score
-   (`ai_assistant_service.py`, already exists) and show it as a small badge —
+   (`ai/assistant/service.py`, already exists) and show it as a small badge —
    pinned trigger: fire on explicit save/export actions ("Utwórz PDF" /
    "Aktualizuj"), **not** on the silent 2s autosave tick. Pinned cache rule:
    reuse the last score keyed on a hash of the canvas's serialized text content
@@ -310,7 +310,7 @@ ships)
    to every save/export. `ai_assistant.py:57-58` currently does
    `except Exception as exc: raise HTTPException(500, detail=f"Błąd asystenta
    AI: {exc}")` — a catch-all that leaks the raw exception string to the
-   client. `_gpt()` in `ai_assistant_service.py:132-151` has no handling for
+   client. `_gpt()` in `ai/assistant/service.py:132-151` has no handling for
    OpenAI timeout, rate-limit, or malformed-JSON responses (only empty-content
    is explicitly handled, via a clear `ValueError`) — all of those fall
    through to the leaking catch-all today. Fix: catch OpenAI-specific
@@ -335,8 +335,8 @@ ships)
   A was explicitly rejected this session; revisit only after M0/M2 land).
   **[Outside Voice note, acknowledged not fixed]** hiding these behind a UI
   flag doesn't shrink actual maintenance or test surface — if a shared
-  dependency (`ai_service.py`'s OpenAI plumbing, or PDF-rendering code shared
-  with `cv_generator.py`) changes later, deck/article generation can silently
+  dependency (`imports/extraction.py`'s OpenAI plumbing, or PDF-rendering code shared
+  with `cv/generator.py`) changes later, deck/article generation can silently
   rot with nobody noticing until `FEATURES.decksArticles` is flipped back on.
   No task in this plan monitors that. Accepted as a known, explicit risk
   rather than an implied "it's fine" — revisit alongside the deletion
@@ -349,7 +349,7 @@ ships)
 - M0 (durable Postgres/Neon/Alembic/Sentry/health-check) — untouched by this plan;
   remains the actual cut line before scaling either UX or monetization work further.
 - **Dead-code cleanup** found during the audit (~250 unused lines in
-  `ai_service.py:144-390`; 7 orphaned `TemplatesModal.jsx` preview entries for
+  `imports/extraction.py:144-390`; 7 orphaned `TemplatesModal.jsx` preview entries for
   templates that don't exist) — pre-existing, not caused by or blocking this plan.
   Logged to TODOS.md as a follow-up cleanup item rather than silently ignored;
   not fixed here to keep this diff scoped to the accepted UX items above.
@@ -491,8 +491,8 @@ required structured outputs.
 
 ## What already exists (0B — full detail)
 See "Pre-review audit" above — the analyzer (`AiAssistant.jsx` +
-`ai_assistant_service.py`), the extract-and-refill tool (`AiCvPanel.jsx` +
-`ai_service.py`), 16 CV templates with dedicated backend generators, and the
+`ai/assistant/service.py`), the extract-and-refill tool (`AiCvPanel.jsx` +
+`imports/extraction.py`), 16 CV templates with dedicated backend generators, and the
 undo/redo history stack (`useA4Elements.js`) are all pre-existing and reused
 by this plan rather than rebuilt.
 
@@ -518,7 +518,7 @@ mechanics, correctly deferring that to M2 rather than half-building it here.
 ```
 METHOD/CODEPATH                          | WHAT CAN GO WRONG            | EXCEPTION CLASS
 ------------------------------------------|-------------------------------|------------------
-ai_assistant_service.py _gpt()           | OpenAI timeout/rate-limit     | (to be added: TimeoutError/RateLimitError)
+ai/assistant/service.py _gpt()           | OpenAI timeout/rate-limit     | (to be added: TimeoutError/RateLimitError)
                                           | Malformed JSON from model     | JSONDecodeError
                                           | Empty content                 | ValueError (already handled)
 ai_assistant.py POST /assistant           | Any exception from analyze_action | HTTPException(500) — currently leaks str(exc)
@@ -619,7 +619,7 @@ POST /ai/assistant ──▶ verify_token (existing, unchanged)
 ## Stale Diagram Audit
 No existing ASCII diagrams found in any file this plan touches
 (`Topbar.jsx`, `PdfCanvas.jsx`, `TemplatesModal.jsx`, `Hero.jsx`, `Sidebar.jsx`,
-`useA4Elements.js`, `ai_assistant.py`, `ai_assistant_service.py`) — none to
+`useA4Elements.js`, `ai_assistant.py`, `ai/assistant/service.py`) — none to
 audit for staleness.
 
 ## TODOS.md updates
@@ -705,7 +705,7 @@ Synthesized from this review's findings. Run with Claude Code or Codex; checkbox
   distinctly in `_gpt()`/`analyze_action()`, log full context server-side,
   return generic non-leaking message from the route
   - Surfaced by: 11-section review, Section 2/3
-  - Files: `backend/app/services/ai_assistant_service.py`, `backend/app/api/routes/ai_assistant.py`
+  - Files: `backend/app/services/ai/assistant/service.py`, `backend/app/api/routes/ai_assistant.py`
   - Verify: T-test-8 below; manual curl/Postman check confirms no raw
     exception text in the 500 response body
 
@@ -970,7 +970,7 @@ Phase 1b); logging overhead is negligible (2 low-frequency events: AI-assistant
 calls, template picks — not per-keystroke or per-autosave-tick).
 
 ## What already exists (this review)
-Confirms the CEO review's audit: `AiAssistant.jsx`/`ai_assistant_service.py`
+Confirms the CEO review's audit: `AiAssistant.jsx`/`ai/assistant/service.py`
 (the analyzer), `ModalPdfs.jsx`'s fetch-on-mount pattern (reused for
 `pdfsLoaded`), and FastAPI's `Depends(verify_token)` pattern (reused for any
 new route, including the events endpoint from Issue 1) are all pre-existing
@@ -1176,8 +1176,8 @@ usage data) and T2 (Phase 1b, the waitlist table — needs its own eng review).
 `/plan-eng-review` re-invoked against the actual Phase 1a diff (not the plan
 text) — the CEO/eng-review skills' own rule is to review what shipped, not
 just what was proposed. Scoped to the 5 files this session actually authored
-(`ai_assistant_service.py`, `ai_assistant.py`, `events.py`, `PdfCanvas.jsx`,
-plus the new `metrics_logging.py`); `Sidebar.jsx` was excluded — concurrent
+(`ai/assistant/service.py`, `ai_assistant.py`, `events.py`, `PdfCanvas.jsx`,
+plus the new `core/metrics.py`); `Sidebar.jsx` was excluded — concurrent
 unrelated sidebar-redesign work with `REPO_MODE: unknown`, flagged per
 "Repo Ownership — See Something, Say Something" rather than reviewed blind.
 
@@ -1193,9 +1193,9 @@ unrelated sidebar-redesign work with `REPO_MODE: unknown`, flagged per
    below — this fix went through two more revisions before it was correct).
 3. **DRY violation** — identical user-id-resolution + best-effort-logging
    logic duplicated between `ai_assistant.py` and `events.py`. Extracted to
-   `backend/app/utils/metrics_logging.py`.
+   `backend/app/core/metrics.py`.
 4. **Redundant exception tuple** — `except (APITimeoutError, RateLimitError,
-   APIConnectionError, APIError)` in `ai_assistant_service.py`; verified via
+   APIConnectionError, APIError)` in `ai/assistant/service.py`; verified via
    `issubclass()` that the first three are all `APIError` subclasses.
    Simplified to `except APIError`.
 

@@ -24,10 +24,10 @@ The review can be hidden while generation is pending. Hiding it does not cancel 
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | Reads settled costs after success or failure without starting AI. |
 | `frontend/src/services/interviews.js`: `interviewRequest` | Authenticated requests with explicit timeouts and no automatic retry. |
 | `backend/app/api/routes/interviews.py`: `help_interview_answer`, `answer_interview` | Owned API entry points for assistance and answer persistence. |
-| `backend/app/services/interview_answer_help.py` | Eligibility, entry-scoped context, two-stage generation, cached recovery, validation and assistance provenance. |
-| `backend/app/services/interview_service.py`: `session_payload`, `check_versions`, `paid_model` | Public session output, version/source checks and durable credit reservations. |
+| `backend/app/services/interviews/answer_help.py` | Eligibility, entry-scoped context, two-stage generation, cached recovery, validation and assistance provenance. |
+| `backend/app/services/interviews/service.py`: `session_payload`, `check_versions`, `paid_model` | Public session output, version/source checks and durable credit reservations. |
 | `backend/app/schemas/interview_schema.py` | Pydantic request and model-output contracts. |
-| `backend/app/services/interview_credits.py` | Groups `answer-help` and `answer-help-verify` ledger stages into an answer-help receipt. |
+| `backend/app/services/interviews/credits.py` | Groups `answer-help` and `answer-help-verify` ledger stages into an answer-help receipt. |
 
 `InterviewAnswerHelp` keys its local state to the session and question. The parent also checks the current request/session identity before adopting a result. Cleanup and request tokens prevent an old response from filling another question. Help requests use a synchronous lock to prevent duplicate activation. On a recoverable failure, the parent reads persisted state so an advanced server revision can be used for explicit retry while the user's draft remains in memory.
 
@@ -184,10 +184,10 @@ Propozycję można ukryć podczas generowania. Ukrycie nie anuluje pracy serwera
 | `frontend/src/components/ai/Interview/InterviewCredits.jsx` | Odczyt rozliczonych kosztów po sukcesie lub błędzie bez uruchamiania AI. |
 | `frontend/src/services/interviews.js`: `interviewRequest` | Uwierzytelnione żądania z jawnymi limitami czasu i bez automatycznego ponawiania. |
 | `backend/app/api/routes/interviews.py`: `help_interview_answer`, `answer_interview` | Punkty wejścia API sprawdzające właściciela dla pomocy i zapisu odpowiedzi. |
-| `backend/app/services/interview_answer_help.py` | Dostępność, kontekst konkretnego wpisu, dwa etapy generowania, odzyskiwanie, walidacja i pochodzenie pomocy. |
-| `backend/app/services/interview_service.py`: `session_payload`, `check_versions`, `paid_model` | Publiczna odpowiedź sesji, kontrola wersji/źródła i trwałe rezerwacje kredytów. |
+| `backend/app/services/interviews/answer_help.py` | Dostępność, kontekst konkretnego wpisu, dwa etapy generowania, odzyskiwanie, walidacja i pochodzenie pomocy. |
+| `backend/app/services/interviews/service.py`: `session_payload`, `check_versions`, `paid_model` | Publiczna odpowiedź sesji, kontrola wersji/źródła i trwałe rezerwacje kredytów. |
 | `backend/app/schemas/interview_schema.py` | Kontrakty Pydantic dla żądań i wyników modelu. |
-| `backend/app/services/interview_credits.py` | Grupowanie etapów `answer-help` i `answer-help-verify` w rozliczeniu pomocy. |
+| `backend/app/services/interviews/credits.py` | Grupowanie etapów `answer-help` i `answer-help-verify` w rozliczeniu pomocy. |
 
 `InterviewAnswerHelp` wiąże lokalny stan z sesją i pytaniem. Komponent nadrzędny dodatkowo sprawdza tożsamość aktualnego żądania i sesji przed przyjęciem wyniku. Sprzątanie efektów i znaczniki żądań zapobiegają wypełnieniu innego pytania starym wynikiem. Synchroniczna blokada uniemożliwia podwójne uruchomienie. Po błędzie możliwym do naprawienia komponent nadrzędny odczytuje zapisany stan, aby jawne ponowienie używało aktualnej wersji serwera, zachowując szkic użytkownika w pamięci.
 

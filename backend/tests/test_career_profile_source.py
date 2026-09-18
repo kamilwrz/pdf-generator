@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from app.crud.cv_import_snapshots import create_snapshot
 from app.models.models import Pdf
-from app.services import interview_service as service
+from app.services.interviews import service
 from test_interviews import environment  # noqa: F401
 
 

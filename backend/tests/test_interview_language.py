@@ -11,9 +11,9 @@ import pytest
 
 from app.api.routes import interviews
 from app.models.models import InterviewSession, Pdf
-from app.services import interview_service as service
-from app.services.cv_data import normalize_cv_data
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
+from app.services.interviews import service
+from app.services.cv.data import normalize_cv_data
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS, generate_resume
 from test_interviews import environment, create, confirm, version, editorial
 
 

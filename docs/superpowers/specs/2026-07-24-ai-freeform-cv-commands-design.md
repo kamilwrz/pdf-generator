@@ -2,7 +2,7 @@
 
 ## Problem
 
-The floating AI assistant (`AiAssistant.jsx` + `ai_assistant_service.py`) already
+The floating AI assistant (`AiAssistant.jsx` + `ai/assistant/service.py`) already
 lets a user run one of eight fixed actions (rate CV, grammar, style, ATS score,
 layout, etc.) or type a free-text question into its chat box. The chat box is
 Q&A only today: `_chat()` receives the CV's plain concatenated text (no element
@@ -56,7 +56,7 @@ All of the required plumbing already exists and is reused unchanged:
   `corrections` come back, with accept/reject and "Apply all." No changes.
 - **Route** (`ai_assistant.py`): `"chat"` is already a valid action, request/
   response schemas already carry `elements` and `corrections`. No changes.
-- **Backend handler** (`ai_assistant_service.py`, `_chat()`): this is the only
+- **Backend handler** (`ai/assistant/service.py`, `_chat()`): this is the only
   function that changes. Today it takes `(message, text)` where `text` is
   joined plain content with no element IDs. It becomes `(message, elements)`
   and internally calls `_extract_structured(elements)` — the same helper
@@ -106,7 +106,7 @@ No new error paths. This spec reuses the existing ones unchanged:
 
 ## Testing / verification
 
-There's no existing automated test coverage for `ai_assistant_service.py`
+There's no existing automated test coverage for `ai/assistant/service.py`
 (prompt-driven output isn't a good fit for unit tests), so verification is
 manual, run against the live app with a real CV on canvas:
 

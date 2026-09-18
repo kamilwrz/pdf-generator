@@ -4,7 +4,7 @@
  * Monochrome executive editorial layout with compact Montserrat summary copy.
  *
  * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/regent.py`) for
+ * (`backend/app/services/cv/templates/generators/regent.py`) for
  * representative demo content (Aleksandra Nowak — strategy & operations manager with three roles, two degrees, ten skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at

@@ -17,37 +17,37 @@ from app.schemas.interview_schema import (
     ProfileWrite, ProfileSourceWrite, InterviewCreate, SessionWrite, AnswerWrite, AnswerHelpWrite, ConfirmWrite, GenerateWrite, PreviewReviewWrite, PreviewFitWrite, PreviewTemplateWrite, SourceRefresh, Draft, Verification, EditorialReview,
 )
 from app.schemas.pdf_schema import PDFCreateRequest
-from app.services.interview_clarification import (
+from app.services.interviews.clarification import (
     clarification_queue, start_clarifications, finish_clarification_answer,
     repair_clarification_state, dismiss_clarifications, answer_proposals,
 )
-from app.services.interview_recovery import assemble_reviewed_draft
-from app.services.interview_job_analysis import load_owned_analysis, requirement_topics
-from app.services.interview_discovery import update_discovery_budget
-from app.services.interview_quality import literal_answer_status, discovery_history
-from app.services.job_matching_policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
-from app.services.interview_editorial import (
+from app.services.interviews.recovery import assemble_reviewed_draft
+from app.services.interviews.job_analysis import load_owned_analysis, requirement_topics
+from app.services.interviews.discovery import update_discovery_budget
+from app.services.interviews.quality import literal_answer_status, discovery_history
+from app.services.tailoring.policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
+from app.services.interviews.editorial import (
     EDITORIAL_TASK, PIPELINE_VERSION, PROSE_PATH, begin_generation,
     prepare_editorial_draft, apply_editorial_review,
     QUALITY_TASK, editorial_review_notes, CV_READABILITY_POLICY,
 )
-from app.services import interview_service as service
-from app.services.ai_telemetry import measure_operation
-from app.services.interview_credits import interview_credit_usage
-from app.services.interview_history import interview_summaries
-from app.services.interview_fit import initialise_fit, fit_preview
-from app.services.interview_templates import preview_templates, select_preview_template
-from app.services.interview_answer_help import generate_answer_help, confirmed_answer_assistance
-from app.services.interview_sources import available_interview_sources, has_interview_source
-from app.services.career_profile_source import synchronise_source, supplemental_facts, is_supplemental_fact
-from app.services.cv_data import normalize_cv_data, CvDataValidationError
-from app.services.ai_service import generate_resume
-from app.services.cv_generator_primitives import use_spacing
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS
-from app.services.document_service import create_pdf_document
-from app.services.entitlements import assert_can_use_ai_action, assert_template_allowed, assert_can_create_project
-from app.services.job_offer_service import resolve_job_offer, JobOfferError
-from app.utils.document_integrity import canonical_title_key
+from app.services.interviews import service
+from app.services.ai.telemetry import measure_operation
+from app.services.interviews.credits import interview_credit_usage
+from app.services.interviews.history import interview_summaries
+from app.services.interviews.fit import initialise_fit, fit_preview
+from app.services.interviews.templates import preview_templates, select_preview_template
+from app.services.interviews.answer_help import generate_answer_help, confirmed_answer_assistance
+from app.services.interviews.sources import available_interview_sources, has_interview_source
+from app.services.cv.profile_source import synchronise_source, supplemental_facts, is_supplemental_fact
+from app.services.cv.data import normalize_cv_data, CvDataValidationError
+from app.services.imports.extraction import generate_resume
+from app.services.cv.layout.primitives import use_spacing
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS
+from app.services.documents.service import create_pdf_document
+from app.services.billing.entitlements import assert_can_use_ai_action, assert_template_allowed, assert_can_create_project
+from app.services.tailoring.offers import resolve_job_offer, JobOfferError
+from app.services.documents.integrity import canonical_title_key
 
 router = APIRouter(tags=["interviews"])
 logger = logging.getLogger(__name__)
@@ -621,7 +621,7 @@ def preview_interview(session_id: str, request: GenerateWrite, user=Depends(get_
 @router.post("/ai/interviews/{session_id}/preview-review")
 def review_interview_preview(session_id: str, request: PreviewReviewWrite, user=Depends(get_current_user), db=Depends(get_db)):
     """Persist a human preview decision and render it locally without AI credits."""
-    from app.services.interview_preview_review import review_preview
+    from app.services.interviews.preview_review import review_preview
     return review_preview(db, user, service.owned_session(db, user.id, session_id), request)
 
 

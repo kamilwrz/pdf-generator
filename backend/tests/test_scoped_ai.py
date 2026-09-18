@@ -10,8 +10,8 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 from app.api.routes.ai_assistant import AssistantRequest
-from app.services.ai_assistant_service import AIServiceError
-from app.services.scoped_ai import ScopedContent, review_scoped_content, validate_scoped_result
+from app.services.ai.assistant.service import AIServiceError
+from app.services.ai.assistant.scoped import ScopedContent, review_scoped_content, validate_scoped_result
 
 
 def scope_payload():
@@ -47,8 +47,8 @@ def test_scope_limit_counts_context_without_silent_truncation():
 @pytest.mark.parametrize("action", ["shorten", "language", "improve"])
 def test_three_scoped_operations_keep_known_provider_usage(action):
     usage = {"cost_pln_estimate": 0.05, "model": "gpt-5.6-terra"}
-    with patch("app.services.ai_assistant_service._model_for_action", return_value="gpt-5.6-terra"), \
-         patch("app.services.ai_assistant_service._gpt", return_value=(result_payload(), usage)) as provider:
+    with patch("app.services.ai.assistant.service._model_for_action", return_value="gpt-5.6-terra"), \
+         patch("app.services.ai.assistant.service._gpt", return_value=(result_payload(), usage)) as provider:
         response = review_scoped_content(action, ScopedContent.model_validate(scope_payload()))
     assert response["usage"] == usage
     assert provider.call_args.kwargs["action"] == action
@@ -89,7 +89,7 @@ def test_bad_paid_response_retains_usage_for_failed_settlement():
     result = result_payload()
     result["scoped_corrections"][0]["content"] = "Invented 99"
     usage = {"cost_pln_estimate": 0.07}
-    with patch("app.services.ai_assistant_service._gpt", return_value=(result, usage)), \
+    with patch("app.services.ai.assistant.service._gpt", return_value=(result, usage)), \
          pytest.raises(AIServiceError) as raised:
         review_scoped_content("shorten", ScopedContent.model_validate(scope_payload()))
     assert raised.value.reservation_outcome == "settle_usage"
@@ -98,8 +98,8 @@ def test_bad_paid_response_retains_usage_for_failed_settlement():
 
 @pytest.mark.parametrize("model", ["gemma", "qwen3"])
 def test_only_gpt_models_are_allowed(model):
-    with patch("app.services.ai_assistant_service._model_for_action", return_value=model), \
-         patch("app.services.ai_assistant_service._gpt") as provider, pytest.raises(AIServiceError):
+    with patch("app.services.ai.assistant.service._model_for_action", return_value=model), \
+         patch("app.services.ai.assistant.service._gpt") as provider, pytest.raises(AIServiceError):
         review_scoped_content("shorten", ScopedContent.model_validate(scope_payload()))
     provider.assert_not_called()
 

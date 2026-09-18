@@ -32,7 +32,7 @@ from sqlalchemy import (
     inspect as sqlalchemy_inspect,
 )
 from .database import Base, engine
-from app.utils.document_integrity import canonical_title_key
+from app.services.documents.integrity import canonical_title_key
 
 logger = logging.getLogger(__name__)
 
@@ -580,7 +580,7 @@ def init_db(*, attempts: int = 6, delay_seconds: float = 2.0) -> None:
             _run_alembic_upgrade()
             # Seed plan catalog + Free subscriptions for existing users.
             from app.models.database import SessionLocal
-            from app.services.entitlements import bootstrap_billing
+            from app.services.billing.entitlements import bootstrap_billing
 
             db = SessionLocal()
             try:

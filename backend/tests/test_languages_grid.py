@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.cv_data import normalize_cv_data
-from app.services.cv_generator_primitives import Builder
-from app.services.cv_templates.registry import generate_resume
-from app.services.cv_templates.shared.text import (
+from app.services.cv.data import normalize_cv_data
+from app.services.cv.layout.primitives import Builder
+from app.services.cv.templates.registry import generate_resume
+from app.services.cv.templates.shared.text import (
     LANGUAGE_SEP_SIDEBAR,
     LANGUAGE_SEP_SINGLE,
     _language_entries,

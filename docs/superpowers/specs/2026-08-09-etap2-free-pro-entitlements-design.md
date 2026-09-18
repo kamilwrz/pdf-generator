@@ -21,7 +21,7 @@ Legacy `standard` / `premium` → `pro`. Expired Pro downgrades to Free; documen
 
 ## Primary implementation files
 
-- `backend/app/services/entitlements.py` — `PLAN_SEEDS`, `PLAN_DISPLAY`, migrations, gates
+- `backend/app/services/billing/entitlements.py` — `PLAN_SEEDS`, `PLAN_DISPLAY`, migrations, gates
 - `backend/app/api/routes/billing.py` — catalog + select-plan
 - `frontend/src/components/modals/PlanSelectModal/PlanSelectModal.jsx`
 - `frontend/src/pages/Hero/Hero.jsx` — pricing + FAQ

@@ -7,13 +7,13 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.cv_templates.registry import (
+from app.services.cv.templates.registry import (
     TEMPLATE_CATALOG,
     TEMPLATE_LAYOUTS,
     _GENERATORS,
     public_template_catalog,
 )
-from app.services.entitlements import FREE_STARTER_TEMPLATE_IDS
+from app.services.billing.entitlements import FREE_STARTER_TEMPLATE_IDS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

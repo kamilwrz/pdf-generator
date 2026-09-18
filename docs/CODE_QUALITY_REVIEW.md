@@ -27,7 +27,7 @@
 
 **Co trzyma poniżej 9**
 
-- `cv_generator.py` nadal ~2300 LOC (themes tylko `it` + `classic`)
+- `cv/generator.py` nadal ~2300 LOC (themes tylko `it` + `classic`)
 - `useA4Elements.js` nadal ~1300 LOC
 - ~21 konsumentów nadal na fasadzie `PdfContext` (nie focused hooks)
 - Brak TypeScript / pełnej walidacji Ajv na FE
@@ -44,7 +44,7 @@
 Contract test rejestru szablonów + Nova w Free starter; usunięte `console.log` hot-path; `ALLOW_UNPAID_PLAN_SELECTION` default `false`; `ADMIN_RESET_SECRET` bez fallbacku; boot-check `SECRET_KEY`; pinned `requirements.txt` + `python-dotenv`; CI; `npm test`.
 
 ### P1 — DONE
-5. `cv_generator_primitives.py` + re-export  
+5. `cv/layout/primitives.py` + re-export
 6. Split `useA4Elements` (history / factories / materialize)  
 7. Wspólny `fillTemplate` + BioCvModal → `TemplateCarousel`  
 8. `document_service` + auth’d `GET /images/{id}/content`
@@ -76,7 +76,7 @@ Cel: dojść do **~9 / 10** bez blokowania product work. Kolejność = ROI utrzy
    *Efekt:* błędy schematu wcześniej, bliżej API.
 
 3. **Themes: dark / monument** (i pozostałe generatory)  
-   Kontynuacja wyciągnięcia z `cv_generator.py` do `backend/app/services/themes/`.  
+   Kontynuacja wyciągnięcia z `cv/generator.py` do `backend/app/services/themes/`.
    *Efekt:* plik poniżej ~1–1.5k LOC, łatwiejsze review layoutów.
 
 ### Faza B — struktura edytora (średni koszt)
@@ -126,7 +126,7 @@ Cel: dojść do **~9 / 10** bez blokowania product work. Kolejność = ROI utrzy
 
 | Metryka | Wartość (orientacyjnie) |
 |---------|-------------------------|
-| `cv_generator.py` | ~2300 LOC |
+| `cv/generator.py` | ~2300 LOC |
 | `useA4Elements.js` | ~1300 LOC |
 | Konsumenci `PdfContext` | ~21 plików |
 | Themes wydzielone | `it`, `classic` |

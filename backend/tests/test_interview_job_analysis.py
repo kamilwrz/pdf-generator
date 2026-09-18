@@ -7,11 +7,11 @@ from unittest.mock import patch
 import pytest
 from fastapi import HTTPException
 from app.models.models import AiCreditReservation, InterviewSession
-from app.services import interview_service as service
-from app.services.interview_job_analysis import (
+from app.services.interviews import service
+from app.services.interviews.job_analysis import (
     analysis_signature, load_owned_analysis, requirement_topics, requirement_facts,
 )
-from app.services.interview_discovery import update_discovery_budget, next_entry, scoped_question
+from app.services.interviews.discovery import update_discovery_budget, next_entry, scoped_question
 from test_interviews import environment, create, confirm, version
 
 

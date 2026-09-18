@@ -29,9 +29,9 @@ from app.core.config import (
 from app.core.security import resolve_user_from_payload, verify_token
 from app.dependencies import get_db
 from app.models.models import Payment, User, TailoringFlow
-from app.services.billing_service import fulfill_pro_payment
-from app.services.stripe_service import construct_webhook_event, create_checkout_session
-from app.services.entitlements import (
+from app.services.billing.service import fulfill_pro_payment
+from app.services.billing.stripe import construct_webhook_event, create_checkout_session
+from app.services.billing.entitlements import (
     SELECTABLE_PLANS,
     get_entitlements,
     list_selectable_plans,

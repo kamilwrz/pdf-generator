@@ -80,7 +80,7 @@ Bez zmian silnika. Zmieniamy obietnicę produktu.
 
 ### Backend — nowy endpoint / akcja
 Dodać **`POST /ai/layout/quick_fix`** (lub `action: "layout_fix"` w asystencie **bez** GPT), które:
-1. Buduje snapshot geometrii (reuse `build_layout_snapshot` / helpers z `layout_analysis.py`).
+1. Buduje snapshot geometrii (reuse `build_layout_snapshot` / helpers z `cv/layout/analysis.py`).
 2. Uruchamia skaner reguł (nowy moduł np. `layout_rules.py`):
    - odstępy sekcji &lt; min → podnieś do `MIN_SECTION_GAP` (stałe z `cv_generator` / `layout_gpt` contract),
    - nachodzenia → rozsuń / report,
@@ -109,7 +109,7 @@ Każda akcja → ten sam flow kart: **Podgląd → Zastosuj / Pomiń** + **lista
 | Inteligentne sugestie / skróć treść / 1 strona | Premium |
 | Treść (gramatyka, oferta, ATS…) | Standard+ (jak dziś) |
 
-Zmiany w `entitlements.py` + copy planów w `PlanSelectModal` / Hero FAQ.
+Zmiany w `billing/entitlements.py` + copy planów w `PlanSelectModal` / Hero FAQ.
 
 ### Testy
 - Unittest skanera na fixture’ach z dziurą, overlapem, orphan heading.
@@ -134,7 +134,7 @@ Przebudowa obecnego Premium `action=layout`:
    - Wybór: **Skróć treść** | **Przenieś na 2. stronę** | **Zostaw**.
 5. Menu Premium: Dopasuj do 1 / 2 stron · Skróć treść · Hierarchia · Wersja ATS (ATS = głównie treść + proste reguły, nie magia geometrii).
 
-Pliki: `ai_assistant_service.py` (`_layout_session`), `layout_gpt.py`, AiAssistant chips/menu.
+Pliki: `ai/assistant/service.py` (`_layout_session`), `layout_gpt.py`, AiAssistant chips/menu.
 
 ---
 
@@ -145,7 +145,7 @@ Problem: fill czasem zostawia za duże odstępy między stronami.
 - Dodać lekki **post-fill gap detector** (ten sam próg co quick_fix) po `generate_resume`.
 - Nie pokazywać błędu — pokazać kontrolę: banner Fazy 0 + deep-link do „Wyrównaj odstępy”.
 - Opcjonalnie: po fill automatycznie zaproponować kartę quick_fix (nie auto-apply).
-- Długoterminowo: lekka poprawka w `Builder` / continuation Y w `cv_generator.py` dla rodzin z największymi dziurami (osobny ticket, nie blokuje UX).
+- Długoterminowo: lekka poprawka w `Builder` / continuation Y w `cv/generator.py` dla rodzin z największymi dziurami (osobny ticket, nie blokuje UX).
 
 ---
 
@@ -194,6 +194,6 @@ Pakiet „aktywne szukanie pracy” (5 wersji + listy + match) = Faza późniejs
 
 **FE:** `Hero.jsx`, `AiCvPanel.jsx`, `BioCvModal.jsx`, `AiAssistant.jsx`, `PdfCanvas.jsx`, `PlanSelectModal.jsx`, `useA4Elements.js` (`applyLayoutPatches`), CSS edytora.
 
-**BE:** nowy `layout_rules.py` (+ testy), `layout_analysis.py` (reuse), `ai_assistant.py` / nowy route, `ai_assistant_service.py`, `entitlements.py`, ewent. post-hook w `ai.py` fill_template.
+**BE:** nowy `layout_rules.py` (+ testy), `cv/layout/analysis.py` (reuse), `ai_assistant.py` / nowy route, `ai/assistant/service.py`, `billing/entitlements.py`, ewent. post-hook w `ai.py` fill_template.
 
 **Docs:** `FEATURES_MARKETING.md`, `docs/FEATURES.md`, README Features (EN+PL) przy zmianie zachowania.

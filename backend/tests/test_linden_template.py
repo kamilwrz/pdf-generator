@@ -1,8 +1,8 @@
 """Regression coverage for Linden's editorial and structural contracts."""
 from __future__ import annotations
 
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
-from app.services.cv_templates.shared.contact import _measured_text_width
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS, generate_resume
+from app.services.cv.templates.shared.contact import _measured_text_width
 
 
 CV = {

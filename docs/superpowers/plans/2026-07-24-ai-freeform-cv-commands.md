@@ -4,7 +4,7 @@
 
 **Goal:** Let the existing free-text box in the CV AI assistant panel accept direct editing instructions ("change all heading font sizes to 13px", "reformat the education section"), not just questions, and have them come back as the same accept/reject correction cards the fixed actions already produce.
 
-**Architecture:** The only functional change is to `_chat()` in `backend/app/services/ai_assistant_service.py`: today it receives plain joined CV text and always returns empty `corrections`; it changes to receive the structured per-element view (`element_id`, `fontSize`, `bold`, etc. — the same helper other actions already use) and a system prompt that can both answer questions and emit scoped `corrections` for editing instructions. Everything downstream (the `/ai/assistant` route, the correction-card UI, the `_ALLOWED_FIELDS` safety filter) is reused completely unchanged.
+**Architecture:** The only functional change is to `_chat()` in `backend/app/services/ai/assistant/service.py`: today it receives plain joined CV text and always returns empty `corrections`; it changes to receive the structured per-element view (`element_id`, `fontSize`, `bold`, etc. — the same helper other actions already use) and a system prompt that can both answer questions and emit scoped `corrections` for editing instructions. Everything downstream (the `/ai/assistant` route, the correction-card UI, the `_ALLOWED_FIELDS` safety filter) is reused completely unchanged.
 
 **Tech Stack:** Python (FastAPI backend, `openai` SDK), React (frontend), `unittest`/`unittest.mock` for backend tests.
 
@@ -22,8 +22,8 @@ Reference: `docs/superpowers/specs/2026-07-24-ai-freeform-cv-commands-design.md`
 ### Task 1: Teach `_chat()` to recognize and execute editing commands
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py:511-534` (the `_chat` function body)
-- Modify: `backend/app/services/ai_assistant_service.py:561` (the dispatcher's `"chat"` entry, inside `analyze_action`)
+- Modify: `backend/app/services/ai/assistant/service.py:511-534` (the `_chat` function body)
+- Modify: `backend/app/services/ai/assistant/service.py:561` (the dispatcher's `"chat"` entry, inside `analyze_action`)
 - Test: `backend/tests/test_ai_chat_command.py` (new)
 
 **Interfaces:**
@@ -34,7 +34,7 @@ Reference: `docs/superpowers/specs/2026-07-24-ai-freeform-cv-commands-design.md`
 
 - [ ] **Step 1: Make sure an OpenAI key is in your shell environment**
 
-`ai_assistant_service.py` constructs its OpenAI client at *import time*
+`ai/assistant/service.py` constructs its OpenAI client at *import time*
 (`_client = OpenAI(api_key=OPENAI_API_KEY)` at line 15), which reads
 `API_GPT_KEY` from the environment (`backend/app/core/config.py:22`). Nothing
 in this codebase auto-loads `.env`, so if `API_GPT_KEY` isn't already set in
@@ -118,7 +118,7 @@ Expected: **FAIL** with `AssertionError` from inside `fake_gpt` — today's disp
 
 - [ ] **Step 4: Implement the minimal change**
 
-Replace the `_chat` function (`backend/app/services/ai_assistant_service.py:511-534`) with:
+Replace the `_chat` function (`backend/app/services/ai/assistant/service.py:511-534`) with:
 
 ```python
 def _chat(message: str, elements: list[dict]) -> dict:
@@ -162,7 +162,7 @@ Zwróć JSON:
     return _safe_result(_gpt(system, user))
 ```
 
-Then update the dispatcher entry at `backend/app/services/ai_assistant_service.py:561` from:
+Then update the dispatcher entry at `backend/app/services/ai/assistant/service.py:561` from:
 
 ```python
         "chat":            lambda: _chat(message, text),
@@ -187,7 +187,7 @@ Expected: **PASS** — `Ran 1 test ... OK`.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_chat_command.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_chat_command.py
 git commit -m "feat: let the CV chat action execute formatting/content commands"
 ```
 
@@ -274,7 +274,7 @@ Save as `verify_chat_command.py` in a scratch/temp directory of your choice
 import sys
 sys.path.insert(0, r"c:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\backend")
 
-from app.services.ai_assistant_service import analyze_action
+from app.services.ai.assistant.service import analyze_action
 
 ELEMENTS = [
     {"element_id": "name",     "category": "text",     "content": "Jan Kowalski",
@@ -325,4 +325,4 @@ c:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\backend\.venv\Scripts\pyt
 
 If a scenario doesn't match, that's a prompt-wording issue in Task 1's `_chat()` system prompt, not a plumbing bug — go back and adjust the wording, then re-run this script (Task 1's automated test doesn't need to change).
 
-- [ ] **Step 4: No commit** — this is a verification pass, not a code change. If you tweak the prompt in `_chat()` as a result, that's a normal edit to the existing `ai_assistant_service.py` file — commit it with a message describing what the prompt fix addresses.
+- [ ] **Step 4: No commit** — this is a verification pass, not a code change. If you tweak the prompt in `_chat()` as a result, that's a normal edit to the existing `ai/assistant/service.py` file — commit it with a message describing what the prompt fix addresses.

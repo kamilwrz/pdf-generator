@@ -14,12 +14,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SERVICE = ROOT / "backend" / "app" / "services" / "ai_assistant_service.py"
-MATCHING_POLICY = ROOT / "backend" / "app" / "services" / "job_matching_policy.py"
-EDITORIAL_POLICY = ROOT / "backend" / "app" / "services" / "cv_editorial_policy.py"
-AUDIT_POLICY = ROOT / "backend" / "app" / "services" / "cv_audit.py"
-SCOPED_SERVICE = ROOT / "backend" / "app" / "services" / "scoped_ai.py"
-INTERVIEW_EDITORIAL = ROOT / "backend" / "app" / "services" / "interview_editorial.py"
+SERVICE = ROOT / "backend" / "app" / "services" / "ai" / "assistant" / "service.py"
+MATCHING_POLICY = ROOT / "backend" / "app" / "services" / "tailoring" / "policy.py"
+EDITORIAL_POLICY = ROOT / "backend" / "app" / "services" / "cv" / "editorial_policy.py"
+AUDIT_POLICY = ROOT / "backend" / "app" / "services" / "cv" / "audit.py"
+SCOPED_SERVICE = ROOT / "backend" / "app" / "services" / "ai" / "assistant" / "scoped.py"
+INTERVIEW_EDITORIAL = ROOT / "backend" / "app" / "services" / "interviews" / "editorial.py"
 OUT = ROOT / "docs" / "PROMPTS.md"
 
 
@@ -138,7 +138,7 @@ def main() -> None:
         parts.extend(
             [
                 f"## `{item.action}` — {item.label}\n\n",
-                f"Handler `{item.function_name}` w `backend/app/services/ai_assistant_service.py`, "
+                f"Handler `{item.function_name}` w `backend/app/services/ai/assistant/service.py`, "
                 f"linie {start}–{end}. Funkcja {item.purpose}.\n\n",
                 "```python\n",
                 block,

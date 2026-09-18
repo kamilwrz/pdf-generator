@@ -17,7 +17,7 @@ def _load_s3_storage_with_stubbed_sdk():
     needed at import time. The test replaces ``get_client`` before any call.
     """
     module_path = (
-        Path(__file__).resolve().parents[1] / "app" / "services" / "s3_storage.py"
+        Path(__file__).resolve().parents[1] / "app" / "services" / "storage" / "s3.py"
     )
     spec = importlib.util.spec_from_file_location("s3_storage_privacy_test", module_path)
     if spec is None or spec.loader is None:

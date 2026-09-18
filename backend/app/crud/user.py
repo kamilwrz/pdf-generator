@@ -16,7 +16,7 @@ from app.core.security import (
     hash_password,
     verify_password_and_rehash,
 )
-from app.services.entitlements import (
+from app.services.billing.entitlements import (
     normalize_plan_slug,
     PRO_PASS_DAYS,
 )

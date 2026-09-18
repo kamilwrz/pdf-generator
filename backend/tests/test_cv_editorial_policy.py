@@ -10,10 +10,10 @@ from unittest.mock import patch
 
 import pytest
 
-from app.services import ai_assistant_service as assistant
-from app.services import cv_editorial_policy as policy
-from app.services.cv_data import normalize_cv_data
-from app.services.scoped_ai import ScopedContent, review_scoped_content, validate_scoped_result
+from app.services.ai.assistant import service as assistant
+from app.services.cv import editorial_policy as policy
+from app.services.cv.data import normalize_cv_data
+from app.services.ai.assistant.scoped import ScopedContent, review_scoped_content, validate_scoped_result
 
 
 USAGE = {"cost_pln_estimate": 0.03, "model": "gpt-5.6-terra"}

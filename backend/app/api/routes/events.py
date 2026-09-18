@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import verify_token
 from app.dependencies import get_db
-from app.utils.metrics_logging import log_metric_event
+from app.core.metrics import log_metric_event
 
 router = APIRouter(prefix="/events", tags=["events"])
 

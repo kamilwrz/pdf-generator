@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from app.services.legacy_document_cleanup import CLEANUP_KEY, run_legacy_document_cleanup
+from app.services.storage.legacy_cleanup import CLEANUP_KEY, run_legacy_document_cleanup
 
 
 def pdf(pdf_id, width, height, path):
@@ -84,7 +84,7 @@ class LegacyDocumentCleanupTests(unittest.TestCase):
             raise OSError("storage unavailable")
 
         with self.assertLogs(
-            "app.services.legacy_document_cleanup",
+            "app.services.storage.legacy_cleanup",
             level="WARNING",
         ):
             self.assertEqual(

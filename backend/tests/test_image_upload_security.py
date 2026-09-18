@@ -29,7 +29,7 @@ from app.core.security import DEFAULT_JWT_KEY_VERSION, verify_token
 from app.dependencies import get_db
 from app.main import app
 from app.models.models import Base, Image, Pdf, PdfElements, StorageCleanupJob, User
-from app.services import image_storage, pdf_storage
+from app.services.storage import image as image_storage, pdf as pdf_storage
 from app.testing_support import ensure_test_auth_env
 
 # Minimal byte payloads. Format sniffing only inspects the leading signature, so

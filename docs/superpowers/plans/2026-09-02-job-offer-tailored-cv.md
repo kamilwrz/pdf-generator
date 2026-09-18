@@ -49,7 +49,7 @@ Obecny przepływ ma dobry fundament, lecz zatrzymuje się na ocenie:
 
 - `frontend/src/components/ai/AiAssistant/AiAssistant.jsx` pokazuje panel **Dopasuj do oferty**, ale przyjmuje tylko ręcznie wklejony opis stanowiska;
 - request wysyła `job_description` wyłącznie dla akcji `position_rating`;
-- `backend/app/services/ai_assistant_service.py::_rate_position` obcina ofertę do 2000 znaków, wykonuje luźne wyszukiwanie DuckDuckGo na podstawie pierwszych 120 znaków i zwraca ocenę bez poprawek;
+- `backend/app/services/ai/assistant/service.py::_rate_position` obcina ofertę do 2000 znaków, wykonuje luźne wyszukiwanie DuckDuckGo na podstawie pierwszych 120 znaków i zwraca ocenę bez poprawek;
 - rubryka zakłada zawsze 10 najważniejszych umiejętności, nawet gdy oferta ma inną liczbę wymagań;
 - `position_rating` nie dostaje kanonicznego `cv_data`, więc nie może bezpiecznie przygotować `updated_cv_data` ani wykorzystać istniejącego mechanizmu profilu;
 - istniejący frontend potrafi już wyświetlać karty **Przed/Po**, stosować pojedyncze lub wszystkie poprawki, synchronizować `activeCvData`, podświetlać elementy na A4 i odrzucać spóźnione odpowiedzi po zmianie dokumentu;
@@ -117,7 +117,7 @@ Nie wykonujemy automatycznego refillu szablonu w pierwszej wersji. Dzięki temu 
 
 ### 4.3. Oddzielić pobieranie oferty od promptu
 
-Nowy `backend/app/services/job_offer_service.py` odpowiada wyłącznie za uzyskanie czystego tekstu i podstawowych metadanych. Model nie dostaje HTML, JavaScriptu, formularzy ani całej strony nawigacyjnej.
+Nowy `backend/app/services/tailoring/offers.py` odpowiada wyłącznie za uzyskanie czystego tekstu i podstawowych metadanych. Model nie dostaje HTML, JavaScriptu, formularzy ani całej strony nawigacyjnej.
 
 Kolejność ekstrakcji:
 
@@ -144,7 +144,7 @@ Do modelu trafiają osobne, jednoznaczne sekcje:
 
 Dla `position_rating` `_gpt` dostanie opcjonalny, ścisły JSON Schema. Nawet przy Structured Outputs odpowiedź przechodzi przez Pydantic i walidatory biznesowe; zgodny kształt JSON nie gwarantuje prawdziwości treści.
 
-Proponowane typy Pydantic w `backend/app/services/job_tailoring.py` lub przy routingu:
+Proponowane typy Pydantic w `backend/app/services/tailoring/analysis.py` lub przy routingu:
 
 - `ResolvedJobOffer`: `source_url`, `source_type`, `title`, `company`, `location`, `description`;
 - `JobRequirement`: `id`, `label`, `kind` (`required`, `preferred`, `responsibility`), `weight`, `match` (`strong`, `partial`, `missing`), `evidence_refs`, `explanation`;
@@ -224,7 +224,7 @@ Zakazane:
 
 ## 7. Walidacja uziemienia zmian
 
-Nowy moduł `backend/app/services/job_tailoring.py` powinien walidować odpowiedź przed zwróceniem jej do UI.
+Nowy moduł `backend/app/services/tailoring/analysis.py` powinien walidować odpowiedź przed zwróceniem jej do UI.
 
 Minimalne invariants:
 
@@ -244,7 +244,7 @@ Nie należy automatycznie „naprawiać” niewiarygodnej odpowiedzi modelu popr
 
 `job_offer_url` jest wejściem do żądania sieciowego po stronie serwera, dlatego implementacja musi traktować SSRF jako wymaganie akceptacyjne.
 
-Wymagania dla `job_offer_service.py`:
+Wymagania dla `tailoring/offers.py`:
 
 - tylko `https://`;
 - brak `userinfo`, fragmentów i niestandardowych portów;
@@ -314,7 +314,7 @@ Dodać opcjonalne pola:
 
 **Pliki:**
 
-- nowy `backend/app/services/job_offer_service.py`;
+- nowy `backend/app/services/tailoring/offers.py`;
 - nowy `backend/tests/test_job_offer_service.py`;
 - `backend/requirements.txt`;
 - `backend/requirements-dev.txt`, jeżeli wymaga synchronizacji runtime.
@@ -329,9 +329,9 @@ Dodać opcjonalne pola:
 
 **Pliki:**
 
-- nowy `backend/app/services/job_tailoring.py`;
+- nowy `backend/app/services/tailoring/analysis.py`;
 - `backend/tests/test_job_tailoring.py`;
-- `backend/app/services/cv_data.py` tylko jeśli potrzebny jest mały, współdzielony helper normalizacji.
+- `backend/app/services/cv/data.py` tylko jeśli potrzebny jest mały, współdzielony helper normalizacji.
 
 - [x] Zdefiniować typy `JobRequirement`, `EvidenceGap`, `TailoringChange` i wynik.
 - [x] Zaimplementować deterministyczne liczenie kategorii i wyniku.
@@ -342,7 +342,7 @@ Dodać opcjonalne pola:
 
 **Pliki:**
 
-- `backend/app/services/ai_assistant_service.py`;
+- `backend/app/services/ai/assistant/service.py`;
 - `backend/tests/test_job_tailoring.py`;
 - `backend/tests/test_ai_content_language.py`.
 
@@ -455,9 +455,9 @@ Dodać opcjonalne pola:
 
 ### Backend
 
-- `backend/app/services/ai_assistant_service.py` — prompt, dispatch, schema-aware `_gpt`.
-- `backend/app/services/job_offer_service.py` — nowy, bezpieczny resolver linków.
-- `backend/app/services/job_tailoring.py` — nowa rubryka, scoring i grounding.
+- `backend/app/services/ai/assistant/service.py` — prompt, dispatch, schema-aware `_gpt`.
+- `backend/app/services/tailoring/offers.py` — nowy, bezpieczny resolver linków.
+- `backend/app/services/tailoring/analysis.py` — nowa rubryka, scoring i grounding.
 - `backend/app/api/routes/ai_assistant.py` — kontrakt request/response i obsługa resolvera.
 - `backend/requirements.txt` — klient HTTP i parser HTML.
 - testy `test_job_offer_service.py`, `test_job_tailoring.py` oraz rozszerzenia istniejących testów AI/ATS/kredytów.

@@ -16,7 +16,7 @@ import { t as uiText } from '../i18n/index.js';
  *  - "cc-edu": heading + chrome + one education-style record — degree/diploma
  *    title, school subtitle, city·period meta, bullet description (4 lines).
  *    Mirrors the backend generator's `_place_education_record`
- *    (backend/app/services/cv_templates/shared/records.py).
+ *    (backend/app/services/cv/templates/shared/records.py).
  *  - "cc-exp": heading + chrome + one experience-style record — role title,
  *    company·period meta, bullet description (3 lines, no subtitle line).
  *    Mirrors `_place_experience_record` in the same module.

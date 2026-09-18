@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 import pytest
 
-from app.services import ai_assistant_service as assistant
-from app.services.cv_data import normalize_cv_data
-from app.services.cv_profile_patches import build_profile_catalog, preserves_field_evidence
+from app.services.ai.assistant import service as assistant
+from app.services.cv.data import normalize_cv_data
+from app.services.cv.profile_patches import build_profile_catalog, preserves_field_evidence
 
 
 BEFORE = "Przygotowywałem 4 raporty w Python, ale nie zarządzałem zespołem."

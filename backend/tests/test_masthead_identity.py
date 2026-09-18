@@ -1,7 +1,7 @@
 """The masthead identity helper tags name/title, seeds reversible uppercase
 defaults, records the title spec + reflow blockPt, and returns the anchor."""
-from app.services.cv_generator_primitives import _block, _text
-from app.services.cv_templates.shared.masthead import (
+from app.services.cv.layout.primitives import _block, _text
+from app.services.cv.templates.shared.masthead import (
     build_masthead_identity_anchor,
     tag_masthead_identity,
 )

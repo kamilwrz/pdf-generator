@@ -21,7 +21,9 @@ from app.dependencies import get_db
 from app.main import app
 from app.models.models import Base, Image, Pdf, PdfElements, User
 from app.schemas.user_schema import UserCreateRequest
-from app.services import document_service, entitlements, image_storage
+from app.services.documents import service as document_service
+from app.services.billing import entitlements
+from app.services.storage import image as image_storage
 from app.testing_support import ensure_test_auth_env
 
 

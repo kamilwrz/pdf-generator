@@ -6,7 +6,7 @@ from typing import Literal
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field
 
-from app.services.cv_templates.registry import public_template_catalog
+from app.services.cv.templates.registry import public_template_catalog
 
 router = APIRouter(prefix="/templates", tags=["templates"])
 

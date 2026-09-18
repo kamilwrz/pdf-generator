@@ -4,7 +4,7 @@
 
 **Goal:** Let the CV AI assistant's chat box handle positional instructions ("move all section headings left by 50px", "align these at x=50", "the job entries should be spaced more evenly") by having GPT select a parametrized operation (never a raw coordinate) that Python resolves against real element bounds and validates before it's ever shown.
 
-**Architecture:** `layout_analysis.py` gains three deterministic, independently-testable resolver functions (`resolve_shift`, `resolve_align`, `resolve_distribute`) built on its existing `_group`/`_is_safe_group`/`_apply_patches` safety primitives — the same ones the auto-scanner already uses. `_chat()` gains a fourth response mode: alongside question/content-edit/clarify, it can now return a `position_operation` directive (operation type + target element ids + parameters) that gets resolved through the new functions into the existing `layout_groups`/`layout_issues` response fields — which the frontend already fully renders (preview/accept/reject) for any chat message. The one frontend change is unrelated to UI: the geometry sent to the backend needs to reflect real rendered size (especially for wrapped `textarea` content), so a DOM-measurement helper already used for canvas dragging gets extracted into a shared util and reused for the chat snapshot.
+**Architecture:** `cv/layout/analysis.py` gains three deterministic, independently-testable resolver functions (`resolve_shift`, `resolve_align`, `resolve_distribute`) built on its existing `_group`/`_is_safe_group`/`_apply_patches` safety primitives — the same ones the auto-scanner already uses. `_chat()` gains a fourth response mode: alongside question/content-edit/clarify, it can now return a `position_operation` directive (operation type + target element ids + parameters) that gets resolved through the new functions into the existing `layout_groups`/`layout_issues` response fields — which the frontend already fully renders (preview/accept/reject) for any chat message. The one frontend change is unrelated to UI: the geometry sent to the backend needs to reflect real rendered size (especially for wrapped `textarea` content), so a DOM-measurement helper already used for canvas dragging gets extracted into a shared util and reused for the chat snapshot.
 
 **Tech Stack:** Python (FastAPI backend), React (frontend), `unittest`/`unittest.mock` for backend tests. No JS test framework exists in this repo (confirmed: `frontend/package.json` has no test script or test dependency) — the frontend task is verified manually in a browser, matching this repo's existing pattern for frontend-only changes.
 
@@ -13,7 +13,7 @@
 - GPT never supplies a `left`/`top` coordinate. It only ever selects an operation type, target `element_id`s, and parameters (offset, axis, anchor, optional explicit value). Every actual coordinate is computed in Python from the elements' real current bounds.
 - Every resolved operation is validated with the same rules `_is_safe_group` already enforces: no result element leaves the page, and no result introduces an overlap that didn't already exist. Distance is NOT capped for these directed operations (unlike the auto-scanner's `MAX_SAFE_SNAP_MOVE`/`MAX_SAFE_BOUNDS_MOVE`) — only bounds/overlap safety applies.
 - If a directive can't be resolved safely, the response explains why via `layout_issues` / the chat `message` — never silently drops the request or produces a broken result.
-- `distribute` requires at least 3 targets (matching `layout_analysis.py`'s existing `MIN_CLUSTER_SIZE = 3` convention).
+- `distribute` requires at least 3 targets (matching `cv/layout/analysis.py`'s existing `MIN_CLUSTER_SIZE = 3` convention).
 - Targets spanning more than one page are rejected — position/size fields are page-local coordinates, so cross-page alignment/distribution is meaningless.
 - This spec is CV-only, position (`left`/`top`) only — no size/`width`/`height` changes, no page-count changes, no deck/article changes. `_chat()`'s existing content/style correction path (`corrections`, `_ALLOWED_FIELDS`) is unchanged.
 - No new frontend UI component. Proposals flow through the existing `layout_groups`/`layout_issues` fields and the existing `LayoutGroupCard` preview/accept/reject component.
@@ -22,10 +22,10 @@ Reference: `docs/superpowers/specs/2026-07-24-ai-cv-position-operations-design.m
 
 ---
 
-### Task 1: Deterministic position-operation resolvers in `layout_analysis.py`
+### Task 1: Deterministic position-operation resolvers in `cv/layout/analysis.py`
 
 **Files:**
-- Modify: `backend/app/services/layout_analysis.py`
+- Modify: `backend/app/services/cv/layout/analysis.py`
 - Test: `backend/tests/test_layout_analysis.py` (extend existing file)
 
 **Interfaces:**
@@ -40,7 +40,7 @@ Reference: `docs/superpowers/specs/2026-07-24-ai-cv-position-operations-design.m
 
 - [ ] **Step 1: Write the failing tests**
 
-Open `backend/tests/test_layout_analysis.py` and add this import at the top (alongside the existing `from app.services.layout_analysis import analyze_layout`):
+Open `backend/tests/test_layout_analysis.py` and add this import at the top (alongside the existing `from app.services.cv.layout.analysis import analyze_layout`):
 
 ```python
 from app.services import layout_analysis
@@ -162,11 +162,11 @@ Run from `backend/`:
 ```
 ./.venv/Scripts/python.exe -m unittest tests.test_layout_analysis -v
 ```
-Expected: the 6 pre-existing `LayoutAnalysisTests` still **PASS**; all 9 new `DirectedOperationTests` **FAIL** with `AttributeError: module 'app.services.layout_analysis' has no attribute 'extract_bounds'` (or `resolve_shift`/etc.) — none of these functions exist yet.
+Expected: the 6 pre-existing `LayoutAnalysisTests` still **PASS**; all 9 new `DirectedOperationTests` **FAIL** with `AttributeError: module 'app.services.cv.layout.analysis' has no attribute 'extract_bounds'` (or `resolve_shift`/etc.) — none of these functions exist yet.
 
 - [ ] **Step 3: Implement the resolvers**
 
-In `backend/app/services/layout_analysis.py`, find this existing function (it currently ends the "core helpers" section, right before `_is_safe_group`):
+In `backend/app/services/cv/layout/analysis.py`, find this existing function (it currently ends the "core helpers" section, right before `_is_safe_group`):
 
 ```python
 def _apply_patches(
@@ -432,7 +432,7 @@ Expected: **PASS** — `Ran 15 tests ... OK` (6 pre-existing + 9 new).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/layout_analysis.py backend/tests/test_layout_analysis.py
+git add backend/app/services/cv/layout/analysis.py backend/tests/test_layout_analysis.py
 git commit -m "feat: add deterministic shift/align/distribute position resolvers"
 ```
 
@@ -441,7 +441,7 @@ git commit -m "feat: add deterministic shift/align/distribute position resolvers
 ### Task 2: Wire `_chat()` to emit and resolve position directives
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py`
+- Modify: `backend/app/services/ai/assistant/service.py`
 - Test: `backend/tests/test_ai_chat_command.py` (extend existing file)
 
 **Interfaces:**
@@ -450,7 +450,7 @@ git commit -m "feat: add deterministic shift/align/distribute position resolvers
 - Produces: `_extract_positional(elements: list[dict]) -> list[dict]` — new helper, used only by `_chat`.
 - Produces: `_chat(message: str, elements: list[dict], page_size: dict | None) -> dict` — **signature change**, gains a `page_size` parameter. Only caller is `analyze_action`'s dispatcher, updated in this task.
 
-Requires `env` with `API_GPT_KEY` set for the module to import (see the environment-setup step from the prior chat-command plan — `backend/app/services/ai_assistant_service.py` constructs its OpenAI client at import time). Load it the same way before running tests:
+Requires `env` with `API_GPT_KEY` set for the module to import (see the environment-setup step from the prior chat-command plan — `backend/app/services/ai/assistant/service.py` constructs its OpenAI client at import time). Load it the same way before running tests:
 
 ```powershell
 Get-Content backend/.env | ForEach-Object {
@@ -641,20 +641,20 @@ Run from `backend/`:
 Expected: the pre-existing test still **PASSES**; the 3 new tests **FAIL**, for different reasons since `_chat`/`_extract_positional` don't exist yet:
 - `test_dispatcher_resolves_position_operation_directive_into_layout_groups` fails with an **`AssertionError`** from inside `fake_gpt` — the old `_chat` still builds its prompt from `_extract_structured` (position-blind), so `user` never contains `"left": 100.0` at all.
 - `test_dispatcher_reports_an_issue_instead_of_a_broken_position_operation` has no assertion inside `fake_gpt`, so it runs to completion and fails with a **`KeyError: 'layout_groups'`** — the old `_chat` returns `_safe_result(...)`'s dict as-is, which has no `layout_groups` key.
-- `test_extract_positional_includes_images_with_geometry` fails with an **`AttributeError: module 'app.services.ai_assistant_service' has no attribute '_extract_positional'`** — the function doesn't exist yet.
+- `test_extract_positional_includes_images_with_geometry` fails with an **`AttributeError: module 'app.services.ai.assistant.service' has no attribute '_extract_positional'`** — the function doesn't exist yet.
 
 - [ ] **Step 3: Implement**
 
-In `backend/app/services/ai_assistant_service.py`, change the import line near the top:
+In `backend/app/services/ai/assistant/service.py`, change the import line near the top:
 
 ```python
-from app.services.layout_analysis import analyze_layout
+from app.services.cv.layout.analysis import analyze_layout
 ```
 
 to:
 
 ```python
-from app.services.layout_analysis import analyze_layout, extract_bounds, resolve_directed_operation
+from app.services.cv.layout.analysis import analyze_layout, extract_bounds, resolve_directed_operation
 ```
 
 Find `_extract_structured` (used as the insertion anchor):
@@ -861,7 +861,7 @@ Expected: same pass/fail counts as the pre-existing baseline plus the 9 new `lay
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_chat_command.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_chat_command.py
 git commit -m "feat: let the CV chat action propose position operations"
 ```
 
@@ -1116,7 +1116,7 @@ Save as `verify_position_operations.py` in a scratch/temp directory of your choi
 import sys
 sys.path.insert(0, r"c:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\backend")
 
-from app.services.ai_assistant_service import analyze_action
+from app.services.ai.assistant.service import analyze_action
 
 PAGE_SIZE = {"width": 595, "height": 842}
 
@@ -1174,4 +1174,4 @@ c:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\backend\.venv\Scripts\pyt
 
 If a scenario doesn't match, that's a prompt-wording issue in Task 2's `_chat()` system prompt, not a plumbing bug (Task 1/2's automated tests already prove the plumbing) — adjust the wording, re-run this script, and re-run `tests.test_ai_chat_command` to confirm the automated test still passes before moving on.
 
-- [ ] **Step 4: No commit** — this is a verification pass, not a code change. If you tweak the prompt in `_chat()` as a result, that's a normal edit to the existing `ai_assistant_service.py` file — commit it with a message describing what the prompt fix addresses.
+- [ ] **Step 4: No commit** — this is a verification pass, not a code change. If you tweak the prompt in `_chat()` as a result, that's a normal edit to the existing `ai/assistant/service.py` file — commit it with a message describing what the prompt fix addresses.

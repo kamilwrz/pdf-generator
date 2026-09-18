@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from app.models.models import Base, Pdf, User
 from app.schemas.user_schema import UserCreateRequest
 from app.crud import user as user_crud
-from app.services import entitlements as ent
+from app.services.billing import entitlements as ent
 
 
 class EntitlementsTests(unittest.TestCase):

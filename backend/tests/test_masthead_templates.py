@@ -11,7 +11,7 @@ are tagged, and the design's default casing is expressed reversibly).
 """
 import pytest
 
-from app.services.cv_generator import generate_resume
+from app.services.cv.generator import generate_resume
 
 _CV = {
     "name": "Jan Kowalski",

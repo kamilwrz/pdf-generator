@@ -19,9 +19,9 @@ from app.dependencies import get_db
 from app.main import app
 from app.models.models import Base, Pdf, PdfElements, User
 from app.schemas.user_schema import UserCreateRequest
-from app.services import document_service as doc_service
-from app.services import entitlements as ent
-from app.services import pdf_storage
+from app.services.documents import service as doc_service
+from app.services.billing import entitlements as ent
+from app.services.storage import pdf as pdf_storage
 from app.testing_support import ensure_test_auth_env
 
 

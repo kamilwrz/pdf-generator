@@ -1,6 +1,6 @@
 """Regression test for the Sterling/Slate sidebar section gap bug.
 
-`_fit_sidebar_sections` (backend/app/services/cv_templates/shared/extras.py)
+`_fit_sidebar_sections` (backend/app/services/cv/templates/shared/extras.py)
 positions every sidebar section's heading at a fixed absolute top computed from
 the PREVIOUS section's reserved body height. If that reserved height diverges
 from the real rendered height, the gap between sections becomes visibly uneven
@@ -13,8 +13,8 @@ generator (education, main-column records, the summary), so a fitted section's
 reserved height always equals its real height and consecutive sections keep an
 identical gap.
 """
-from app.services.cv_generator_primitives import Builder
-from app.services.cv_templates.shared.extras import _sidebar_wrapped_height
+from app.services.cv.layout.primitives import Builder
+from app.services.cv.templates.shared.extras import _sidebar_wrapped_height
 
 WIDTH = 152
 FONT_SIZE, LINE_HEIGHT = 8.3, 12.04
@@ -57,7 +57,7 @@ def test_consecutive_fitted_sections_keep_an_identical_trailing_gap():
     """End-to-end: two very differently-shaped bodies still reserve exactly
     their real height, so the gap `_fit_sidebar_sections` leaves before the
     next section's kicker is identical regardless of content shape."""
-    from app.services.cv_templates.shared.extras import _fit_sidebar_sections
+    from app.services.cv.templates.shared.extras import _fit_sidebar_sections
 
     skills_content = (
         "• Analiza AML/KYC\n• Transaction Monitoring\n• CDD / EDD\n"
@@ -99,7 +99,7 @@ def test_fit_sidebar_sections_does_not_place_an_orphan_kicker_in_the_footer():
     footer while the skills list started page 2. `_fit_sidebar_sections` now
     requires kicker chrome plus two body lines before accepting a section.
     """
-    from app.services.cv_templates.shared.extras import _fit_sidebar_sections
+    from app.services.cv.templates.shared.extras import _fit_sidebar_sections
 
     long_skills = "\n".join(f"• Kompetencja numer {index}" for index in range(1, 16))
     candidates = [

@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-12
 **Status:** Design approved, pending spec review
-**Pilot template:** Sterling (`backend/app/services/cv_templates/templates/sterling.py`)
+**Pilot template:** Sterling (`backend/app/services/cv/templates/generators/sterling.py`)
 
 ## 1. Problem
 
@@ -70,7 +70,7 @@ Decisions locked during brainstorming:
 
 ### 4.1 New shared module
 
-`backend/app/services/cv_templates/shared/column_planner.py`
+`backend/app/services/cv/templates/shared/column_planner.py`
 
 Two responsibilities: describe placeable sections, and partition them.
 

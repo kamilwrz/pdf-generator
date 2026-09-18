@@ -14,7 +14,7 @@
 
 - **Config flags are read once at import time by value.** `ALLOW_UNPAID_PLAN_SELECTION` and any new env-derived flags used inside a route/crud module must be imported into that module's namespace; tests patch `app.<module>.<FLAG>`, never `os.environ`, after import. Copy this pattern from `app/api/routes/billing.py:20` and `app/crud/user.py:22`.
 - **JWT signing:** reuse `app.core.security.secret_key` / `algorithm` (HS256). Do not introduce a second signing key.
-- **All user-facing copy is Polish.** Error `detail` for structured errors uses `{"code": ..., "message": ...}` (see `PlanLimitError` in `app/services/entitlements.py:89`).
+- **All user-facing copy is Polish.** Error `detail` for structured errors uses `{"code": ..., "message": ...}` (see `PlanLimitError` in `app/services/billing/entitlements.py:89`).
 - **Alembic migrations are idempotent and column-guarded.** Follow `backend/alembic/versions/20260809_0004_watermark_free_import.py`: inspect existing columns before `add_column`; `downgrade()` is a safe no-op. New head chains from `20260824_0006`.
 - **Backend tests** run from `backend/` with `python -m pytest`; they build in-memory SQLite via `Base.metadata.create_all`, call `ent.seed_plans(db)`, and set auth env with `ensure_test_auth_env()` (`app/testing_support.py`). HTTP tests use `app.dependency_overrides[get_db]` and `app.dependency_overrides[verify_token]`.
 - **Frontend tests** run via `npm test` (`frontend/scripts/run-tests.mjs`), which collects `*.test.js` only under `src/utils`, `src/templates`, `src/hooks`, `src/services`, and `src/components/ai/AiAssistant`. Tests are `node:test` + `node:assert` and assert on **source strings** (`readFileSync`) or on pure exported functions — there is no jsdom/testing-library. **Therefore: put all new auth/billing client logic in `src/services` or `src/utils` (behaviorally unit-tested); keep page components thin** and cover them with source-string assertions placed under a tested root.
@@ -26,8 +26,8 @@
 
 **Backend — created:**
 - `backend/alembic/versions/20260827_0007_auth_billing_columns.py` — migration: `is_verified`, `auth_provider`, `google_sub` (+unique) on `users`; `hashed_password` nullable; backfill `is_verified=TRUE`.
-- `backend/app/services/email_service.py` — Resend HTTP client; `send_verification_email`.
-- `backend/app/services/stripe_service.py` — thin wrapper: create Checkout Session, construct/verify webhook event. Isolates the `stripe` SDK so routes stay testable.
+- `backend/app/services/accounts/email.py` — Resend HTTP client; `send_verification_email`.
+- `backend/app/services/billing/stripe.py` — thin wrapper: create Checkout Session, construct/verify webhook event. Isolates the `stripe` SDK so routes stay testable.
 - `backend/tests/test_email_verification.py`, `test_google_login.py`, `test_stripe_checkout.py`, `test_stripe_webhook.py`, `test_auth_billing_migration.py`.
 
 **Backend — modified:**
@@ -362,7 +362,7 @@ git commit -m "feat(auth): add email verification token helpers"
 ### Task 1.2: Resend email service + config env
 
 **Files:**
-- Create: `backend/app/services/email_service.py`
+- Create: `backend/app/services/accounts/email.py`
 - Modify: `backend/app/core/config.py` (append), `backend/requirements.txt`
 - Test: `backend/tests/test_email_verification.py` (append `EmailServiceTests`)
 
@@ -407,13 +407,13 @@ from app.services import email_service  # noqa: E402
 class EmailServiceTests(unittest.TestCase):
     def test_missing_key_skips_send_without_error(self):
         with patch.object(email_service, "RESEND_API_KEY", ""):
-            with patch("app.services.email_service.httpx.post") as mock_post:
+            with patch("app.services.accounts.email.httpx.post") as mock_post:
                 email_service.send_verification_email("u@e.pl", "https://x/verify?token=t")
                 mock_post.assert_not_called()
 
     def test_present_key_posts_to_resend(self):
         with patch.object(email_service, "RESEND_API_KEY", "re_test_key"):
-            with patch("app.services.email_service.httpx.post") as mock_post:
+            with patch("app.services.accounts.email.httpx.post") as mock_post:
                 mock_post.return_value.status_code = 200
                 email_service.send_verification_email("u@e.pl", "https://x/verify?token=t")
                 mock_post.assert_called_once()
@@ -425,12 +425,12 @@ class EmailServiceTests(unittest.TestCase):
 - [ ] **Step 4: Run test to verify it fails**
 
 Run: `cd backend && python -m pytest tests/test_email_verification.py::EmailServiceTests -v`
-Expected: FAIL — module `app.services.email_service` does not exist.
+Expected: FAIL — module `app.services.accounts.email` does not exist.
 
 - [ ] **Step 5: Implement the service**
 
 ```python
-# backend/app/services/email_service.py
+# backend/app/services/accounts/email.py
 """Transactional email via the Resend HTTP API.
 
 Only one message type today: the post-registration verification link. When
@@ -490,7 +490,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/email_service.py backend/app/core/config.py backend/requirements.txt backend/tests/test_email_verification.py
+git add backend/app/services/accounts/email.py backend/app/core/config.py backend/requirements.txt backend/tests/test_email_verification.py
 git commit -m "feat(auth): add Resend email service and email/frontend env config"
 ```
 
@@ -659,7 +659,7 @@ from app.crud.user import (
 )
 from app.models.models import User
 from app.schemas.user_schema import UserCreateRequest, ResendVerificationRequest
-from app.services.email_service import send_verification_email
+from app.services.accounts.email import send_verification_email
 
 # In-process throttle: last verification-send timestamp per email. Good enough
 # for a single-dyno deploy; a distributed cache would be needed for multi-node.
@@ -1426,7 +1426,7 @@ git commit -m "feat(auth): Google Sign-In button on login and register"
 
 **Files:**
 - Modify: `backend/requirements.txt` (`stripe`), `backend/app/core/config.py` (Stripe env)
-- Create: `backend/app/services/stripe_service.py`
+- Create: `backend/app/services/billing/stripe.py`
 - Modify: `backend/app/api/routes/billing.py`
 - Test: `backend/tests/test_stripe_checkout.py`
 
@@ -1531,10 +1531,10 @@ class SelectPlanCheckoutTests(unittest.TestCase):
 Run: `cd backend && python -m pytest tests/test_stripe_checkout.py -v`
 Expected: FAIL — `create_checkout_session` not importable in billing; branch still raises 402.
 
-- [ ] **Step 4: Implement `stripe_service.py`**
+- [ ] **Step 4: Implement `billing/stripe.py`**
 
 ```python
-# backend/app/services/stripe_service.py
+# backend/app/services/billing/stripe.py
 """Thin wrapper around the Stripe SDK.
 
 Isolating SDK calls here keeps the billing routes unit-testable (tests patch
@@ -1581,7 +1581,7 @@ def construct_webhook_event(payload: bytes, signature: str):
 from app.core.config import (
     ALLOW_UNPAID_PLAN_SELECTION, FRONTEND_URL, STRIPE_SECRET_KEY, STRIPE_PRICE_PRO,
 )
-from app.services.stripe_service import create_checkout_session
+from app.services.billing.stripe import create_checkout_session
 ```
 
 ```python
@@ -1622,7 +1622,7 @@ Expected: `test_paid_plan_while_unpaid_disabled_returns_402` still passes becaus
 - [ ] **Step 8: Commit**
 
 ```bash
-git add backend/requirements.txt backend/app/core/config.py backend/app/services/stripe_service.py backend/app/api/routes/billing.py backend/tests/test_stripe_checkout.py
+git add backend/requirements.txt backend/app/core/config.py backend/app/services/billing/stripe.py backend/app/api/routes/billing.py backend/tests/test_stripe_checkout.py
 git commit -m "feat(billing): create Stripe Checkout Session for Pro pass"
 ```
 
@@ -1742,7 +1742,7 @@ from datetime import datetime, timezone
 from fastapi import Request
 from app.core.config import STRIPE_WEBHOOK_SECRET
 from app.models.models import Payment
-from app.services.stripe_service import construct_webhook_event
+from app.services.billing.stripe import construct_webhook_event
 
 
 @router.post("/webhook")

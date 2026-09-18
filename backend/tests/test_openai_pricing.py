@@ -1,8 +1,8 @@
 import unittest
 from types import SimpleNamespace
 
-from app.services.entitlements import CREDIT_PLN, credits_for_cost
-from app.services.openai_pricing import (
+from app.services.billing.entitlements import CREDIT_PLN, credits_for_cost
+from app.services.ai.pricing.openai import (
     estimate_cost_pln,
     estimate_cost_usd,
     rates_for_model,

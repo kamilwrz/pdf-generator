@@ -23,11 +23,11 @@ not a green-field build:
 - Models: `Plan`, `UserSubscription`, `UsageCounter`, `Payment`
   (`backend/app/models/models.py`) — Stripe columns already stubbed, null until
   billing lands.
-- `backend/app/services/entitlements.py` seeds **Free / Standard / Pro**, enforces
+- `backend/app/services/billing/entitlements.py` seeds **Free / Standard / Pro**, enforces
   gates (`assert_can_use_ai_assistant`, `assert_can_export`,
   `assert_can_create_project`, `assert_can_extract_cv`, `assert_template_allowed`),
   and records usage (`record_ai_action`, `record_export`).
-- `backend/app/services/openai_pricing.py` already computes the **real PLN cost of
+- `backend/app/services/ai/pricing/openai.py` already computes the **real PLN cost of
   every AI call** — `usage_from_response(...)["cost_pln_estimate"]`.
 - Both AI entry points already have that cost in hand at the line where they record
   the action:
@@ -64,7 +64,7 @@ Outward-facing JSON keys and all UI copy switch to "credits" so nothing reads
 "actions" while holding credits. Column names stay; only their interpretation and
 the API contract change.
 
-### 2. Credit metering (`entitlements.py`)
+### 2. Credit metering (`billing/entitlements.py`)
 
 - `credits_for_cost(cost_pln: float) -> int = max(1, ceil(cost_pln / 0.05))`.
   Example: 0.15 zł → 3 credits; any successful call ≥ 1 credit.

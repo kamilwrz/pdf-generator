@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models.models import Base, Pdf, PdfElements, User
 from app.schemas.pdf_schema import PDFUpdateRequest
-from app.services import document_service
+from app.services.documents import service as document_service
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]

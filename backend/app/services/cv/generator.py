@@ -1,0 +1,80 @@
+"""
+Dynamic CV layout engine — public facade.
+
+Individual template generators live in ``cv.templates.generators.<id>``.
+Universal helpers live in ``cv.templates.shared``. This module re-exports the
+stable API used by AI fill, layout GPT, and tests.
+"""
+
+from __future__ import annotations
+
+from app.services.cv.layout.primitives import (  # noqa: F401
+    A4_H,
+    CONTENT_BOTTOM,
+    DEFAULT_FLOW_SPACING,
+    FlowSpacing,
+    MARGIN_BOTTOM,
+    PAGE_TOP,
+    SPACE_AFTER_HEADER_RULE,
+    SPACE_AFTER_MASTHEAD,
+    SPACE_AFTER_RULE,
+    SPACE_RECORD,
+    SPACE_SECTION,
+    SPACE_STACK,
+    Builder,
+    _block,
+    _circle,
+    _ellipse,
+    _line,
+    _rect,
+    _text,
+    get_spacing,
+    normalize_spacing_px,
+    section_chrome_height,
+    use_spacing,
+)
+from app.services.cv.templates.registry import (  # noqa: F401
+    TEMPLATE_LAYOUTS,
+    _GENERATORS,
+    generate_resume,
+)
+from app.services.cv.templates.shared.extras import (  # noqa: F401
+    _extra_sections,
+    _fit_sidebar_sections,
+    _flatten_extra_items,
+    _sidebar_candidates,
+)
+from app.services.cv.templates.shared.records import (  # noqa: F401
+    _education_record_height,
+    _experience_record_height,
+    _place_education_record,
+    _place_experience_record,
+)
+from app.services.cv.templates.shared.text import (  # noqa: F401
+    _bullets,
+    _compact_text,
+    _company_period,
+    _contact_line,
+    _labels,
+)
+
+__all__ = [
+    "TEMPLATE_LAYOUTS",
+    "_GENERATORS",
+    "generate_resume",
+    "Builder",
+    "FlowSpacing",
+    "DEFAULT_FLOW_SPACING",
+    "get_spacing",
+    "normalize_spacing_px",
+    "use_spacing",
+    "SPACE_STACK",
+    "SPACE_RECORD",
+    "SPACE_SECTION",
+    "SPACE_AFTER_RULE",
+    "SPACE_AFTER_MASTHEAD",
+    "SPACE_AFTER_HEADER_RULE",
+    "A4_H",
+    "CONTENT_BOTTOM",
+    "PAGE_TOP",
+]

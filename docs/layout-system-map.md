@@ -80,32 +80,32 @@ Recalculates positions when a textarea's authored height changes (the
 
 The source of truth for constants like `1.35` (font-size → line-height ratio) mirrored on the frontend.
 
-- [`cv_generator_primitives.py`](../backend/app/services/cv_generator_primitives.py) — `class Builder`: `.text()`, `.block()`, `.keep_together()`, `.need()` — the cursor-based layout DSL every template generator calls.
-- [`shared/column_planner.py`](../backend/app/services/cv_templates/shared/column_planner.py) — plans main/sidebar column heights and multi-page section placement.
-- [`shared/records.py`](../backend/app/services/cv_templates/shared/records.py) — **backend equivalent of `sectionRecord.js`**: `_experience_record_height`, `_place_experience_record`, `_education_record_height`.
-- [`shared/text.py`](../backend/app/services/cv_templates/shared/text.py) — skills-chip/language-grid measurement, backend equivalent of `skillsLayout.js`.
-- [`shared/extras.py`](../backend/app/services/cv_templates/shared/extras.py) — generic "extra sections" height/placement, sidebar-fit for overflow sections.
-- [`shared/contact.py`](../backend/app/services/cv_templates/shared/contact.py) — contact-line/icon placement variants.
-- [`shared/icons.py`](../backend/app/services/cv_templates/shared/icons.py) — icon glyph resolution/placement helper.
-- [`registry.py`](../backend/app/services/cv_templates/registry.py) — dispatches a `template_id` to its generator function.
-- [`pdf_generator.py`](../backend/app/services/pdf_generator.py) — renders the final element list to an actual PDF (ReportLab); consumes layout, doesn't compute it.
-- [`build_pdf.py`](../backend/app/utils/build_pdf.py) — thin orchestration wrapper: elements → PDF bytes.
+- [`cv/layout/primitives.py`](../backend/app/services/cv/layout/primitives.py) — `class Builder`: `.text()`, `.block()`, `.keep_together()`, `.need()` — the cursor-based layout DSL every template generator calls.
+- [`shared/column_planner.py`](../backend/app/services/cv/templates/shared/column_planner.py) — plans main/sidebar column heights and multi-page section placement.
+- [`shared/records.py`](../backend/app/services/cv/templates/shared/records.py) — **backend equivalent of `sectionRecord.js`**: `_experience_record_height`, `_place_experience_record`, `_education_record_height`.
+- [`shared/text.py`](../backend/app/services/cv/templates/shared/text.py) — skills-chip/language-grid measurement, backend equivalent of `skillsLayout.js`.
+- [`shared/extras.py`](../backend/app/services/cv/templates/shared/extras.py) — generic "extra sections" height/placement, sidebar-fit for overflow sections.
+- [`shared/contact.py`](../backend/app/services/cv/templates/shared/contact.py) — contact-line/icon placement variants.
+- [`shared/icons.py`](../backend/app/services/cv/templates/shared/icons.py) — icon glyph resolution/placement helper.
+- [`registry.py`](../backend/app/services/cv/templates/registry.py) — dispatches a `template_id` to its generator function.
+- [`documents/rendering/pdf.py`](../backend/app/services/documents/rendering/pdf.py) — renders the final element list to an actual PDF (ReportLab); consumes layout, doesn't compute it.
+- [`documents/rendering/build.py`](../backend/app/services/documents/rendering/build.py) — thin orchestration wrapper: elements → PDF bytes.
 
 ### Per-template generators
 
-- [`cv_templates/templates/`](../backend/app/services/cv_templates/templates/) — 16 files, one per CV template (matches the registry's `template_id`s). Each builds a `Builder` and emits that design's full element list. `axis.py`, `nova.py` contain their own `* 1.35` fallback constants; `axis.py` also matches on `flowRole`/`flowGroup` tokens.
+- [`cv/templates/generators/`](../backend/app/services/cv/templates/generators/) — 16 files, one per CV template (matches the registry's `template_id`s). Each builds a `Builder` and emits that design's full element list. `axis.py`, `nova.py` contain their own `* 1.35` fallback constants; `axis.py` also matches on `flowRole`/`flowGroup` tokens.
 
 ### Layout analysis / AI editing
 
 Powers the in-editor AI assistant's positioning features.
 
-- [`layout_analysis.py`](../backend/app/services/layout_analysis.py) — canvas-side geometry ops: `resolve_shift`, `resolve_align`, `resolve_distribute`, `resolve_restructure_section`, etc. Has its own structure/lane helpers analogous to `sectionStructure.js`.
-- [`cv_data.py`](../backend/app/services/cv_data.py) — normalizes raw CV data into the record/section shapes (`experience`, `education`, `skill_groups`, custom sections) all layout code consumes. **Relevant when defining a new record shape** — validation starts here.
+- [`cv/layout/analysis.py`](../backend/app/services/cv/layout/analysis.py) — canvas-side geometry ops: `resolve_shift`, `resolve_align`, `resolve_distribute`, `resolve_restructure_section`, etc. Has its own structure/lane helpers analogous to `sectionStructure.js`.
+- [`cv/data.py`](../backend/app/services/cv/data.py) — normalizes raw CV data into the record/section shapes (`experience`, `education`, `skill_groups`, custom sections) all layout code consumes. **Relevant when defining a new record shape** — validation starts here.
 
 ### AI-fill glue
 
-- [`ai_service.py`](../backend/app/services/ai_service.py) — extracts CV data from an uploaded PDF, re-generates elements via the template registry; includes a post-generation height/reflow fix-up pass (`_fix_heights_and_reflow`).
-- [`ai_assistant_service.py`](../backend/app/services/ai_assistant_service.py) — backend for the in-editor AI assistant (rate/fix-grammar/shorten/translate/chat actions); free-form chat invokes `layout_analysis.py` resolvers for reviewable geometry commands.
+- [`imports/extraction.py`](../backend/app/services/imports/extraction.py) — extracts CV data from an uploaded PDF, re-generates elements via the template registry; includes a post-generation height/reflow fix-up pass (`_fix_heights_and_reflow`).
+- [`ai/assistant/service.py`](../backend/app/services/ai/assistant/service.py) — backend for the in-editor AI assistant (rate/fix-grammar/shorten/translate/chat actions); free-form chat invokes `cv/layout/analysis.py` resolvers for reviewable geometry commands.
 - [`routes/ai.py`](../backend/app/api/routes/ai.py) — HTTP route for AI CV fill/template application.
 - [`routes/ai_assistant.py`](../backend/app/api/routes/ai_assistant.py) — HTTP route exposing the supported AI assistant actions to the frontend.
 - [`fillTemplate.js`](../frontend/src/services/fillTemplate.js) — frontend orchestration for applying an AI-filled/template dataset onto canvas elements.
@@ -116,4 +116,4 @@ Powers the in-editor AI assistant's positioning features.
 - **Uses `flowRole`/`flowGroup` generically but does NOT special-case `record-overlay`:** `sectionRecord.js`, `sectionStructure.js` — the gap that breaks Axis/Harbor on add/reorder — plus `skillsLayout.js`, `languagesLayout.js`, `transferSectionLane.js`, `collapseMainIntoSidebar.js`, `sectionBuilder.js`.
 - **No flow awareness at all (pure geometry/UI):** `spacingGuides.js`, `elementBounds.js`, `pageDrag.js`, `layoutDensity.js`.
 
-If adding new record/section shapes: `sectionRecord.js` and `sectionStructure.js` are the highest-risk files to update in lockstep on the frontend. On the backend, the equivalent shape assumptions live in `cv_templates/shared/records.py` and `layout_analysis.py`'s `resolve_restructure_section`.
+If adding new record/section shapes: `sectionRecord.js` and `sectionStructure.js` are the highest-risk files to update in lockstep on the frontend. On the backend, the equivalent shape assumptions live in `cv/templates/shared/records.py` and `cv/layout/analysis.py`'s `resolve_restructure_section`.

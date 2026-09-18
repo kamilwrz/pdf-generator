@@ -17,7 +17,7 @@ from app.crud.cv_import_snapshots import (
     mark_snapshot_succeeded,
 )
 from app.models.models import Base, CvImportSnapshot, Pdf, UsageCounter, User
-from app.services import entitlements as ent
+from app.services.billing import entitlements as ent
 
 
 class EntitlementConcurrencyTests(unittest.TestCase):

@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from app.services.ats_readability import (
+from app.services.cv.readability import (
     AtsReadabilityError,
     analyze_pdf_readability,
     is_decorative_element,
@@ -17,7 +17,7 @@ from app.services.ats_readability import (
     score_text_extract,
     weighted_overall_percent,
 )
-from app.utils.image_src_to_path import image_src_to_local_path
+from app.services.storage.image_resolver import image_src_to_local_path
 
 
 def _text(content, *, top=40, left=40, page=1, **extra):
@@ -137,7 +137,7 @@ class PdfPipelineTests(unittest.TestCase):
 
     def test_render_failure_raises_ats_error(self):
         with patch(
-            "app.services.ats_readability.build_pdf_to_buffer",
+            "app.services.cv.readability.build_pdf_to_buffer",
             side_effect=RuntimeError("boom"),
         ):
             with self.assertRaises(AtsReadabilityError) as ctx:
@@ -151,10 +151,10 @@ class PdfPipelineTests(unittest.TestCase):
 
 class AnalyzeActionAtsWiringTests(unittest.TestCase):
     def test_ats_score_failure_becomes_ai_service_error_without_charge_path(self):
-        from app.services.ai_assistant_service import AIServiceError, analyze_action
+        from app.services.ai.assistant.service import AIServiceError, analyze_action
 
         with patch(
-            "app.services.ai_assistant_service.analyze_pdf_readability",
+            "app.services.ai.assistant.service.analyze_pdf_readability",
             side_effect=AtsReadabilityError("fail", user_message="Nie udało się wygenerować PDF."),
         ):
             with self.assertRaises(AIServiceError) as ctx:

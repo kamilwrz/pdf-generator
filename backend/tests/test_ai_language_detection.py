@@ -1,6 +1,6 @@
 import unittest
 
-from app.services import ai_assistant_service as svc
+from app.services.ai.assistant import service as svc
 
 
 def _text_el(element_id, content, **extra):

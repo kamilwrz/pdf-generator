@@ -4,7 +4,7 @@
 
 **Goal:** Let users register directly onto Free / Standard / Premium without payment, and meter AI usage as credits (1 credit = 5 groszy) charged at each call's real cost.
 
-**Architecture:** The backend billing scaffold already exists (`Plan`, `UserSubscription`, `UsageCounter`, plus per-call PLN cost via `openai_pricing.py`). We reinterpret existing columns as credits (no schema migration), change seed values, rename slug `pro`→`premium` via an idempotent startup migration, add a plan field to registration plus a `/billing/select-plan` endpoint gated by a config flag, and update the Hero + Register + entitlements display copy on the frontend.
+**Architecture:** The backend billing scaffold already exists (`Plan`, `UserSubscription`, `UsageCounter`, plus per-call PLN cost via `ai/pricing/openai.py`). We reinterpret existing columns as credits (no schema migration), change seed values, rename slug `pro`→`premium` via an idempotent startup migration, add a plan field to registration plus a `/billing/select-plan` endpoint gated by a config flag, and update the Hero + Register + entitlements display copy on the frontend.
 
 **Tech Stack:** FastAPI + SQLAlchemy (backend, Python), `unittest` + in-memory SQLite (tests), React + Vite + react-router-dom (frontend).
 
@@ -25,7 +25,7 @@
 ## File Structure
 
 **Backend**
-- Modify `backend/app/services/entitlements.py` — seeds (150/300, premium), slug migration, `credits_for_cost`, `charge_ai_credits`, renamed payload keys, `set_user_plan`, updated `PlanLimitError` copy.
+- Modify `backend/app/services/billing/entitlements.py` — seeds (150/300, premium), slug migration, `credits_for_cost`, `charge_ai_credits`, renamed payload keys, `set_user_plan`, updated `PlanLimitError` copy.
 - Modify `backend/app/schemas/user_schema.py` — `plan` field on `UserCreateRequest`.
 - Modify `backend/app/crud/user.py` — assign chosen plan on create.
 - Create `backend/app/api/routes/billing.py` — `POST /billing/select-plan`.
@@ -45,7 +45,7 @@
 ## Task 1: Plan seeds → credit values + `pro`→`premium` migration
 
 **Files:**
-- Modify: `backend/app/services/entitlements.py` (`PLAN_SEEDS` ~lines 27-64; `bootstrap_billing` ~lines 149-153)
+- Modify: `backend/app/services/billing/entitlements.py` (`PLAN_SEEDS` ~lines 27-64; `bootstrap_billing` ~lines 149-153)
 - Test: `backend/tests/test_entitlements.py` (extend existing `unittest` file)
 
 **Interfaces:**
@@ -104,7 +104,7 @@ Expected: FAIL — `standard` allowance is 40 not 150, no `premium` slug, `migra
 
 - [ ] **Step 3: Implement seeds + migration**
 
-In `backend/app/services/entitlements.py`, change the `standard` seed `max_ai_actions_per_month` from `40` to `150`, and replace the `pro` seed dict with:
+In `backend/app/services/billing/entitlements.py`, change the `standard` seed `max_ai_actions_per_month` from `40` to `150`, and replace the `pro` seed dict with:
 
 ```python
     {
@@ -160,7 +160,7 @@ Expected: PASS (all classes, including the existing tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/entitlements.py backend/tests/test_entitlements.py
+git add backend/app/services/billing/entitlements.py backend/tests/test_entitlements.py
 git commit -m "feat(billing): seed AI credit allowances and migrate pro->premium"
 ```
 
@@ -169,7 +169,7 @@ git commit -m "feat(billing): seed AI credit allowances and migrate pro->premium
 ## Task 2: Credit metering + entitlements payload rename
 
 **Files:**
-- Modify: `backend/app/services/entitlements.py` (`get_entitlements` ~lines 195-239; `assert_can_use_ai_assistant` ~lines 268-281; `record_ai_action` ~lines 314-320; `PlanLimitError` copy)
+- Modify: `backend/app/services/billing/entitlements.py` (`get_entitlements` ~lines 195-239; `assert_can_use_ai_assistant` ~lines 268-281; `record_ai_action` ~lines 314-320; `PlanLimitError` copy)
 - Modify: `backend/app/api/routes/ai.py` (line 14 import, line 77 call)
 - Modify: `backend/app/api/routes/ai_assistant.py` (line 11 import, line 93 call)
 - Test: `backend/tests/test_ai_credits.py` (new)
@@ -258,7 +258,7 @@ Expected: FAIL — `credits_for_cost` / `charge_ai_credits` don't exist; payload
 
 - [ ] **Step 3: Implement metering + payload rename**
 
-In `backend/app/services/entitlements.py`:
+In `backend/app/services/billing/entitlements.py`:
 
 Add `import math` at the top (with the other stdlib imports), then add:
 
@@ -348,7 +348,7 @@ Expected: PASS (route tests confirm the renamed call sites still work).
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/entitlements.py backend/app/api/routes/ai.py backend/app/api/routes/ai_assistant.py backend/tests/test_ai_credits.py backend/tests/test_ai_assistant_exception_handling.py
+git add backend/app/services/billing/entitlements.py backend/app/api/routes/ai.py backend/app/api/routes/ai_assistant.py backend/tests/test_ai_credits.py backend/tests/test_ai_assistant_exception_handling.py
 git commit -m "feat(billing): meter AI usage as credits charged at real cost"
 ```
 
@@ -359,7 +359,7 @@ git commit -m "feat(billing): meter AI usage as credits charged at real cost"
 **Files:**
 - Modify: `backend/app/core/config.py` (add flag)
 - Modify: `backend/app/schemas/user_schema.py`
-- Modify: `backend/app/services/entitlements.py` (add `set_user_plan`)
+- Modify: `backend/app/services/billing/entitlements.py` (add `set_user_plan`)
 - Modify: `backend/app/crud/user.py` (`create_user`)
 - Create: `backend/app/api/routes/billing.py`
 - Modify: `backend/app/main.py` (register router)
@@ -368,7 +368,7 @@ git commit -m "feat(billing): meter AI usage as credits charged at real cost"
 **Interfaces:**
 - Consumes: `get_or_create_subscription`, `get_plan`, `verify_token`, `get_user_by_username`, `get_db`.
 - Produces:
-  - `SELECTABLE_PLANS: frozenset[str]` = `{"free", "standard", "premium"}` in `entitlements.py`.
+  - `SELECTABLE_PLANS: frozenset[str]` = `{"free", "standard", "premium"}` in `billing/entitlements.py`.
   - `set_user_plan(db, user_id: int, plan_slug: str) -> UserSubscription` — validates slug ∈ `SELECTABLE_PLANS`, upserts the subscription to `status="active"`, raises `ValueError` on an unknown slug.
   - `UserCreateRequest.plan: str = "free"`.
   - `POST /billing/select-plan` body `{ "plan_slug": str }` → `200 { "plan_slug": str }`.
@@ -448,7 +448,7 @@ class UserCreateRequest(BaseModel):
     plan: str = "free"
 ```
 
-In `backend/app/services/entitlements.py` add:
+In `backend/app/services/billing/entitlements.py` add:
 
 ```python
 SELECTABLE_PLANS: frozenset[str] = frozenset({"free", "standard", "premium"})
@@ -471,7 +471,7 @@ def set_user_plan(db: Session, user_id: int, plan_slug: str) -> UserSubscription
 In `backend/app/crud/user.py`, replace the `ensure_free_subscription` import and its use in `create_user`. Change the import line to:
 
 ```python
-from app.services.entitlements import ensure_free_subscription, set_user_plan
+from app.services.billing.entitlements import ensure_free_subscription, set_user_plan
 ```
 
 and replace the final two lines of `create_user` (`ensure_free_subscription(db, db_user.id)` / `return ...`) with:
@@ -512,7 +512,7 @@ from app.core.config import ALLOW_UNPAID_PLAN_SELECTION
 from app.core.security import verify_token
 from app.crud.user import get_user_by_username
 from app.dependencies import get_db
-from app.services.entitlements import SELECTABLE_PLANS, set_user_plan
+from app.services.billing.entitlements import SELECTABLE_PLANS, set_user_plan
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -555,7 +555,7 @@ Expected: no ImportError (prints the DIST_DIR path line, which is fine).
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/core/config.py backend/app/schemas/user_schema.py backend/app/services/entitlements.py backend/app/crud/user.py backend/app/api/routes/billing.py backend/app/main.py backend/tests/test_plan_selection.py
+git add backend/app/core/config.py backend/app/schemas/user_schema.py backend/app/services/billing/entitlements.py backend/app/crud/user.py backend/app/api/routes/billing.py backend/app/main.py backend/tests/test_plan_selection.py
 git commit -m "feat(billing): choose plan at registration + /billing/select-plan"
 ```
 

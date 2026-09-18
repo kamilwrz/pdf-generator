@@ -6,9 +6,9 @@ from copy import deepcopy
 from types import SimpleNamespace
 
 from app.schemas.pdf_schema import PdfElement
-from app.services.cv_generator import generate_resume
-from app.services.masthead_name_fit import fit_legacy_masthead_names
-from app.services.pdf_generator import PDF_Generator
+from app.services.cv.generator import generate_resume
+from app.services.cv.layout.name_fit import fit_legacy_masthead_names
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 def _renderer():
@@ -278,8 +278,8 @@ def test_deleted_names_and_photos_do_not_participate_in_fitting():
 @pytest.mark.parametrize("template_id", ["slate", "monument"])
 def test_new_continuation_background_is_behind_visible_carried_text(template_id):
     pymupdf = pytest.importorskip("pymupdf")
-    from app.utils.build_pdf import build_pdf_to_buffer
-    from app.utils.image_src_to_path import image_src_to_local_path
+    from app.services.documents.rendering.build import build_pdf_to_buffer
+    from app.services.storage.image_resolver import image_src_to_local_path
 
     source = generate_resume(template_id, _cv("W" * 150))
     source.append({"category": "textarea", "content": "Carried record probe", "left": 218,
@@ -361,8 +361,8 @@ def test_legacy_editorial_fit_repairs_name_only_autoheight_without_mutating_save
 @pytest.mark.parametrize("template_id", ["vellum", "aurelia", "cadenza"])
 def test_editorial_pdf_keeps_every_name_glyph_clear_of_the_following_title(template_id):
     pymupdf = pytest.importorskip("pymupdf")
-    from app.utils.build_pdf import build_pdf_to_buffer
-    from app.utils.image_src_to_path import image_src_to_local_path
+    from app.services.documents.rendering.build import build_pdf_to_buffer
+    from app.services.storage.image_resolver import image_src_to_local_path
 
     content = "Anna " + "W" * 90
     source = generate_resume(template_id, _cv(content))

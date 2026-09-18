@@ -16,7 +16,7 @@ Landing → choose intent → Register/Login → protected /pdfcanvas → first 
 
 The now-retired `frontend/src/ProtectedRoute.jsx` redirected to `/login` whenever `localStorage.token` was absent, so nothing — not the canvas, not a template, not the wizard — could be seen before an account existed. Registration also asked the new user to pick a paid plan through the now-retired `frontend/src/pages/Register/PlanSelector.jsx`, before they knew what they were buying.
 
-Separately, CV import (`POST /ai/extract_cv`) calls a paid OpenAI vision endpoint ([backend/app/services/ai_service.py](../../../backend/app/services/ai_service.py) `extract_cv_data`), so it cannot simply be opened to anonymous traffic without a cost-abuse risk.
+Separately, CV import (`POST /ai/extract_cv`) calls a paid OpenAI vision endpoint ([backend/app/services/imports/extraction.py](../../../backend/app/services/imports/extraction.py) `extract_cv_data`), so it cannot simply be opened to anonymous traffic without a cost-abuse risk.
 
 ## 2. Decisions (confirmed by the user)
 
@@ -101,7 +101,7 @@ Events added: `landing_cta_clicked` (with which CTA), `guest_editor_opened`, `gu
 
 ## 5. Explicit non-goals for Etap 1
 
-- No changes to `entitlements.py`, `billing.py`, `pdf_generator.py`, or the `plans` table.
+- No changes to `billing/entitlements.py`, `billing.py`, `documents/rendering/pdf.py`, or the `plans` table.
 - No watermarking.
 - No import gating changes (stays behind login as today, copy-only tweaks).
 - No Google OAuth.
@@ -118,9 +118,9 @@ Events added: `landing_cta_clicked` (with which CTA), `guest_editor_opened`, `gu
 
 ## 7. Etap 2 (sketch — separate spec before implementation)
 
-- Collapse `Free/Standard/Premium` → `Free/Pro` in `PLAN_SEEDS` ([backend/app/services/entitlements.py](../../../backend/app/services/entitlements.py)); Free: `max_projects=1`, all 14 templates, watermarked export, 1 lifetime free `extract_cv` (new counter, not monthly), no AI actions; Pro: clean export, multiple documents/imports, AI actions.
-- Watermark rendering in `PDF_Generator` (backend/app/services/pdf_generator.py) gated by plan, applied in `create_pdf_document`/`download_pdf`.
-- Import gate moves from "Standard" to "Free: 1 lifetime, rate-limited" / "Pro: more", enforced in `ai.py` + `entitlements.py`.
+- Collapse `Free/Standard/Premium` → `Free/Pro` in `PLAN_SEEDS` ([backend/app/services/billing/entitlements.py](../../../backend/app/services/billing/entitlements.py)); Free: `max_projects=1`, all 14 templates, watermarked export, 1 lifetime free `extract_cv` (new counter, not monthly), no AI actions; Pro: clean export, multiple documents/imports, AI actions.
+- Watermark rendering in `PDF_Generator` (backend/app/services/documents/rendering/pdf.py) gated by plan, applied in `create_pdf_document`/`download_pdf`.
+- Import gate moves from "Standard" to "Free: 1 lifetime, rate-limited" / "Pro: more", enforced in `ai.py` + `billing/entitlements.py`.
 - Pricing copy rewritten around outcomes, not AI credits (`PlanSelectModal`, Hero pricing section, `useEntitlements.js`).
 - Manual/ops plan activation stays in place (no Stripe yet).
 

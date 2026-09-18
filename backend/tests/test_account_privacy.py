@@ -21,7 +21,7 @@ from app.models.models import (
     User,
     UserSubscription,
 )
-from app.services.account_data_service import build_account_export, delete_account_data
+from app.services.accounts.data import build_account_export, delete_account_data
 
 
 def _session():
@@ -183,7 +183,7 @@ def test_delete_account_removes_every_user_owned_database_record(monkeypatch):
     )
     db.commit()
     user_id = int(user.id)
-    monkeypatch.setattr("app.services.account_data_service.process_cleanup_jobs", lambda *args, **kwargs: 0)
+    monkeypatch.setattr("app.services.accounts.data.process_cleanup_jobs", lambda *args, **kwargs: 0)
 
     delete_account_data(db, user_id=user_id)
 

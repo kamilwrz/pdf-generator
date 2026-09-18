@@ -7,11 +7,11 @@ import pytest
 from fastapi import HTTPException
 
 from app.models.models import InterviewSession, AiCreditReservation
-from app.services import interview_service as service
-from app.services.interview_discovery import update_discovery_budget, next_entry, scoped_question
-from app.services.interview_quality import apply_discovery_review, literal_answer_status
-from app.services.interview_editorial import prepare_editorial_draft
-from app.services.cv_data import normalize_cv_data
+from app.services.interviews import service
+from app.services.interviews.discovery import update_discovery_budget, next_entry, scoped_question
+from app.services.interviews.quality import apply_discovery_review, literal_answer_status
+from app.services.interviews.editorial import prepare_editorial_draft
+from app.services.cv.data import normalize_cv_data
 from test_interviews import environment, create, confirm, version
 from test_interview_editorial import setup_answer, generate, draft_for_answer, USAGE, VERIFIED
 from test_interviews import editorial

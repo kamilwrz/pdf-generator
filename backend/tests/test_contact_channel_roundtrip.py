@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.crud.pdfs import create_new_pdf, elements_from_rows, update_pdf_elements
 from app.models.models import Base, PdfElements, User
 from app.schemas.pdf_schema import PDFCreateRequest, PdfElement
-from app.services.cv_generator import generate_resume
+from app.services.cv.generator import generate_resume
 
 
 class _Row:

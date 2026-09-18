@@ -4,7 +4,7 @@
  * items separated by a mid-dot, or a vertical bullet list.
  *
  * Mirrors the backend's `_skills_inline_content` / `_bullet_list_content` /
- * `_clean_list_items` (`backend/app/services/cv_templates/shared/text.py`) so
+ * `_clean_list_items` (`backend/app/services/cv/templates/shared/text.py`) so
  * a section generated either way round-trips through the canvas toggle
  * without changing its items.
  */

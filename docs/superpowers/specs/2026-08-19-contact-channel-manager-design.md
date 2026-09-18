@@ -13,7 +13,7 @@ website, location) is rendered as a set of **independent, ungrouped** canvas
 elements: for each channel an `image` icon
 (`/template-assets/iconic/<theme>/<name>.png`) plus a `text` label, both tagged
 `flowRole: "masthead"` and positioned by geometry the backend computed once
-(see `cv_templates/shared/contact.py` and each template's header block, e.g.
+(see `cv/templates/shared/contact.py` and each template's header block, e.g.
 `harbor.py` lines 65–104).
 
 The user can already edit a label's **text** (single click — `Text.jsx`), but
@@ -107,7 +107,7 @@ Schema mirror (`shared/pdf-element.schema.json`) is regenerated.
 Only the two Phase-1 placers and their call sites change; drawn geometry is
 unchanged, so existing PDFs render identically until the user edits.
 
-- `cv_templates/shared/contact.py`:
+- `cv/templates/shared/contact.py`:
   `_place_centered_icon_contacts` and `_place_wrapping_icon_contacts` stamp each
   emitted icon/label pair with `contactChannel = key` and a shared
   `contactBandId`, and return the descriptor (mode, anchor geometry, metrics,
@@ -240,7 +240,7 @@ byte-stably).
 Backend:
 - `app/schemas/pdf_schema.py` — `contactChannel`, `contactBandId`, anchor
   `contactBand` descriptor; regenerate `shared/pdf-element.schema.json`.
-- `app/services/cv_templates/shared/contact.py` — tag pairs + return descriptor
+- `app/services/cv/templates/shared/contact.py` — tag pairs + return descriptor
   from the two Phase-1 placers.
 - Phase-1 call sites (centered-masthead templates + `harbor.py` header) — append
   band-anchor, set `downstream`.

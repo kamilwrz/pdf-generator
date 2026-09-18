@@ -25,7 +25,7 @@ BACKEND_DIR = REPO_ROOT / "backend"
 FRONTEND_TEMPLATES = REPO_ROOT / "frontend" / "src" / "templates"
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app.services.cv_generator import generate_resume  # noqa: E402
+from app.services.cv.generator import generate_resume  # noqa: E402
 
 # Shared demo persona — fictional AML/compliance analyst sized to fill landing
 # mockups. Field lengths stay close to the previous shared demo so every
@@ -419,7 +419,7 @@ def js_module(template_id: str, elements: list[dict], *, const_name: str | None 
  * {blur}
  *
  * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/{template_id}.py`) for
+ * (`backend/app/services/cv/templates/generators/{template_id}.py`) for
  * representative demo content ({persona}, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at

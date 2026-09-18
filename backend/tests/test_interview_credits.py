@@ -6,8 +6,8 @@ from unittest.mock import patch
 from app.main import app
 from app.core.security import get_current_user
 from app.models.models import AiCreditReservation
-from app.services import interview_service as service
-from app.services.entitlements import set_user_plan
+from app.services.interviews import service
+from app.services.billing.entitlements import set_user_plan
 from test_interviews import environment, create, confirm, version  # noqa: F401
 
 

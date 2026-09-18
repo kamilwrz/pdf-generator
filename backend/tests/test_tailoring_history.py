@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy import event
 
 from app.models.models import CvImportSnapshot, InterviewSession, Pdf, TailoringFlow
-from app.services.tailoring_history import flow_session_id
+from app.services.tailoring.history import flow_session_id
 from test_tailoring import env, create
 
 
@@ -18,7 +18,7 @@ def test_draft_summaries_use_only_selected_offer_and_actual_source(env):
     empty_id = str(uuid4())
     assert client.put(f'/tailoring/{empty_id}', json={'revision': 0}).status_code == 200
     before = {row.id: deepcopy(row.state) for row in db.query(TailoringFlow).all()}
-    with patch('app.services.interview_service._gpt') as provider, patch('app.api.routes.interviews.resolve_job_offer') as resolver:
+    with patch('app.services.interviews.service._gpt') as provider, patch('app.api.routes.interviews.resolve_job_offer') as resolver:
         response = client.get('/tailoring')
     assert response.status_code == 200
     items = {item['id']: item for item in response.json()['items']}

@@ -116,21 +116,21 @@ wiersze kontaktu i dopasowane sekcje sidebaru pozostają edytowalne.
 ## 8. Pliki
 
 Dodane:
-- `backend/app/services/cv_templates/templates/slate.py` — generator `_gen_slate`.
+- `backend/app/services/cv/templates/generators/slate.py` — generator `_gen_slate`.
 - `frontend/src/templates/slate.js` — statyczny podgląd `slateTemplate`.
 - `backend/template_assets/iconic/slate/*.png` i `…/slate-accent/*.png` —
   wygenerowane skryptem.
 - `frontend/src/templates/slate.test.js` — test podglądu.
 
 Zmienione:
-- `backend/app/services/cv_templates/registry.py` — import `_gen_slate`, wpis w
+- `backend/app/services/cv/templates/registry.py` — import `_gen_slate`, wpis w
   `TEMPLATE_LAYOUTS` (`frozenset({"sidebar", "icons"})`) i `_GENERATORS`.
 - `frontend/src/templates/index.js` — import `slateTemplate` i wpis w `TEMPLATES`
   (`id: "slate"`, `tier: "paid"`, `accent: "#3E5C76"`,
   `layouts: ["sidebar", "icons"]`).
 - `scripts/generate_iconic_icons.py` — wpisy `slate` i `slate-accent` w
   `SUBSET_THEMES`.
-- `backend/app/services/entitlements.py` — tylko jeśli utrzymuje jawną listę
+- `backend/app/services/billing/entitlements.py` — tylko jeśli utrzymuje jawną listę
   płatnych/dostępnych szablonów (do sprawdzenia w implementacji).
 - `backend/tests/test_cv_template_layouts.py` — test warstw dla Slate.
 - Ewentualne testy trzymające kanoniczną listę szablonów

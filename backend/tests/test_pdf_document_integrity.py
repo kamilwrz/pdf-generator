@@ -22,7 +22,8 @@ from app.main import app
 from app.models.models import Base, Pdf, PdfElements, User
 from app.schemas.pdf_schema import PDFUpdateRequest
 from app.schemas.user_schema import UserCreateRequest
-from app.services import document_service, entitlements
+from app.services.documents import service as document_service
+from app.services.billing import entitlements
 from app.testing_support import ensure_test_auth_env
 
 

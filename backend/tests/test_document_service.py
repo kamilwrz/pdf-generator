@@ -13,8 +13,8 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import BACKEND_URL
 from app.models.models import Base, Image, User
-from app.services import document_service
-from app.services.document_service import resolve_image_src_for_pdf
+from app.services.documents import service as document_service
+from app.services.documents.service import resolve_image_src_for_pdf
 from app.testing_support import ensure_test_auth_env
 
 

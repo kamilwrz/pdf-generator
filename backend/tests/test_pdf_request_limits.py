@@ -34,7 +34,7 @@ from app.schemas.pdf_schema import (
     PdfElement,
 )
 from app.schemas.user_schema import UserCreateRequest
-from app.services import entitlements as ent
+from app.services.billing import entitlements as ent
 from app.testing_support import ensure_test_auth_env
 
 

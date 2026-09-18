@@ -1,7 +1,7 @@
 import unittest
 
-from app.services import layout_analysis
-from app.services import ai_assistant_service
+from app.services.cv.layout import analysis as layout_analysis
+from app.services.ai.assistant import service as ai_assistant_service
 from unittest.mock import patch
 
 

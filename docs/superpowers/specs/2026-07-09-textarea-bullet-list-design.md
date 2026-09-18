@@ -98,7 +98,7 @@ Applied identically on both sides so they stay pixel-matched:
 - While editing (`isEditing`), always render the plain `<textarea>` exactly as
   today, regardless of `bulletList` — no live indent preview.
 
-### Backend (`pdf_generator.py`)
+### Backend (`documents/rendering/pdf.py`)
 
 - `_wrap_textarea` gains a `bullet_list: bool` parameter and starts returning
   a third element per line, `indent_px`, alongside the existing
@@ -122,7 +122,7 @@ Applied identically on both sides so they stay pixel-matched:
   (`ampersand.js`, `aria.js`, `blueprint.js`, `education.js`, `finance.js`,
   `it.js`, `monolith.js`, `nocturne.js`, `prism.js`) whose content contains
   `•` lines gets wrapped: `bulleted(block(...))`.
-- `backend/app/services/cv_generator.py`: `_block()` and `Builder.block()`
+- `backend/app/services/cv/generator.py`: `_block()` and `Builder.block()`
   gain a `bulletList: bool = False` kwarg (following the same pattern as
   their existing `bold`/`italic`/`align` kwargs). The call sites that build
   bulleted content — `_bullets(job)` blocks in every `_gen_*` function, and

@@ -2,10 +2,10 @@
 
 **Date:** 2026-08-12
 **Status:** Implemented (2026-08-13; see `docs/superpowers/plans/2026-08-13-multi-page-column-planner.md`)
-**Pilot template:** Sterling (`backend/app/services/cv_templates/templates/sterling.py`)
+**Pilot template:** Sterling (`backend/app/services/cv/templates/generators/sterling.py`)
 **Builds on:** `docs/superpowers/specs/2026-08-12-two-column-section-placement-design.md`
 (the single-page balance-driven planner, already implemented in
-`backend/app/services/cv_templates/shared/column_planner.py`)
+`backend/app/services/cv/templates/shared/column_planner.py`)
 
 ## 0. Implementation update (2026-08-13) — supersedes §4, §5.2, §5.3
 
@@ -355,7 +355,7 @@ Budgets used:
   on every iteration; there is no continuation-page main budget (see §5.2).
 
 (`PAGE_TOP` and `CONTENT_BOTTOM` are existing constants from
-`app/services/cv_generator_primitives.py`; Sterling does not currently
+`app/services/cv/layout/primitives.py`; Sterling does not currently
 override `continuation_top()`, so its continuation pages start at the
 generic `PAGE_TOP`.)
 
@@ -398,7 +398,7 @@ there is one bucket, and step 3 never derives a second bucket when
 
 - `column_planner.py`: `plan_columns`'s signature and `ColumnPlan`'s shape
   change (breaking). Sterling is the only current caller
-  (`backend/app/services/cv_templates/templates/sterling.py`) and is updated
+  (`backend/app/services/cv/templates/generators/sterling.py`) and is updated
   in the same change to call `plan_columns_multi_page` instead.
 - `backend/tests/test_column_planner.py`: all 9 existing unit tests call the
   old signature (`sidebar_budget=...`, `plan.sidebar`) and must be updated to

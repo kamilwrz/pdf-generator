@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.cv_generator_primitives import _rect, _text_width
+from app.services.cv.layout.primitives import _rect, _text_width
 
 
 class RectHelperTests(unittest.TestCase):

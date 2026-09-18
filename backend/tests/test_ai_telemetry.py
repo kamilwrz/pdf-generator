@@ -8,8 +8,8 @@ import httpx
 import pytest
 from openai import APITimeoutError
 
-from app.services import ai_assistant_service as assistant
-from app.services.ai_telemetry import measure_operation, provider_span, usage_counters
+from app.services.ai.assistant import service as assistant
+from app.services.ai.telemetry import measure_operation, provider_span, usage_counters
 
 
 def test_provider_clock_excludes_processing_and_outer_span_sums_calls(caplog):
@@ -20,7 +20,7 @@ def test_provider_clock_excludes_processing_and_outer_span_sums_calls(caplog):
         with provider_span("gpt-5.6-luna", "assistant:grammar", "low", "json_object") as span:
             span.received(SimpleNamespace(usage=None, choices=[]))
 
-    with patch("app.services.ai_telemetry.perf_counter", side_effect=[10, 11, 13, 16]):
+    with patch("app.services.ai.telemetry.perf_counter", side_effect=[10, 11, 13, 16]):
         operation("grammar")
     provider, total = [json.loads(record.message) for record in caplog.records]
     assert provider["provider_ms"] == 2000

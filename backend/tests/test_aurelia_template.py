@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
-from app.utils.image_src_to_path import image_src_to_local_path
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS, generate_resume
+from app.services.storage.image_resolver import image_src_to_local_path
 
 
 def _base_cv(**overrides):

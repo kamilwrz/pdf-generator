@@ -14,15 +14,15 @@ Końcowa polityka `ui_language_policy()` w `app/core/localisation.py` jest doł�
 
 | Akcja API | Cel UI | Handler | Odpowiedzialność |
 | --- | --- | --- | --- |
-| `rating` | Sprawdź CV | `_rate_cv` (linie 1154–1192) | przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami |
-| `position_rating` | Dopasuj do oferty | `_tailor_cv_to_position` (linie 1195–1274) | analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad |
-| `grammar` | Sprawdź błędy | `_fix_grammar` (linie 1277–1315) | poprawia gramatykę, ortografię i interpunkcję |
-| `language` | Popraw język | `_check_style` (linie 1333–1387) | ulepsza styl w języku bieżącego CV |
-| `improve` | Wzmocnij treść | `_improve_content` (linie 1390–1437) | wzmacnia opisy bez wymyślania faktów |
-| `shorten` | Skróć CV | `_shorten_content` (linie 1440–1505) | kondensuje treść bez zmiany znaczenia |
-| `ats_score` | Sprawdź ATS | `_ats_score` (linie 1758–1856) | łączy deterministyczny odczyt PDF z oceną struktury |
-| `translate` | Przetłumacz CV | `_translate_cv` (linie 1657–1755) | tłumaczy pełną treść i profil na wybrany język |
-| `chat` | Czat | `_chat` (linie 1881–2182) | odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji |
+| `rating` | Sprawdź CV | `_rate_cv` (linie 1187–1225) | przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami |
+| `position_rating` | Dopasuj do oferty | `_tailor_cv_to_position` (linie 1228–1307) | analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad |
+| `grammar` | Sprawdź błędy | `_fix_grammar` (linie 1310–1348) | poprawia gramatykę, ortografię i interpunkcję |
+| `language` | Popraw język | `_check_style` (linie 1366–1417) | ulepsza styl w języku bieżącego CV |
+| `improve` | Wzmocnij treść | `_improve_content` (linie 1420–1463) | wzmacnia opisy bez wymyślania faktów |
+| `shorten` | Skróć CV | `_shorten_content` (linie 1466–1527) | kondensuje treść bez zmiany znaczenia |
+| `ats_score` | Sprawdź ATS | `_ats_score` (linie 1815–1913) | łączy deterministyczny odczyt PDF z oceną struktury |
+| `translate` | Przetłumacz CV | `_translate_cv` (linie 1714–1812) | tłumaczy pełną treść i profil na wybrany język |
+| `chat` | Czat | `_chat` (linie 1938–2239) | odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji |
 
 `grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI używają języka żądania (PL lub EN), a proponowana treść jest zwracana w języku docelowym.
 
@@ -30,7 +30,7 @@ Powyższa mapa wskazuje klasyczne handlery płótna. Dla dokumentu z `cv_data` a
 
 ## Audyt CV: rubryka, dowody i liczniki
 
-Plik `backend/app/services/cv_audit.py`, linie 1–332. `CV_AUDIT_POLICY` i `CV_AUDIT_RESPONSE_SCHEMA` określają diagnozę bez zmian dokumentu. `build_cv_audit_result` sprawdza cytaty względem płótna, usuwa duplikaty, oblicza liczniki oraz zachowuje kategorie nieocenione. Zalecenia kierują do wyspecjalizowanych funkcji; brakujące fakty wymagają pytań. Audyt nie zwraca procentowej oceny ani poprawek.
+Plik `backend/app/services/cv/audit.py`, linie 1–332. `CV_AUDIT_POLICY` i `CV_AUDIT_RESPONSE_SCHEMA` określają diagnozę bez zmian dokumentu. `build_cv_audit_result` sprawdza cytaty względem płótna, usuwa duplikaty, oblicza liczniki oraz zachowuje kategorie nieocenione. Zalecenia kierują do wyspecjalizowanych funkcji; brakujące fakty wymagają pytań. Audyt nie zwraca procentowej oceny ani poprawek.
 
 ```python
 """Evidence-based, read-only CV audit contract and provider normalization.
@@ -45,7 +45,7 @@ judgment, especially an assertion that information is absent.
 from __future__ import annotations
 
 from app.core.localisation import ui_language
-from app.services.cv_editorial_policy import CV_READABILITY_POLICY
+from app.services.cv.editorial_policy import CV_READABILITY_POLICY
 
 
 AUDIT_ACTIONS = (
@@ -369,7 +369,7 @@ def build_cv_audit_result(raw: dict, *, elements: list[dict], language_mix: dict
 
 ## Wspólny standard jakości języka CV
 
-Plik `backend/app/services/cv_editorial_policy.py`, linie 1–134. `STYLE_REVIEW_POLICY` łączy `STYLE_INSTRUCTION`, `STYLE_EXAMPLES` i `FACT_PRESERVATION`. `CV_READABILITY_POLICY` jest wspólną rubryką tworzenia i audytu CV: rozróżnia krótkie listy od przeciążonych wyliczeń oraz zawiera przykłady redakcji KYC, SAR i SAP. Cały asystent, zaznaczone fragmenty oraz redakcja po wywiadzie stosują ten sam standard. `IMPROVE_INSTRUCTION` dodatkowo podkreśla potwierdzony wkład. Skracanie zachowuje własny zakres redukcji; globalne skracanie pomija przykłady, aby ograniczyć koszt wejścia. Gramatyka i tłumaczenie pozostają osobnymi, węższymi zadaniami. Wspólna polityka nie poszerza dozwolonych pól ani nie zmienia formatów odpowiedzi.
+Plik `backend/app/services/cv/editorial_policy.py`, linie 1–134. `STYLE_REVIEW_POLICY` łączy `STYLE_INSTRUCTION`, `STYLE_EXAMPLES` i `FACT_PRESERVATION`. `CV_READABILITY_POLICY` jest wspólną rubryką tworzenia i audytu CV: rozróżnia krótkie listy od przeciążonych wyliczeń oraz zawiera przykłady redakcji KYC, SAR i SAP. Cały asystent, zaznaczone fragmenty oraz redakcja po wywiadzie stosują ten sam standard. `IMPROVE_INSTRUCTION` dodatkowo podkreśla potwierdzony wkład. Skracanie zachowuje własny zakres redukcji; globalne skracanie pomija przykłady, aby ograniczyć koszt wejścia. Gramatyka i tłumaczenie pozostają osobnymi, węższymi zadaniami. Wspólna polityka nie poszerza dozwolonych pól ani nie zmienia formatów odpowiedzi.
 
 ```python
 """One editorial standard for CV prose, independent of transport and edit scope.
@@ -510,7 +510,7 @@ Pytania o brakujące dowody są pomocą dla autora, nie gotową treścią do zas
 
 ## `rating` — Sprawdź CV
 
-Handler `_rate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1154–1192. Funkcja przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami.
+Handler `_rate_cv` w `backend/app/services/ai/assistant/service.py`, linie 1187–1225. Funkcja przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami.
 
 ```python
 def _rate_cv(text: str, elements: list[dict]) -> dict:
@@ -556,7 +556,7 @@ def _rate_cv(text: str, elements: list[dict]) -> dict:
 
 ## `position_rating` — Dopasuj do oferty
 
-Handler `_tailor_cv_to_position` w `backend/app/services/ai_assistant_service.py`, linie 1195–1274. Funkcja analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad.
+Handler `_tailor_cv_to_position` w `backend/app/services/ai/assistant/service.py`, linie 1228–1307. Funkcja analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad.
 
 ```python
 def _tailor_cv_to_position(
@@ -643,7 +643,7 @@ def _tailor_cv_to_position(
 
 ## `grammar` — Sprawdź błędy
 
-Handler `_fix_grammar` w `backend/app/services/ai_assistant_service.py`, linie 1277–1315. Funkcja poprawia gramatykę, ortografię i interpunkcję.
+Handler `_fix_grammar` w `backend/app/services/ai/assistant/service.py`, linie 1310–1348. Funkcja poprawia gramatykę, ortografię i interpunkcję.
 
 ```python
 def _fix_grammar(elements: list[dict], language_code: str = "pl") -> dict:
@@ -653,7 +653,7 @@ def _fix_grammar(elements: list[dict], language_code: str = "pl") -> dict:
     English or German CV is not silently rewritten into Polish. Advice fields
     remain Polish (see `_content_language_directive`).
     """
-    structured = _extract_structured(elements)
+    structured = _extract_content(elements)
 
     system = (
         "Jesteś profesjonalnym korektorem specjalizującym się w dokumentach biznesowych i CV. "
@@ -689,7 +689,7 @@ Zwróć JSON:
 
 ## `language` — Popraw język
 
-Handler `_check_style` w `backend/app/services/ai_assistant_service.py`, linie 1333–1387. Funkcja ulepsza styl w języku bieżącego CV.
+Handler `_check_style` w `backend/app/services/ai/assistant/service.py`, linie 1366–1417. Funkcja ulepsza styl w języku bieżącego CV.
 
 ```python
 def _check_style(text: str, elements: list[dict], language_code: str = "pl") -> dict:
@@ -699,15 +699,12 @@ def _check_style(text: str, elements: list[dict], language_code: str = "pl") -> 
     reviews and interviews. This adapter keeps content-only review cards and
     language-mix feedback; the request UI language controls the advice.
     """
-    structured = _extract_structured(elements)
+    structured = _extract_content(elements)
     language_mix = _detect_language_mix(elements)
     mix_block = _language_mix_prompt_block(language_mix)
 
     system = f"Jesteś redaktorem CV.\n{STYLE_REVIEW_POLICY}\n" + _content_language_directive(language_code)
     user = f"""Przeanalizuj styl językowy tego CV i przeredaguj słabe elementy.
-
-PEŁNY TEKST CV:
-{text}
 
 POJEDYNCZE ELEMENTY (do ukierunkowanych przeredagowań; respektuj `employment_tense`):
 {json.dumps(structured, ensure_ascii=False)}
@@ -729,7 +726,7 @@ ZAKRES AKCJI:
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania: opisz najczęstsze problemy; jeśli jest niespójność językowa — wymień ją jako pierwszą>",
+  "message": "<najwyżej 2 zdania: opisz najczęstsze problemy; jeśli jest niespójność językowa — wymień ją jako pierwszą>",
   "rating": null,
   "tips": [
     "<rzeczywista uwaga oparta na źródle lub pytanie o brakujący konkret>"
@@ -742,7 +739,7 @@ Zwróć JSON:
     result = _gpt_result(system, user, action="language", allowed_fields=_CONTENT_FIELDS)
     if language_mix and not _feedback_mentions_language_mix(result):
         tips = [language_mix["tip"], *(result.get("tips") or [])]
-        result["tips"] = tips[:8]
+        result["tips"] = tips[:3]
         message = str(result.get("message") or "").strip()
         lead = language_mix["message_sentence"]
         result["message"] = f"{lead} {message}".strip() if message else lead
@@ -751,7 +748,7 @@ Zwróć JSON:
 
 ## `improve` — Wzmocnij treść
 
-Handler `_improve_content` w `backend/app/services/ai_assistant_service.py`, linie 1390–1437. Funkcja wzmacnia opisy bez wymyślania faktów.
+Handler `_improve_content` w `backend/app/services/ai/assistant/service.py`, linie 1420–1463. Funkcja wzmacnia opisy bez wymyślania faktów.
 
 ```python
 def _improve_content(elements: list[dict], language_code: str = "pl") -> dict:
@@ -759,16 +756,12 @@ def _improve_content(elements: list[dict], language_code: str = "pl") -> dict:
 
     ``language_code`` keeps rewrites in the CV language; advice stays Polish.
     """
-    structured = _extract_structured(elements)
-    full_text = _extract_text(elements)
+    structured = _extract_content(elements)
     language_mix = _detect_language_mix(elements)
     mix_block = _language_mix_prompt_block(language_mix)
 
     system = f"Jesteś redaktorem CV.\n{STYLE_REVIEW_POLICY}\n" + _content_language_directive(language_code)
     user = f"""{IMPROVE_INSTRUCTION}
-
-PEŁNY TEKST CV (kontekst dat stanowisk):
-{full_text}
 
 ELEMENTY (respektuj `employment_tense`):
 {json.dumps(structured, ensure_ascii=False)}
@@ -791,7 +784,7 @@ ZAKRES AKCJI:
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania podsumowujące, co poprawiono i dlaczego; wspomnij ujednolicenie języka, jeśli dotyczy>",
+  "message": "<najwyżej 2 zdania podsumowujące, co poprawiono i dlaczego; wspomnij ujednolicenie języka, jeśli dotyczy>",
   "rating": null,
   "tips": [
     "<uwaga o potwierdzonym wkładzie lub pytanie o brakujący rezultat; pomiń, jeśli zbędne>"
@@ -806,7 +799,7 @@ Zwróć JSON:
 
 ## `shorten` — Skróć CV
 
-Handler `_shorten_content` w `backend/app/services/ai_assistant_service.py`, linie 1440–1505. Funkcja kondensuje treść bez zmiany znaczenia.
+Handler `_shorten_content` w `backend/app/services/ai/assistant/service.py`, linie 1466–1527. Funkcja kondensuje treść bez zmiany znaczenia.
 
 ```python
 def _shorten_content(elements: list[dict], language_code: str = "pl") -> dict:
@@ -821,8 +814,7 @@ def _shorten_content(elements: list[dict], language_code: str = "pl") -> dict:
 
     ``language_code`` keeps the shortened `content` in the CV language.
     """
-    structured = _extract_structured(elements)
-    full_text = _extract_text(elements)
+    structured = _extract_content(elements)
 
     system = (
         "Jesteś redaktorem CV specjalizującym się w zwięzłości. Skracasz zbyt długie CV, "
@@ -836,9 +828,6 @@ def _shorten_content(elements: list[dict], language_code: str = "pl") -> dict:
     user = f"""CV jest zbyt długie. Znajdź fragmenty, które można skrócić, połączyć lub usunąć bez utraty ważnych informacji zawodowych.
 Celem jest odzyskanie miejsca. Nie obiecuj liczby zaoszczędzonych wierszy lub stron:
 rzeczywisty wynik zależy od składu dokumentu. Nie usuwaj całych elementów.
-
-PEŁNY TEKST CV (kontekst):
-{full_text}
 
 ELEMENTY (edytuj tylko treść doświadczenia, umiejętności, podsumowania i sekcji dodatkowych):
 {json.dumps(structured, ensure_ascii=False)}
@@ -879,7 +868,7 @@ Zwróć JSON:
 
 ## `ats_score` — Sprawdź ATS
 
-Handler `_ats_score` w `backend/app/services/ai_assistant_service.py`, linie 1758–1856. Funkcja łączy deterministyczny odczyt PDF z oceną struktury.
+Handler `_ats_score` w `backend/app/services/ai/assistant/service.py`, linie 1815–1913. Funkcja łączy deterministyczny odczyt PDF z oceną struktury.
 
 ```python
 def _ats_score(
@@ -985,7 +974,7 @@ Zwróć JSON:
 
 ## `translate` — Przetłumacz CV
 
-Handler `_translate_cv` w `backend/app/services/ai_assistant_service.py`, linie 1657–1755. Funkcja tłumaczy pełną treść i profil na wybrany język.
+Handler `_translate_cv` w `backend/app/services/ai/assistant/service.py`, linie 1714–1812. Funkcja tłumaczy pełną treść i profil na wybrany język.
 
 ```python
 def _translate_cv(
@@ -1021,7 +1010,7 @@ def _translate_cv(
         if el.get("fixedToPage") or el.get("locked")
     }
     structured = [
-        el for el in _extract_structured(elements)
+        el for el in _extract_content(elements)
         if str(el.get("element_id")) not in protected_ids
     ]
 
@@ -1063,7 +1052,7 @@ ZASADY:
 
 Zwróć JSON:
 {{
-  "message": "<2–3 zdania po polsku: ile elementów przetłumaczono i na jaki język>",
+  "message": "<najwyżej 2 zdania po polsku: ile elementów przetłumaczono i na jaki język>",
   "rating": null,
   "tips": [
     "<krótka wskazówka po polsku, np. sprawdź nazwy własne przed wysyłką>"
@@ -1091,7 +1080,7 @@ Zwróć JSON:
 
 ## `chat` — Czat
 
-Handler `_chat` w `backend/app/services/ai_assistant_service.py`, linie 1881–2182. Funkcja odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji.
+Handler `_chat` w `backend/app/services/ai/assistant/service.py`, linie 1938–2239. Funkcja odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji.
 
 ```python
 def _chat(
@@ -1400,7 +1389,7 @@ Zwróć JSON:
 
 ## Redakcja kanonicznego profilu CV
 
-Handler `_rewrite_profile_content` w `backend/app/services/ai_assistant_service.py`, linie 1569–1654. Przy istniejącym `cv_data` zwraca kompletny `updated_cv_data` i poprawki płótna do akceptacji. Wspólny standard jest dołączany zależnie od wybranej akcji; jej reguły nadal określają język, zakres i dozwolone zmiany struktury.
+Handler `_rewrite_profile_content` w `backend/app/services/ai/assistant/service.py`, linie 1591–1681. Przy istniejącym `cv_data` zwraca kompletny `updated_cv_data` i poprawki płótna do akceptacji. Wspólny standard jest dołączany zależnie od wybranej akcji; jej reguły nadal określają język, zakres i dozwolone zmiany struktury.
 
 ```python
 def _rewrite_profile_content(
@@ -1427,7 +1416,7 @@ def _rewrite_profile_content(
         "translate": f"Przetłumacz pełną treść na język: {_TRANSLATE_LANGUAGE_NAMES.get(target_language, target_language)}.",
     }
     rule = action_rules[action]
-    structured = _extract_structured(elements)
+    structured = _extract_content(elements)
     system = (
         "Jesteś redaktorem CV. Zwracasz wyłącznie poprawny JSON. "
         "Nie zmieniaj danych osobowych, nazw firm, adresów e-mail, telefonów, "
@@ -1440,6 +1429,11 @@ def _rewrite_profile_content(
     elif action == "shorten":
         system += "\n" + STYLE_INSTRUCTION
     system += "\n" + _content_language_directive(language_code)
+    system += "\nPodsumowanie: najwyżej dwa zdania. Tips: najwyżej trzy konkretne uwagi; [] jest poprawne."
+    if _PROFILE_PATCHES_ENABLED and action in {"grammar", "language", "improve", "shorten"}:
+        catalog = build_profile_catalog(profile, elements)
+        if catalog is not None:
+            return _rewrite_profile_patches(action, catalog, system, rule, language_code)
     scope_rules = ""
     if action in {"language", "improve", "shorten"}:
         scope_rules = f"""{_tense_rules_for(language_code)}
@@ -1493,13 +1487,14 @@ Zwróć JSON:
 
 ## Redakcja wybranego zakresu
 
-Handler `review_scoped_content` w `backend/app/services/scoped_ai.py`, linie 168–208. Wysyła wyłącznie wybrane fragmenty oraz kontekst tylko do odczytu. Walidacja zachowuje identyfikatory, liczby, rozpoznane narzędzia i pojedyncze umiejętności. `improve` może osobno zwrócić `achievement_templates` z pytaniami; niepotwierdzone uzupełnienia nie trafiają do gotowych poprawek.
+Handler `review_scoped_content` w `backend/app/services/ai/assistant/scoped.py`, linie 170–212. Wysyła wyłącznie wybrane fragmenty oraz kontekst tylko do odczytu. Walidacja zachowuje identyfikatory, liczby, rozpoznane narzędzia i pojedyncze umiejętności. `improve` może osobno zwrócić `achievement_templates` z pytaniami; niepotwierdzone uzupełnienia nie trafiają do gotowych poprawek.
 
 ```python
+@measure_operation("scoped")
 def review_scoped_content(action: str, scope: ScopedContent) -> dict:
     """Run one metered review; preserve known provider usage on validation failure."""
     # Local import avoids a cycle with the legacy assistant dispatcher.
-    from app.services.ai_assistant_service import AIServiceError, _gpt, _detect_cv_language, _model_for_action
+    from app.services.ai.assistant.service import AIServiceError, _gpt, _detect_cv_language, _model_for_action
 
     if not _model_for_action(action).startswith("gpt-"):
         raise AIServiceError("Scoped reviews require an OpenAI GPT model", action=action,
@@ -1527,7 +1522,8 @@ Zwróć WYŁĄCZNIE JSON z message w języku interfejsu oraz tablicami scoped_co
 Poprawka: {{"fragment_id":"id", "before":"dokładna treść wejściowa", "content":"pełny nowy tekst"}}.
 Wzór: {{"fragment_id":"id", "template":"tekst z [lukami]", "questions":["pytanie"]}}.
 Uwzględniaj tylko rzeczywiście zmienione fragmenty. Puste tablice są poprawną odpowiedzią."""
-    raw, usage = _gpt(system, json.dumps(scope.model_dump(), ensure_ascii=False), action=action)
+    raw, usage = _gpt(system, json.dumps(scope.model_dump(), ensure_ascii=False), action=action,
+                      task=task_name(action, workflow="scoped"))
     try:
         result = validate_scoped_result(raw, scope, action)
     except (ValueError, TypeError, KeyError) as exc:
@@ -1541,7 +1537,7 @@ Uwzględniaj tylko rzeczywiście zmienione fragmenty. Puste tablice są poprawn�
 
 ## Redakcja i wersjonowanie generowania po wywiadzie
 
-Plik `backend/app/services/interview_editorial.py`, linie 1–204. `EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. Zwraca pełne `path/value/additional_points`, zachowuje dowody i zaakceptowane `framing`; serwer dopisuje fragmenty podziału do tej samej roli. Niezależna weryfikacja sprawdza fakty i czytelność; dopuszcza jedną parę redakcji i kontroli naprawczej. Wersja procesu unieważnia ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.
+Plik `backend/app/services/interviews/editorial.py`, linie 1–204. `EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. Zwraca pełne `path/value/additional_points`, zachowuje dowody i zaakceptowane `framing`; serwer dopisuje fragmenty podziału do tej samej roli. Niezależna weryfikacja sprawdza fakty i czytelność; dopuszcza jedną parę redakcji i kontroli naprawczej. Wersja procesu unieważnia ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.
 
 ```python
 """Content-only interview redaction and resumable, version-bound generation.
@@ -1554,9 +1550,9 @@ import re
 from uuid import uuid4
 
 from app.schemas.interview_schema import Draft
-from app.services import interview_service as service
-from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY, CV_READABILITY_POLICY
-from app.services.scoped_ai import preserves_protected_tokens
+from app.services.interviews import service
+from app.services.cv.editorial_policy import STYLE_REVIEW_POLICY, CV_READABILITY_POLICY
+from app.services.ai.assistant.scoped import preserves_protected_tokens
 
 # Restart unfinished attempts under the advisory readability contract.
 # Reusing a pre-upgrade attempt could pair its reservation key with a changed
@@ -1752,7 +1748,7 @@ def begin_generation(db, row, request, profile):
 
 ## Wspólna polityka dopasowania i redakcji CV
 
-Plik `backend/app/services/job_matching_policy.py`, linie 1–191. Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.
+Plik `backend/app/services/tailoring/policy.py`, linie 1–191. Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.
 
 ```python
 """Shared job-matching instructions for analysis and verified CV preparation.

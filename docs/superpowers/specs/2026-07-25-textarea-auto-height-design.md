@@ -7,7 +7,7 @@ A `textarea` element's `height` is a plain stored number, set once at creation
 resize handle. Nothing keeps it in sync with `content`: typing past the
 current height doesn't grow the box, and nothing stops a user from
 drag-shrinking a box below what its text needs. This isn't just a canvas
-cosmetic issue — `pdf_generator.py`'s `renderTextarea` clips any wrapped line
+cosmetic issue — `documents/rendering/pdf.py`'s `renderTextarea` clips any wrapped line
 whose top falls at or past the stored `height`, so an out-of-sync height
 **silently drops text from the exported PDF**.
 
@@ -23,7 +23,7 @@ Manual height dragging is removed; only width stays user-adjustable.
 - No change to already-saved documents. This only affects textareas as they
   are created or edited going forward — opening an old document doesn't
   retroactively touch its stored heights.
-- No backend/PDF-generation change. `pdf_generator.py` already uses stored
+- No backend/PDF-generation change. `documents/rendering/pdf.py` already uses stored
   `height` as-is; once the frontend reliably keeps it in sync, the existing
   clip-on-overflow behavior simply stops triggering in practice. It remains
   as a defensive backstop, unchanged.
@@ -59,7 +59,7 @@ rendering.
 Immediately after computing the new width, height is recomputed from a new
 shared helper — `measureTextareaHeight(content, width, fontSize,
 lineHeight)`, a JS port of the character-count formula
-`cv_generator.py`'s `Builder.block` already uses for AI-generated CVs
+`cv/generator.py`'s `Builder.block` already uses for AI-generated CVs
 (`cpl = width / (fontSize × 0.52)`, wrapped-line count via `ceil(len/cpl)`
 per line, blank lines counting as 1, `× lineHeight + 6`). Reusing this
 existing, already-validated heuristic (rather than a second DOM-measurement

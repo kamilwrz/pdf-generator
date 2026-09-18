@@ -8,10 +8,10 @@ import pytest
 from app.main import app
 from app.core.security import get_current_user
 from app.models.models import InterviewSession, AiCreditReservation
-from app.services import interview_service as service
-from app.services.entitlements import set_user_plan
-from app.services.interview_templates import _candidate
-from app.services.ai_service import generate_resume
+from app.services.interviews import service
+from app.services.billing.entitlements import set_user_plan
+from app.services.interviews.templates import _candidate
+from app.services.imports.extraction import generate_resume
 from test_interviews import environment, version
 from test_interview_fit import prepared, post
 
@@ -157,7 +157,7 @@ def test_incompatible_template_that_drops_visible_fact_is_excluded(environment):
     client, db, _, _ = environment
     session = completed(client, db)
     row = db.get(InterviewSession, session['id'])
-    with patch('app.services.interview_templates.generate_resume', return_value=[{
+    with patch('app.services.interviews.templates.generate_resume', return_value=[{
         'category': 'text', 'content': 'Test Candidate', 'page': 1, 'fontSize': 20}]):
         assert _candidate(row, 'meridian') is None
 

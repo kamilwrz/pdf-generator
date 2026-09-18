@@ -3,8 +3,8 @@ import asyncio
 
 import pytest
 from app.core.localisation import UiLanguageMiddleware, message, resolve_language, ui_language, ui_language_policy
-from app.services.cv_generator import generate_resume, _GENERATORS
-from app.services.cv_data import normalize_cv_data
+from app.services.cv.generator import generate_resume, _GENERATORS
+from app.services.cv.data import normalize_cv_data
 
 @pytest.mark.parametrize("header,expected", [("", "pl"), ("de", "pl"), ("en-GB", "en"), ("en;q=0,pl;q=0.8", "pl"), ("pl;q=0.2,en;q=0.9", "en"), ("en;q=bad", "pl")])
 def test_http_language_resolution(header, expected):
@@ -94,7 +94,8 @@ def test_safe_global_and_validation_errors_keep_request_language(language):
 def test_email_and_checkout_use_operation_language(language):
     import json
     from unittest.mock import MagicMock, patch
-    from app.services import email_service, stripe_service
+    from app.services.accounts import email as email_service
+    from app.services.billing import stripe as stripe_service
     token = ui_language.set(language)
     try:
         response = MagicMock()

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS, generate_resume
 
 
 class RegentTemplateTests(unittest.TestCase):

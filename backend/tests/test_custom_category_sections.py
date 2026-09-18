@@ -1,8 +1,8 @@
 """Category/body contracts must survive every template, independent of heading."""
 import unittest
 
-from app.services.cv_data import normalize_cv_data
-from app.services.cv_templates.registry import TEMPLATE_CATALOG, generate_resume
+from app.services.cv.data import normalize_cv_data
+from app.services.cv.templates.registry import TEMPLATE_CATALOG, generate_resume
 
 
 class CustomCategorySectionsTests(unittest.TestCase):

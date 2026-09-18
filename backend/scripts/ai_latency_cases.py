@@ -26,7 +26,7 @@ def benchmark_cases():
     inflection error; other short cases exercise unnecessary-edit avoidance.
     Automated checks cannot establish editorial quality.
     """
-    from app.services.cv_data import normalize_cv_data
+    from app.services.cv.data import normalize_cv_data
 
     cases = []
     for language, sentence in SENTENCES.items():

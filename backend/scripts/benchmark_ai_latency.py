@@ -30,7 +30,7 @@ DEFAULT_BASELINE = BACKEND / "tests" / "fixtures" / "ai_latency_baseline.json"
 
 def capture_baseline(destination: Path):
     """Freeze actual original provider requests without paying for inference."""
-    from app.services import ai_assistant_service as assistant
+    from app.services.ai.assistant import service as assistant
 
     if destination.exists():
         raise ValueError("Refusing to overwrite a frozen baseline; choose a new path")
@@ -127,10 +127,10 @@ def run_benchmark(*, baseline_path, output, variants, repetitions, limit, live, 
     Authentication/model/network failures stop immediately, without another paid
     attempt or a long loop of predictable failures.
     """
-    from app.services import ai_assistant_service as assistant
-    from app.services.ai_telemetry import usage_counters
-    from app.services.cv_data import normalize_cv_data
-    from app.services.cv_profile_patches import preserves_field_evidence
+    from app.services.ai.assistant import service as assistant
+    from app.services.ai.telemetry import usage_counters
+    from app.services.cv.data import normalize_cv_data
+    from app.services.cv.profile_patches import preserves_field_evidence
 
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     if not baseline.get("synthetic_only"):

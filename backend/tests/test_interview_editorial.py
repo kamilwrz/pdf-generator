@@ -9,11 +9,11 @@ from fastapi import HTTPException
 from app.api.routes import interviews
 from app.models.models import AiCreditReservation, InterviewSession
 from app.schemas.interview_schema import Discovery, EditorialReview, provider_schema
-from app.services import interview_service as service
-from app.services import interview_editorial as editorial_service
-from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY
-from app.services.interview_editorial import apply_editorial_review, prepare_editorial_draft
-from app.services.job_matching_policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
+from app.services.interviews import service
+from app.services.interviews import editorial as editorial_service
+from app.services.cv.editorial_policy import STYLE_REVIEW_POLICY
+from app.services.interviews.editorial import apply_editorial_review, prepare_editorial_draft
+from app.services.tailoring.policy import TAILORED_DRAFT_POLICY, TAILORED_EDITORIAL_POLICY
 from test_interviews import environment, create, confirm, version, editorial
 
 USAGE = {'cost_pln_estimate': .01}
@@ -258,7 +258,7 @@ def test_follow_up_consumes_remaining_budget_and_skip_does_not_create_fact(envir
     row = db.get(InterviewSession, session['id'])
     # Apply record discovery before explicitly narrowing this test's remaining
     # round; ordinary resumes must not silently extend an unchanged queue.
-    from app.services.interview_discovery import update_discovery_budget
+    from app.services.interviews.discovery import update_discovery_budget
     state = deepcopy(row.state)
     update_discovery_budget(state, service.profile_payload(db, user.id))
     row.state = state
@@ -477,7 +477,7 @@ def test_readability_advice_replays_after_render_failure_without_new_charges(env
 
 
 def test_split_rejection_restores_whole_original_without_partial_claims():
-    from app.services.interview_recovery import assemble_reviewed_draft
+    from app.services.interviews.recovery import assemble_reviewed_draft
     profile = {'facts': [
         {'id': 'name', 'kind': 'fact', 'path': '/name', 'text': 'Anna Nowak'},
         {'id': 'aml', 'kind': 'fact', 'path': AML_PATH, 'text': AML_LONG},
@@ -507,8 +507,8 @@ def test_split_cannot_remove_metrics_or_split_literal_framing():
 
 
 def test_audit_and_generation_share_readability_without_blanket_length_rules():
-    from app.services.cv_audit import CV_AUDIT_POLICY
-    from app.services.cv_editorial_policy import CV_READABILITY_POLICY
+    from app.services.cv.audit import CV_AUDIT_POLICY
+    from app.services.cv.editorial_policy import CV_READABILITY_POLICY
     assert CV_READABILITY_POLICY in CV_AUDIT_POLICY
     assert CV_READABILITY_POLICY in editorial_service.EDITORIAL_TASK
     assert CV_READABILITY_POLICY in editorial_service.QUALITY_TASK
@@ -575,7 +575,7 @@ def test_single_activity_checklist_policy_reaches_writing_and_verification(envir
     The mocked reviewer distinguishes two SAR review scopes despite their shared
     object. This verifies transport and preservation, not live semantic judgement.
     """
-    from app.services.cv_editorial_policy import CV_READABILITY_POLICY
+    from app.services.cv.editorial_policy import CV_READABILITY_POLICY
 
     client, db, _, _ = environment
     concise = 'Analiza transakcji i przygotowywanie raportów SAR dla niemieckiej FIU.'

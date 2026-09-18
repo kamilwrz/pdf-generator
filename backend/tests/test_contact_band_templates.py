@@ -7,7 +7,7 @@ same coordinate when channels are added or removed.
 """
 import pytest
 
-from app.services.cv_generator import generate_resume
+from app.services.cv.generator import generate_resume
 
 _CV = {
     "name": "Jan Kowalski",

@@ -129,18 +129,18 @@ git commit -m "feat: add pdfs.watermarked and user_subscriptions.free_import_use
 ### Task 2: Free-plan lifetime import gate
 
 **Files:**
-- Modify: `backend/app/services/entitlements.py:313-357` (`get_entitlements`), `backend/app/services/entitlements.py:442-450` (`assert_can_extract_cv`)
+- Modify: `backend/app/services/billing/entitlements.py:313-357` (`get_entitlements`), `backend/app/services/billing/entitlements.py:442-450` (`assert_can_extract_cv`)
 - Modify: `backend/app/api/routes/ai.py:82-107` (`extract_cv`)
 - Modify: `backend/tests/test_extract_cv_rejection.py` (existing test asserts unconditional Free rejection — now false; must be rewritten)
 - Test: `backend/tests/test_extract_cv_rejection.py`
 
 **Interfaces:**
 - Produces: `entitlements.mark_free_import_used(db: Session, user_id: int) -> None`; `get_entitlements(...)` return dict gains `"free_import_used": bool`.
-- Consumes: `get_or_create_subscription(db, user_id) -> UserSubscription` (existing, `entitlements.py:191-192`).
+- Consumes: `get_or_create_subscription(db, user_id) -> UserSubscription` (existing, `billing/entitlements.py:191-192`).
 
 - [ ] **Step 1: Expose `free_import_used` in `get_entitlements`**
 
-In `backend/app/services/entitlements.py`, inside `get_entitlements` (around line 331), add one key to the returned dict:
+In `backend/app/services/billing/entitlements.py`, inside `get_entitlements` (around line 331), add one key to the returned dict:
 
 ```python
     return {
@@ -209,7 +209,7 @@ def assert_can_extract_cv(db: Session, user: User) -> None:
 In `backend/app/api/routes/ai.py`, add the import and call it after a successful extraction (around line 103-105):
 
 ```python
-from app.services.entitlements import (
+from app.services.billing.entitlements import (
     FREE_STARTER_TEMPLATE_IDS,
     PlanLimitError,
     assert_can_extract_cv,
@@ -357,7 +357,7 @@ Expected: all PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add backend/app/services/entitlements.py backend/app/api/routes/ai.py backend/tests/test_extract_cv_rejection.py
+git add backend/app/services/billing/entitlements.py backend/app/api/routes/ai.py backend/tests/test_extract_cv_rejection.py
 git commit -m "feat: allow Free-plan accounts one lifetime free CV import"
 ```
 
@@ -413,7 +413,7 @@ git commit -m "feat: let Free-plan users use their one free CV import in the UI"
 ### Task 4: Watermark rendering primitive
 
 **Files:**
-- Modify: `backend/app/services/pdf_generator.py:130-142` (`__init__`), `backend/app/services/pdf_generator.py:952-1022` (`render_elements`)
+- Modify: `backend/app/services/documents/rendering/pdf.py:130-142` (`__init__`), `backend/app/services/documents/rendering/pdf.py:952-1022` (`render_elements`)
 - Test: `backend/tests/test_pdf_watermark.py`
 
 **Interfaces:**
@@ -428,7 +428,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.pdf_generator import PDF_Generator
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 class RecordingCanvas:
@@ -508,7 +508,7 @@ Expected: FAIL — `_draw_watermark` does not exist, and `render_elements` does 
 
 - [ ] **Step 3: Store `page_w` in `__init__`**
 
-In `backend/app/services/pdf_generator.py`, `__init__` (around line 137-142):
+In `backend/app/services/documents/rendering/pdf.py`, `__init__` (around line 137-142):
 
 ```python
     def __init__(self, DATA, CANVAS):
@@ -559,7 +559,7 @@ Add this method right before `render_elements` (before line 952):
         preserved. ``image_resolver(src)`` returns a local path ReportLab
         can read. ``watermark=True`` overlays a diagonal "free plan" stamp
         on every page after its elements are drawn (Free-plan exports only
-        — see `document_service.py` / `pdf.py` callers)."""
+        — see `documents/service.py` / `pdf.py` callers)."""
 ```
 
 Then, inside the existing per-page loop (around line 1020), right before `self.c.showPage()`:
@@ -589,7 +589,7 @@ Expected: all PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/pdf_generator.py backend/tests/test_pdf_watermark.py
+git add backend/app/services/documents/rendering/pdf.py backend/tests/test_pdf_watermark.py
 git commit -m "feat: add opt-in diagonal watermark overlay to PDF_Generator"
 ```
 
@@ -785,7 +785,7 @@ git commit -m "feat: reconstruct renderable PdfElements from stored rows"
 ### Task 6: Set `Pdf.watermarked` at save time
 
 **Files:**
-- Modify: `backend/app/services/document_service.py:70-133` (`create_pdf_document`), `backend/app/services/document_service.py:136-181` (`update_pdf_document`)
+- Modify: `backend/app/services/documents/service.py:70-133` (`create_pdf_document`), `backend/app/services/documents/service.py:136-181` (`update_pdf_document`)
 - Modify: `backend/app/api/routes/pdf.py:138-151` (`update_user_pdf` — needs to fetch and pass `user`)
 
 **Interfaces:**
@@ -794,10 +794,10 @@ git commit -m "feat: reconstruct renderable PdfElements from stored rows"
 
 - [ ] **Step 1: Compute and apply the watermark flag in `create_pdf_document`**
 
-In `backend/app/services/document_service.py`, add the import:
+In `backend/app/services/documents/service.py`, add the import:
 
 ```python
-from app.services.entitlements import get_entitlements
+from app.services.billing.entitlements import get_entitlements
 ```
 
 At the top of `create_pdf_document` (right after the `if not elements:` guard, around line 79):
@@ -822,7 +822,7 @@ Both `create_new_pdf` calls (S3 branch around line 97, local branch around line 
 
 - [ ] **Step 2: Add `watermark` to `build_pdf_to_buffer`**
 
-In `backend/app/utils/build_pdf.py`:
+In `backend/app/services/documents/rendering/build.py`:
 
 ```python
 def build_pdf_to_buffer(pdf_data, elements, image_src_resolver, watermark: bool = False) -> bytes:
@@ -845,7 +845,7 @@ def build_pdf_to_buffer(pdf_data, elements, image_src_resolver, watermark: bool 
 
 - [ ] **Step 3: Do the same in `update_pdf_document`, and give it a `user` parameter**
 
-In `backend/app/services/document_service.py`, change the signature:
+In `backend/app/services/documents/service.py`, change the signature:
 
 ```python
 def update_pdf_document(db: Session, *, pdf_row, user, username: str, pdf_data) -> dict:
@@ -919,7 +919,7 @@ def create_new_pdf(
 
 And add `watermarked=watermarked` to the `Pdf(...)` constructor call (`pdfs.py:71-83`), alongside `spacing_px=serialize_spacing_px(spacing_px)`.
 
-Update both call sites in `document_service.py` (`create_pdf_document`, S3 branch around line 97 and local branch around line 114) to pass `watermarked=watermark`.
+Update both call sites in `documents/service.py` (`create_pdf_document`, S3 branch around line 97 and local branch around line 114) to pass `watermarked=watermark`.
 
 - [ ] **Step 6: Run the full backend suite**
 
@@ -932,7 +932,7 @@ Expected: all PASS — this task only adds a new parameter with defaults everywh
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/document_service.py backend/app/utils/build_pdf.py backend/app/api/routes/pdf.py backend/app/crud/pdfs.py
+git add backend/app/services/documents/service.py backend/app/services/documents/rendering/build.py backend/app/api/routes/pdf.py backend/app/crud/pdfs.py
 git commit -m "feat: set Pdf.watermarked from the account's plan at save time"
 ```
 
@@ -942,7 +942,7 @@ git commit -m "feat: set Pdf.watermarked from the account's plan at save time"
 
 **Files:**
 - Modify: `backend/app/api/routes/pdf.py:185-208` (`download_pdf`)
-- Create: `backend/app/services/document_service.py` — add `render_pdf_for_download`
+- Create: `backend/app/services/documents/service.py` — add `render_pdf_for_download`
 - Test: `backend/tests/test_download_watermark.py`
 - Modify: `backend/tests/test_export_metering.py` (verify still passes; the local branch now touches the filesystem)
 
@@ -1042,7 +1042,7 @@ class DownloadWatermarkTests(unittest.TestCase):
         self._pdf_row().watermarked = True  # already matches Free's requirement
         self.db.commit()
         with patch.object(pdf_route, "USE_S3", False), \
-             patch("app.services.document_service.render_pdf_for_download") as mock_render:
+             patch("app.services.documents.service.render_pdf_for_download") as mock_render:
             response = self.client.post("/pdf/download_pdf", json=self.pdf_id)
         self.assertEqual(response.status_code, 200, msg=response.text)
         mock_render.assert_not_called()
@@ -1073,7 +1073,7 @@ Expected: FAIL — `download_pdf` doesn't re-render or check `watermarked` yet.
 
 - [ ] **Step 3: Implement `render_pdf_for_download`**
 
-In `backend/app/services/document_service.py`, add:
+In `backend/app/services/documents/service.py`, add:
 
 ```python
 from types import SimpleNamespace
@@ -1162,8 +1162,8 @@ async def download_pdf(
 Add the imports:
 
 ```python
-from app.services.document_service import create_pdf_document, update_pdf_document, render_pdf_for_download
-from app.services.entitlements import assert_can_create_project, assert_can_export, get_entitlements, record_export
+from app.services.documents.service import create_pdf_document, update_pdf_document, render_pdf_for_download
+from app.services.billing.entitlements import assert_can_create_project, assert_can_export, get_entitlements, record_export
 ```
 
 - [ ] **Step 5: Run the new test**
@@ -1193,7 +1193,7 @@ Expected: all PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add backend/app/services/document_service.py backend/app/api/routes/pdf.py backend/tests/test_download_watermark.py backend/tests/test_export_metering.py
+git add backend/app/services/documents/service.py backend/app/api/routes/pdf.py backend/tests/test_download_watermark.py backend/tests/test_export_metering.py
 git commit -m "feat: self-healing watermark re-render on download after a plan change"
 ```
 

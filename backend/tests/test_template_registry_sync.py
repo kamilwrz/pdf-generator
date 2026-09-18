@@ -11,8 +11,8 @@ import re
 import unittest
 from pathlib import Path
 
-from app.services.cv_generator import TEMPLATE_LAYOUTS, _GENERATORS
-from app.services.entitlements import FREE_STARTER_TEMPLATE_IDS
+from app.services.cv.generator import TEMPLATE_LAYOUTS, _GENERATORS
+from app.services.billing.entitlements import FREE_STARTER_TEMPLATE_IDS
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_REGISTRY = REPO_ROOT / "frontend" / "src" / "templates" / "index.js"

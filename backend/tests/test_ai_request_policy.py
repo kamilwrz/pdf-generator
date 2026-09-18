@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from app.services.ai_request_policy import reasoning_effort, task_name
-from app.services import ai_assistant_service as assistant
+from app.services.ai.request_policy import reasoning_effort, task_name
+from app.services.ai.assistant import service as assistant
 
 
 @pytest.mark.parametrize("workflow,operation,action,expected", [

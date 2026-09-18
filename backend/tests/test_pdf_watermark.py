@@ -4,7 +4,7 @@ from __future__ import annotations
 import unittest
 from types import SimpleNamespace
 
-from app.services.pdf_generator import PDF_Generator
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 class RecordingCanvas:

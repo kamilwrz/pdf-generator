@@ -5,7 +5,7 @@
  * identity system, and a measured contact rail.
  *
  * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/linden.py`) for
+ * (`backend/app/services/cv/templates/generators/linden.py`) for
  * representative demo content (Julia Bernat — four roles, two education
  * records, eight skills, and four languages, sized to fit page 1 of the
  * mockup), so the

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.cv_generator_primitives import Builder, CONTENT_BOTTOM, PAGE_TOP
-from app.services.cv_templates.shared.text import (
+from app.services.cv.layout.primitives import Builder, CONTENT_BOTTOM, PAGE_TOP
+from app.services.cv.templates.shared.text import (
     _layout_skill_chips,
     _measure_skill_chips_row,
     _place_skill_chips_row,

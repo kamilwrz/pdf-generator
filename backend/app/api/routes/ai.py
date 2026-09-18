@@ -35,11 +35,11 @@ from app.crud.cv_import_snapshots import (
 )
 from app.dependencies import get_db
 from app.schemas.cv_data_schema import BioCvDraftRequest, BioCvDraftResponse
-from app.services.cv_data import CvDataValidationError, normalize_cv_data
-from app.services.ai_service import CvExtractionError, extract_cv_data, generate_resume
-from app.services.cv_generator_primitives import use_spacing
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS
-from app.services.entitlements import (
+from app.services.cv.data import CvDataValidationError, normalize_cv_data
+from app.services.imports.extraction import CvExtractionError, extract_cv_data, generate_resume
+from app.services.cv.layout.primitives import use_spacing
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS
+from app.services.billing.entitlements import (
     AiReservationError,
     FREE_STARTER_TEMPLATE_IDS,
     PlanLimitError,

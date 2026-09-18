@@ -18,9 +18,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.models.database import Base
-from app.services import deployment_bootstrap
-from app.services.entitlements import seed_plans
-from app.services.readiness import (
+from app.jobs import bootstrap as deployment_bootstrap
+from app.services.billing.entitlements import seed_plans
+from app.core.readiness import (
     ReadinessGate,
     ReadinessProbe,
     ReadinessResult,
@@ -199,7 +199,7 @@ class DeploymentBootstrapTests(unittest.TestCase):
 
             for _attempt in range(2):
                 completed = subprocess.run(
-                    [sys.executable, "-m", "app.services.deployment_bootstrap"],
+                    [sys.executable, "-m", "app.jobs.bootstrap"],
                     cwd=BACKEND_ROOT,
                     env=environment,
                     capture_output=True,
@@ -273,7 +273,7 @@ class DeploymentBootstrapTests(unittest.TestCase):
                 "ALLOW_INSECURE_SECRET": "false",
                 "ENVIRONMENT": "development",
             })
-            command = [sys.executable, "-m", "app.services.deployment_bootstrap"]
+            command = [sys.executable, "-m", "app.jobs.bootstrap"]
             first = subprocess.run(
                 command,
                 cwd=BACKEND_ROOT,
@@ -322,7 +322,7 @@ class DeploymentBootstrapTests(unittest.TestCase):
     def test_render_blueprint_uses_predeploy_and_readiness_probe(self):
         manifest = (BACKEND_ROOT.parent / "render.yaml").read_text(encoding="utf-8")
 
-        self.assertIn("preDeployCommand: python -m app.services.deployment_bootstrap", manifest)
+        self.assertIn("preDeployCommand: python -m app.jobs.bootstrap", manifest)
         self.assertIn("healthCheckPath: /ready", manifest)
         # The static bundle must use the API's public URL, not Render's private
         # service hostname, because requests originate in the user's browser.
@@ -357,7 +357,7 @@ class DeploymentBootstrapTests(unittest.TestCase):
         self.assertIn('value: "true"', manifest)
         self.assertIn("Preview environments are intentionally disabled", manifest)
         self.assertIn("name: cv-studio-storage-cleanup", manifest)
-        self.assertIn("startCommand: python -m app.services.storage_cleanup_worker", manifest)
+        self.assertIn("startCommand: python -m app.jobs.storage_cleanup", manifest)
         self.assertGreaterEqual(manifest.count("key: S3_BUCKET_NAME"), 2)
 
 

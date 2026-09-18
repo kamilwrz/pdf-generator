@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.cv_generator import (
+from app.services.cv.generator import (
     CONTENT_BOTTOM,
     SPACE_STACK,
     Builder,
     generate_resume,
 )
-from app.services.cv_generator_primitives import PAGE_TOP
+from app.services.cv.layout.primitives import PAGE_TOP
 
 
 class BuilderKeepTogetherTests(unittest.TestCase):

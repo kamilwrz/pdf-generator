@@ -3,7 +3,7 @@ import { measureTextareaHeight } from "./textareaHeight.js";
 /**
  * Pure contact-band layout engine.
  *
- * Ports the backend placement math (cv_templates/shared/contact.py:
+ * Ports the backend placement math (cv/templates/shared/contact.py:
  * _place_centered_icon_contacts / _place_wrapping_icon_contacts) so the canvas
  * can recompute icon+label positions live when a channel is added or removed.
  * Geometry units are points == CSS px. `bottomY` is the TOP of the last row

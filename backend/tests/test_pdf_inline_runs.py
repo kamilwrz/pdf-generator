@@ -8,7 +8,7 @@ draw calls, like the existing bullet-layout tests)."""
 
 import unittest
 
-from app.services.pdf_generator import PDF_Generator
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 def _new_generator():

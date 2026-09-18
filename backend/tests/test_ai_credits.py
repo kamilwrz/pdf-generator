@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.models.models import Base, User, UserSubscription
-from app.services import entitlements as ent
+from app.services.billing import entitlements as ent
 
 
 def _make_user(db, username="u", plan="pro"):

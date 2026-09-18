@@ -3,7 +3,7 @@
 These exercise the partitioning algorithm with synthetic heights, independent
 of the CV generation stack, so the balancing rules are pinned precisely.
 """
-from app.services.cv_templates.shared.column_planner import (
+from app.services.cv.templates.shared.column_planner import (
     ColumnPlan,
     MainMeasurement,
     PlaceableSection,

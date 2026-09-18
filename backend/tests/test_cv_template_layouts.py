@@ -5,9 +5,9 @@ from unittest.mock import patch
 from starlette.requests import Request
 
 from app.api.routes.ai import _rebase_template_asset_urls
-from app.services import cv_generator
-from app.services.cv_generator import generate_resume
-from app.utils.image_src_to_path import image_src_to_local_path
+from app.services.cv import generator as cv_generator
+from app.services.cv.generator import generate_resume
+from app.services.storage.image_resolver import image_src_to_local_path
 
 
 LONG_CV = {
@@ -613,7 +613,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
                 if template_id == "slate":
                     # Slate imports the helper into its own module namespace.
                     with patch(
-                        "app.services.cv_templates.templates.slate._fit_sidebar_sections",
+                        "app.services.cv.templates.generators.slate._fit_sidebar_sections",
                         return_value=([], set()),
                     ):
                         elements = generate_resume(template_id, cv)
@@ -992,7 +992,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_summary_matches_experience_body_type_size(self):
         """Lead summary must use the same font as main-column experience body."""
-        from app.services.cv_generator import _GENERATORS
+        from app.services.cv.generator import _GENERATORS
 
         cv = {
             **LONG_CV,
@@ -1413,7 +1413,7 @@ class CvTemplateLayoutTests(unittest.TestCase):
 
     def test_iconic_experience_record_gap_matches_projects(self):
         """Experience jobs must keep SPACE_RECORD like project records."""
-        from app.services.cv_generator import SPACE_RECORD
+        from app.services.cv.generator import SPACE_RECORD
 
         cv = {
             "name": "Anna Walczak",

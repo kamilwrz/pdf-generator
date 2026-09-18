@@ -1,6 +1,6 @@
 import unittest
 
-from app.services import layout_analysis
+from app.services.cv.layout import analysis as layout_analysis
 
 
 PAGE_SIZE = {"width": 100, "height": 100}

@@ -37,11 +37,11 @@ from app.crud.pdfs import (
 )
 from app.crud.cv_import_snapshots import get_owned_snapshot
 
-from app.services.entitlements import (
+from app.services.billing.entitlements import (
     assert_can_create_project, assert_can_export, assert_template_allowed,
     record_export, refund_export,
 )
-from app.services.document_service import (
+from app.services.documents.service import (
     create_pdf_document,
     delete_pdf_document,
     read_pdf_document_bytes,

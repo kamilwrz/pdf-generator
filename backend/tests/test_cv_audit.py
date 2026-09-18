@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 
 from app.core.localisation import ui_language
-from app.services import ai_assistant_service as service
-from app.services.cv_audit import (
+from app.services.ai.assistant import service
+from app.services.cv.audit import (
     CV_AUDIT_RESPONSE_SCHEMA, audit_read_only_result, build_cv_audit_result,
 )
 

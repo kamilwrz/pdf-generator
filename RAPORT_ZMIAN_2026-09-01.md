@@ -116,11 +116,11 @@ Oddzielenie etykiety użytkownika od klucza storage zamyka również ryzyka typu
 
 ### Główne pliki
 
-- `backend/app/services/pdf_storage.py`
-- `backend/app/services/image_storage.py`
-- `backend/app/services/document_service.py`
-- `backend/app/utils/image_src_to_path.py`
-- `backend/app/utils/pdf_file_ops.py`
+- `backend/app/services/storage/pdf.py`
+- `backend/app/services/storage/image.py`
+- `backend/app/services/documents/service.py`
+- `backend/app/services/storage/image_resolver.py`
+- `backend/app/services/storage/legacy_file_ops.py`
 - `backend/tests/test_pdf_storage_v2.py`
 - `backend/tests/test_generated_pdf_privacy.py`
 - `backend/tests/test_s3_storage_privacy.py`
@@ -133,7 +133,7 @@ Oddzielenie etykiety użytkownika od klucza storage zamyka również ryzyka typu
 - Nieudany zapis nowego obiektu uruchamia próbę natychmiastowego cleanupu.
 - Jeżeli cleanup również się nie uda, zapisywany jest trwały `storage_cleanup_job`.
 - Job ma typ zasobu, liczbę prób, termin kolejnej próby, bezpieczne metadane błędu i stan `dead_letter` po wyczerpaniu limitu.
-- Worker `storage_cleanup_worker.py` pobiera ograniczoną partię zadań i kończy proces. Render uruchamia go cyklicznie.
+- Worker `jobs/storage_cleanup.py` pobiera ograniczoną partię zadań i kończy proces. Render uruchamia go cyklicznie.
 - Delete jest idempotentny: ponowienie nie powinno tworzyć kolejnego błędu biznesowego, jeżeli obiekt został już usunięty.
 
 ### Dlaczego
@@ -194,8 +194,8 @@ Użytkownik może kliknąć zapis kilka razy, sieć może ponowić żądanie, a 
 
 ### Główne pliki
 
-- `backend/app/utils/document_integrity.py`
-- `backend/app/services/document_service.py`
+- `backend/app/services/documents/integrity.py`
+- `backend/app/services/documents/service.py`
 - `frontend/src/utils/pdfPersistenceContract.js`
 - `frontend/src/utils/persistedDocumentSnapshot.js`
 - `frontend/src/utils/documentSnapshotCommit.js`
@@ -239,7 +239,7 @@ Argon2id zwiększa koszt ataku offline na hasła. Kanonizacja blokuje konta ró�
 ### Główne pliki
 
 - `backend/app/core/security.py`
-- `backend/app/services/auth_rate_limit.py`
+- `backend/app/services/accounts/rate_limit.py`
 - `backend/app/api/routes/auth.py`
 - `backend/app/api/routes/billing.py`
 - `backend/tests/test_auth_hardening.py`
@@ -284,7 +284,7 @@ Pełne CV zawiera dane osobowe i nie powinno być przesyłane w każdym elemenci
 - `GET /ready` sprawdza połączenie z bazą, zgodność z aktualnym Alembic head, seed katalogu planów i wybrane kontrakty integralności.
 - Readiness gate zwraca 503 dla tras bazodanowych, gdy instancja nie jest gotowa.
 - Błąd readiness jest sanitizowany; klient nie dostaje szczegółów infrastruktury.
-- `deployment_bootstrap.py` uruchamia migracje i seed przed startem workera.
+- `jobs/bootstrap.py` uruchamia migracje i seed przed startem workera.
 - Operacje synchroniczne SQLAlchemy, ReportLab, S3 i filesystem zostały przeniesione do synchronicznych handlerów FastAPI wykonywanych w thread poolu.
 
 ### Dlaczego
@@ -465,13 +465,13 @@ Nie zaimplementowano Stripe ani kompletnego komercyjnego billing flow. Istnieją
 | Obszar | Najważniejsze pliki |
 |---|---|
 | Konfiguracja runtime | `backend/app/core/config.py`, `backend/.env.example`, `frontend/src/config/appConfig.js` |
-| Auth | `backend/app/core/security.py`, `backend/app/services/auth_rate_limit.py`, `backend/app/api/routes/auth.py` |
-| Storage PDF | `backend/app/services/pdf_storage.py`, `backend/app/services/document_service.py` |
-| Storage zdjęć | `backend/app/services/image_storage.py`, `backend/app/api/routes/images.py` |
-| Spójność dokumentu | `backend/app/utils/document_integrity.py`, `frontend/src/utils/pdfPersistenceContract.js` |
-| Entitlements/AI | `backend/app/services/entitlements.py`, `backend/app/api/routes/ai.py`, `backend/app/api/routes/ai_assistant.py` |
-| Readiness | `backend/app/services/readiness.py`, `backend/app/services/deployment_bootstrap.py`, `backend/app/main.py` |
-| Cleanup | `backend/app/services/storage_cleanup_worker.py`, `render.yaml` |
+| Auth | `backend/app/core/security.py`, `backend/app/services/accounts/rate_limit.py`, `backend/app/api/routes/auth.py` |
+| Storage PDF | `backend/app/services/storage/pdf.py`, `backend/app/services/documents/service.py` |
+| Storage zdjęć | `backend/app/services/storage/image.py`, `backend/app/api/routes/images.py` |
+| Spójność dokumentu | `backend/app/services/documents/integrity.py`, `frontend/src/utils/pdfPersistenceContract.js` |
+| Entitlements/AI | `backend/app/services/billing/entitlements.py`, `backend/app/api/routes/ai.py`, `backend/app/api/routes/ai_assistant.py` |
+| Readiness | `backend/app/core/readiness.py`, `backend/app/jobs/bootstrap.py`, `backend/app/main.py` |
+| Cleanup | `backend/app/jobs/storage_cleanup.py`, `render.yaml` |
 | Migracje | `backend/alembic/versions/20260901_0009_*.py` do `20260901_0015_*.py` |
 | Lifecycle frontendu | `frontend/src/store/document-lifecycle-context.jsx`, `frontend/src/hooks/useDirtyGuard.js`, `frontend/src/pages/PdfCanvas.jsx` |
 | Recovery frontendu | `frontend/src/components/common/ErrorBoundary/`, `frontend/src/components/common/UnsavedChangesDialog/` |

@@ -29,8 +29,8 @@
 - `frontend/src/utils/contactBandOps.js` (modify) — auto-edit + placeholder on add; a new `applyChannelRelayout` used by live typing; mode-aware element creation/repositioning (rect for `chip`).
 - `frontend/src/utils/contactBandLayout.js` (modify) — `stacked` and `chip` layout functions.
 - `frontend/src/hooks/useA4Elements.js` (modify) — trigger `applyChannelRelayout` from `handleEditElementValues` for band labels; auto-edit the added label.
-- `backend/app/services/cv_templates/shared/contact.py` (modify) — `_place_stacked_icon_contacts` gains descriptor + tagging; new `_place_chip_icon_contacts` for Volt.
-- `backend/app/services/cv_templates/templates/{atrium,portico,cardinal,tessera,slate,nova,volt}.py` (modify) — pass `band_id`, append `build_contact_band_anchor`.
+- `backend/app/services/cv/templates/shared/contact.py` (modify) — `_place_stacked_icon_contacts` gains descriptor + tagging; new `_place_chip_icon_contacts` for Volt.
+- `backend/app/services/cv/templates/generators/{atrium,portico,cardinal,tessera,slate,nova,volt}.py` (modify) — pass `band_id`, append `build_contact_band_anchor`.
 - Tests alongside each unit.
 
 ---
@@ -373,8 +373,8 @@ git commit -m "feat(contact): live horizontal reflow while editing a channel lab
 Both already produce a `centered` descriptor from `_place_centered_icon_contacts`; they only need to pass a `band_id` and append the band anchor.
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/templates/atrium.py`
-- Modify: `backend/app/services/cv_templates/templates/portico.py`
+- Modify: `backend/app/services/cv/templates/generators/atrium.py`
+- Modify: `backend/app/services/cv/templates/generators/portico.py`
 - Test: `backend/tests/test_contact_band_templates.py` (create)
 
 **Interfaces:**
@@ -389,7 +389,7 @@ Both already produce a `centered` descriptor from `_place_centered_icon_contacts
 can add/remove channels. Drawn geometry is asserted elsewhere; here we only
 check the identity/descriptor plumbing."""
 import pytest
-from app.services.cv_templates.registry import get_template  # adjust if the accessor differs
+from app.services.cv.templates.registry import get_template  # adjust if the accessor differs
 
 _CV = {
     "name": "Jan Kowalski", "title": "AML Analyst",
@@ -416,7 +416,7 @@ def test_template_emits_contact_band(template_id, mode):
     assert any(e.get("contactChannel") == "phone" for e in pairs)
 ```
 
-> **Note for the implementer:** confirm the real generator accessor before running — search `backend/app/services/cv_templates/` for how templates are invoked (e.g. a `registry`, a `TEMPLATES` dict, or a per-module `build`/`generate` function) and adjust `get_template(...)(_CV)` to match. The existing `tests/test_cv_template_layouts.py` shows the correct call shape.
+> **Note for the implementer:** confirm the real generator accessor before running — search `backend/app/services/cv/templates/` for how templates are invoked (e.g. a `registry`, a `TEMPLATES` dict, or a per-module `build`/`generate` function) and adjust `get_template(...)(_CV)` to match. The existing `tests/test_cv_template_layouts.py` shows the correct call shape.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -455,7 +455,7 @@ Expected: PASS (drawn geometry unchanged — `band_id` only adds tags + a zero-s
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/templates/atrium.py backend/app/services/cv_templates/templates/portico.py backend/tests/test_contact_band_templates.py
+git add backend/app/services/cv/templates/generators/atrium.py backend/app/services/cv/templates/generators/portico.py backend/tests/test_contact_band_templates.py
 git commit -m "feat(contact): enable channel manager on Atrium + Portico"
 ```
 
@@ -466,9 +466,9 @@ git commit -m "feat(contact): enable channel manager on Atrium + Portico"
 Same low-effort wiring as Task 5, for the three templates using `_place_wrapping_icon_contacts`.
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/templates/cardinal.py`
-- Modify: `backend/app/services/cv_templates/templates/tessera.py`
-- Modify: `backend/app/services/cv_templates/templates/slate.py`
+- Modify: `backend/app/services/cv/templates/generators/cardinal.py`
+- Modify: `backend/app/services/cv/templates/generators/tessera.py`
+- Modify: `backend/app/services/cv/templates/generators/slate.py`
 - Modify: `backend/tests/test_contact_band_templates.py`
 
 **Interfaces:**
@@ -505,7 +505,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/templates/cardinal.py backend/app/services/cv_templates/templates/tessera.py backend/app/services/cv_templates/templates/slate.py backend/tests/test_contact_band_templates.py
+git add backend/app/services/cv/templates/generators/cardinal.py backend/app/services/cv/templates/generators/tessera.py backend/app/services/cv/templates/generators/slate.py backend/tests/test_contact_band_templates.py
 git commit -m "feat(contact): enable channel manager on Cardinal, Tessera, Slate"
 ```
 
@@ -600,8 +600,8 @@ git commit -m "feat(contact): client stacked layout mode"
 Give `_place_stacked_icon_contacts` the same identity/descriptor contract as the other placers and wire Nova.
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/shared/contact.py`
-- Modify: `backend/app/services/cv_templates/templates/nova.py`
+- Modify: `backend/app/services/cv/templates/shared/contact.py`
+- Modify: `backend/app/services/cv/templates/generators/nova.py`
 - Modify: `backend/tests/test_contact_band_emit.py`
 - Modify: `backend/tests/test_contact_band_templates.py`
 
@@ -613,7 +613,7 @@ Give `_place_stacked_icon_contacts` the same identity/descriptor contract as the
 
 ```python
 # append to backend/tests/test_contact_band_emit.py
-from app.services.cv_templates.shared.contact import _place_stacked_icon_contacts
+from app.services.cv.templates.shared.contact import _place_stacked_icon_contacts
 
 
 def test_stacked_tags_pairs_and_returns_descriptor():
@@ -681,7 +681,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/contact.py backend/app/services/cv_templates/templates/nova.py backend/tests/test_contact_band_emit.py backend/tests/test_contact_band_templates.py
+git add backend/app/services/cv/templates/shared/contact.py backend/app/services/cv/templates/generators/nova.py backend/tests/test_contact_band_emit.py backend/tests/test_contact_band_templates.py
 git commit -m "feat(contact): stacked descriptor + enable Nova"
 ```
 
@@ -906,8 +906,8 @@ git commit -m "feat(contact): client chip layout mode + rect-aware reflow"
 Move Volt's inline chip loop into a shared `_place_chip_icon_contacts` that tags the rect/icon/label triple and emits a `chip` descriptor whose metrics match the drawn geometry exactly.
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/shared/contact.py`
-- Modify: `backend/app/services/cv_templates/templates/volt.py`
+- Modify: `backend/app/services/cv/templates/shared/contact.py`
+- Modify: `backend/app/services/cv/templates/generators/volt.py`
 - Modify: `backend/tests/test_contact_band_emit.py`
 - Modify: `backend/tests/test_contact_band_templates.py`
 
@@ -918,7 +918,7 @@ Move Volt's inline chip loop into a shared `_place_chip_icon_contacts` that tags
 
 ```python
 # append to backend/tests/test_contact_band_emit.py
-from app.services.cv_templates.shared.contact import _place_chip_icon_contacts
+from app.services.cv.templates.shared.contact import _place_chip_icon_contacts
 
 
 def test_chip_tags_triples_and_returns_descriptor():
@@ -1010,7 +1010,7 @@ Expected: PASS. If a Volt geometry assertion in `test_cv_template_layouts.py` sh
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/contact.py backend/app/services/cv_templates/templates/volt.py backend/tests/test_contact_band_emit.py backend/tests/test_contact_band_templates.py
+git add backend/app/services/cv/templates/shared/contact.py backend/app/services/cv/templates/generators/volt.py backend/tests/test_contact_band_emit.py backend/tests/test_contact_band_templates.py
 git commit -m "feat(contact): chip placer + enable Volt"
 ```
 

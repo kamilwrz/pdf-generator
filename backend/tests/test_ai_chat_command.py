@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from app.services import ai_assistant_service
+from app.services.ai.assistant import service as ai_assistant_service
 
 
 class ChatCommandTests(unittest.TestCase):

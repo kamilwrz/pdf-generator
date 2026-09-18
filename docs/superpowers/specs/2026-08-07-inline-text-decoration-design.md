@@ -97,7 +97,7 @@ Walk text nodes in document order, track cumulative char offset, read the effect
 
 ---
 
-## 6. Backend — run-aware PDF rendering (Python, `pdf_generator.py`)
+## 6. Backend — run-aware PDF rendering (Python, `documents/rendering/pdf.py`)
 
 **Fast path first:** every function checks for runs; absent ⇒ call today's exact code.
 

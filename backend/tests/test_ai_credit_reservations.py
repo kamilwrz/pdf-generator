@@ -19,7 +19,7 @@ from app.core.config import AI_PROVIDER_TIMEOUT_SECONDS
 from app.crud.user import create_user
 from app.models.models import AiCreditReservation, Base, UsageCounter, User
 from app.schemas.user_schema import UserCreateRequest
-from app.services.entitlements import (
+from app.services.billing.entitlements import (
     AI_RESERVATION_TTL,
     AiReservationError,
     PlanLimitError,
@@ -126,8 +126,8 @@ class AiCreditReservationTests(unittest.TestCase):
         from app.core.security import verify_token
         from app.dependencies import get_db
         from app.main import app
-        from app.services import ai_assistant_service as service
-        from app.services.cv_data import normalize_cv_data
+        from app.services.ai.assistant import service
+        from app.services.cv.data import normalize_cv_data
         from app.testing_support import ensure_test_auth_env
 
         ensure_test_auth_env()
@@ -197,7 +197,7 @@ class AiCreditReservationTests(unittest.TestCase):
         from app.core.security import verify_token
         from app.dependencies import get_db
         from app.main import app
-        from app.services import ai_assistant_service as service
+        from app.services.ai.assistant import service
         from app.testing_support import ensure_test_auth_env
 
         ensure_test_auth_env()

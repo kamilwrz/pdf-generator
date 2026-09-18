@@ -19,20 +19,20 @@ from sqlalchemy.orm import Session
 
 from app.core.security import resolve_user_from_payload, verify_token
 from app.dependencies import get_db
-from app.services.ai_assistant_service import (
+from app.services.ai.assistant.service import (
     AIServiceError,
     analyze_action,
 )
-from app.services.ai_credit_budget import assistant_credit_budget
-from app.services.ai_telemetry import measure_operation
-from app.services.cv_audit import audit_read_only_result
-from app.services.ats_readability import AtsReadabilityError
-from app.services.scoped_ai import ScopedContent, review_scoped_content
-from app.services.document_service import validate_and_resolve_image_elements
-from app.services.interview_job_analysis import analysis_signature
-from app.services.job_offer_service import JobOfferError, resolve_job_offer
-from app.services.job_tailoring import build_evidence_catalog
-from app.services.entitlements import (
+from app.services.ai.credit_budget import assistant_credit_budget
+from app.services.ai.telemetry import measure_operation
+from app.services.cv.audit import audit_read_only_result
+from app.services.cv.readability import AtsReadabilityError
+from app.services.ai.assistant.scoped import ScopedContent, review_scoped_content
+from app.services.documents.service import validate_and_resolve_image_elements
+from app.services.interviews.job_analysis import analysis_signature
+from app.services.tailoring.offers import JobOfferError, resolve_job_offer
+from app.services.tailoring.analysis import build_evidence_catalog
+from app.services.billing.entitlements import (
     assert_can_use_ai_action,
     assert_can_use_scoped_ai,
     release_ai_reservation,
@@ -40,7 +40,7 @@ from app.services.entitlements import (
     settle_ai_reservation,
     settle_failed_ai_reservation,
 )
-from app.utils.metrics_logging import log_metric_event
+from app.core.metrics import log_metric_event
 
 logger = logging.getLogger("ai_assistant")
 

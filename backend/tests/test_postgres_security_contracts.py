@@ -588,7 +588,7 @@ def test_twenty_parallel_ai_reservations_preserve_postgres_invariants(postgres_e
     from app.crud.user import create_user
     from app.models.models import AiCreditReservation, UsageCounter, User
     from app.schemas.user_schema import UserCreateRequest
-    from app.services.entitlements import (
+    from app.services.billing.entitlements import (
         AiReservationError,
         PlanLimitError,
         reserve_ai_credits,

@@ -1,7 +1,7 @@
 """Regression coverage for the appearance-enabled editorial Cadenza template."""
 from __future__ import annotations
 
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS, generate_resume
 
 
 def _base_cv(**overrides):

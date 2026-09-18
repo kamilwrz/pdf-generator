@@ -4,7 +4,7 @@
 
 **Goal:** Add a `mode="chips"` rendering style to the shared skills-section generator so any CV template can opt into rendering each skill as its own filled, rounded-pill `rectangle` + centered `text`, wrapped across rows, without breaking page-break/reflow behavior.
 
-**Architecture:** Backend-only, additive extension of `backend/app/services/cv_templates/shared/text.py`'s `_place_skills_section`. A new shared layout pass (`_layout_skill_chips`) computes chip positions and total wrapped height once; both the existing measure step (feeds `Builder.keep_together`) and the new place step consume it, so the whole category (label + every chip row) is guaranteed to move to the next page as one atomic block — never split mid-row. Chips reuse the existing `rectangle`/`text` element categories (already parity-safe between the canvas editor and the PDF renderer); no schema or dispatch changes.
+**Architecture:** Backend-only, additive extension of `backend/app/services/cv/templates/shared/text.py`'s `_place_skills_section`. A new shared layout pass (`_layout_skill_chips`) computes chip positions and total wrapped height once; both the existing measure step (feeds `Builder.keep_together`) and the new place step consume it, so the whole category (label + every chip row) is guaranteed to move to the next page as one atomic block — never split mid-row. Chips reuse the existing `rectangle`/`text` element categories (already parity-safe between the canvas editor and the PDF renderer); no schema or dispatch changes.
 
 **Tech Stack:** Python (backend generator), `reportlab` for glyph-width measurement, `unittest` for tests (`cd backend && python -m unittest discover -s tests`).
 
@@ -24,7 +24,7 @@ Reference: `docs/superpowers/specs/2026-08-11-skill-chips-design.md`.
 ### Task 1: `_rect()` gains `filled` / `borderRadius` kwargs
 
 **Files:**
-- Modify: `backend/app/services/cv_generator_primitives.py:168-172` (function `_rect`)
+- Modify: `backend/app/services/cv/layout/primitives.py:168-172` (function `_rect`)
 - Test: Create `backend/tests/test_cv_generator_primitives.py`
 
 **Interfaces:**
@@ -40,7 +40,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.cv_generator_primitives import _rect
+from app.services.cv.layout.primitives import _rect
 
 
 class RectHelperTests(unittest.TestCase):
@@ -75,7 +75,7 @@ Expected: FAIL — `TypeError: _rect() got an unexpected keyword argument 'fille
 
 - [ ] **Step 3: Implement the change**
 
-In `backend/app/services/cv_generator_primitives.py`, replace the existing `_rect` function (lines 168-172):
+In `backend/app/services/cv/layout/primitives.py`, replace the existing `_rect` function (lines 168-172):
 
 ```python
 def _rect(left, top, width, height, color, borderWidth=1, *, filled=False, borderRadius=None, zIndex=1, page=1):
@@ -100,7 +100,7 @@ Expected: PASS (2 tests)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/cv_generator_primitives.py backend/tests/test_cv_generator_primitives.py
+git add backend/app/services/cv/layout/primitives.py backend/tests/test_cv_generator_primitives.py
 git commit -m "feat: add filled/borderRadius kwargs to _rect for pill chrome"
 ```
 
@@ -109,20 +109,20 @@ git commit -m "feat: add filled/borderRadius kwargs to _rect for pill chrome"
 ### Task 2: Promote `_text_width` to a shared primitive
 
 **Files:**
-- Modify: `backend/app/services/cv_generator_primitives.py` (add `_text_width`, add `stringWidth` import)
-- Modify: `backend/app/services/cv_templates/templates/axis.py:1-52` (remove local `_text_width`, use the shared one)
+- Modify: `backend/app/services/cv/layout/primitives.py` (add `_text_width`, add `stringWidth` import)
+- Modify: `backend/app/services/cv/templates/generators/axis.py:1-52` (remove local `_text_width`, use the shared one)
 - Test: Modify `backend/tests/test_cv_generator_primitives.py` (append test class)
 
 **Interfaces:**
-- Consumes: `PDF_Generator._resolve_font` (already imported in `cv_generator_primitives.py:18`).
-- Produces: `_text_width(value: str, font: str, fs: float) -> float` — importable from `app.services.cv_generator_primitives`. Task 3 depends on this.
+- Consumes: `PDF_Generator._resolve_font` (already imported in `cv/layout/primitives.py:18`).
+- Produces: `_text_width(value: str, font: str, fs: float) -> float` — importable from `app.services.cv.layout.primitives`. Task 3 depends on this.
 
 - [ ] **Step 1: Write the failing test**
 
 Append to `backend/tests/test_cv_generator_primitives.py`:
 
 ```python
-from app.services.cv_generator_primitives import _text_width
+from app.services.cv.layout.primitives import _text_width
 
 
 class TextWidthTests(unittest.TestCase):
@@ -137,16 +137,16 @@ class TextWidthTests(unittest.TestCase):
         self.assertEqual(width, len("SQL") * 10 * 0.55)
 ```
 
-(Move the `from app.services.cv_generator_primitives import _rect` line and this new import into one combined import statement at the top of the file instead of a second import line.)
+(Move the `from app.services.cv.layout.primitives import _rect` line and this new import into one combined import statement at the top of the file instead of a second import line.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && python -m unittest tests.test_cv_generator_primitives -v`
 Expected: FAIL — `ImportError: cannot import name '_text_width'`
 
-- [ ] **Step 3: Add `_text_width` to `cv_generator_primitives.py`**
+- [ ] **Step 3: Add `_text_width` to `cv/layout/primitives.py`**
 
-Add the import near the top of `backend/app/services/cv_generator_primitives.py` (after the existing `from app.services.pdf_generator import PDF_Generator` on line 18):
+Add the import near the top of `backend/app/services/cv/layout/primitives.py` (after the existing `from app.services.documents.rendering.pdf import PDF_Generator` on line 18):
 
 ```python
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -176,13 +176,13 @@ Expected: PASS (4 tests)
 
 - [ ] **Step 5: Remove the now-duplicate local copy in `axis.py`**
 
-In `backend/app/services/cv_templates/templates/axis.py`, replace lines 19-52 (the `stringWidth` import through the end of the local `_text_width` function):
+In `backend/app/services/cv/templates/generators/axis.py`, replace lines 19-52 (the `stringWidth` import through the end of the local `_text_width` function):
 
 Old:
 ```python
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
-from app.services.cv_generator_primitives import (
+from app.services.cv.layout.primitives import (
     Builder,
     SPACE_AFTER_HEADER_RULE,
     get_spacing,
@@ -192,15 +192,15 @@ from app.services.cv_generator_primitives import (
     _line,
     _text,
 )
-from app.services.cv_templates.shared.contact import _contact_channel_items
-from app.services.cv_templates.shared.icons import _icon
-from app.services.cv_templates.shared.records import (
+from app.services.cv.templates.shared.contact import _contact_channel_items
+from app.services.cv.templates.shared.icons import _icon
+from app.services.cv.templates.shared.records import (
     _education_bullets,
     _education_school,
 )
-from app.services.cv_data import skill_groups, skills_have_content
-from app.services.cv_templates.shared.text import _bullets, _compact_text, _labels
-from app.services.pdf_generator import PDF_Generator
+from app.services.cv.data import skill_groups, skills_have_content
+from app.services.cv.templates.shared.text import _bullets, _compact_text, _labels
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 def _text_width(value: str, font: str, fs: float) -> float:
@@ -218,7 +218,7 @@ def _text_width(value: str, font: str, fs: float) -> float:
 
 New:
 ```python
-from app.services.cv_generator_primitives import (
+from app.services.cv.layout.primitives import (
     Builder,
     SPACE_AFTER_HEADER_RULE,
     get_spacing,
@@ -229,14 +229,14 @@ from app.services.cv_generator_primitives import (
     _text,
     _text_width,
 )
-from app.services.cv_templates.shared.contact import _contact_channel_items
-from app.services.cv_templates.shared.icons import _icon
-from app.services.cv_templates.shared.records import (
+from app.services.cv.templates.shared.contact import _contact_channel_items
+from app.services.cv.templates.shared.icons import _icon
+from app.services.cv.templates.shared.records import (
     _education_bullets,
     _education_school,
 )
-from app.services.cv_data import skill_groups, skills_have_content
-from app.services.cv_templates.shared.text import _bullets, _compact_text, _labels
+from app.services.cv.data import skill_groups, skills_have_content
+from app.services.cv.templates.shared.text import _bullets, _compact_text, _labels
 ```
 
 `PDF_Generator` and `stringWidth` are no longer referenced anywhere else in `axis.py` — both imports are fully removed, not left dangling.
@@ -250,7 +250,7 @@ Then run a quick manual smoke check that `axis.py` still imports and generates c
 
 ```bash
 cd backend && python -c "
-from app.services.cv_generator import generate_resume
+from app.services.cv.generator import generate_resume
 cv = {'name': 'Test', 'title': 'Analyst', 'email': 'a@example.com', 'phone': '+48 600 000 000', 'location': 'Warszawa', 'skills': ['AML', 'KYC', 'SQL', 'Python']}
 els = generate_resume('axis', cv)
 print(len([e for e in els if e['category'] == 'text']), 'text elements')
@@ -261,7 +261,7 @@ Expected: prints a positive count, no traceback.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/cv_generator_primitives.py backend/app/services/cv_templates/templates/axis.py backend/tests/test_cv_generator_primitives.py
+git add backend/app/services/cv/layout/primitives.py backend/app/services/cv/templates/generators/axis.py backend/tests/test_cv_generator_primitives.py
 git commit -m "refactor: promote _text_width to a shared cv_generator_primitives helper"
 ```
 
@@ -270,11 +270,11 @@ git commit -m "refactor: promote _text_width to a shared cv_generator_primitives
 ### Task 3: Chip wrapping layout (`_layout_skill_chips` + measure/place passes)
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/shared/text.py:15` (import block), and insert new code after line 86 (after `_skill_group_body_content`, before `_measure_skill_group`)
+- Modify: `backend/app/services/cv/templates/shared/text.py:15` (import block), and insert new code after line 86 (after `_skill_group_body_content`, before `_measure_skill_group`)
 - Test: Create `backend/tests/test_skill_chips.py`
 
 **Interfaces:**
-- Consumes: `_rect`, `_text`, `_text_width` from `app.services.cv_generator_primitives` (Tasks 1-2); `_clean_list_items` (already in `shared/text.py:22`).
+- Consumes: `_rect`, `_text`, `_text_width` from `app.services.cv.layout.primitives` (Tasks 1-2); `_clean_list_items` (already in `shared/text.py:22`).
 - Produces:
   - `_layout_skill_chips(items, width: float, font: str, fs: float) -> tuple[list[tuple[str, float, float, float]], float]` — `(placements, total_height)`; each placement is `(skill: str, dx: float, dy: float, chip_width: float)` relative to the block's top-left corner.
   - `_measure_skill_chips_row(items, width: float, font: str, fs: float) -> float` — total height only. Used by Task 4's `_measure_skill_group`.
@@ -290,8 +290,8 @@ from __future__ import annotations
 
 import unittest
 
-from app.services.cv_generator_primitives import Builder, CONTENT_BOTTOM, PAGE_TOP
-from app.services.cv_templates.shared.text import (
+from app.services.cv.layout.primitives import Builder, CONTENT_BOTTOM, PAGE_TOP
+from app.services.cv.templates.shared.text import (
     _layout_skill_chips,
     _measure_skill_chips_row,
     _place_skill_chips_row,
@@ -385,16 +385,16 @@ Expected: FAIL — `ImportError: cannot import name '_layout_skill_chips'`
 
 - [ ] **Step 3: Update the import block in `shared/text.py`**
 
-Replace line 15 of `backend/app/services/cv_templates/shared/text.py`:
+Replace line 15 of `backend/app/services/cv/templates/shared/text.py`:
 
 Old:
 ```python
-from app.services.cv_generator_primitives import get_spacing, section_chrome_height
+from app.services.cv.layout.primitives import get_spacing, section_chrome_height
 ```
 
 New:
 ```python
-from app.services.cv_generator_primitives import (
+from app.services.cv.layout.primitives import (
     _rect,
     _text,
     _text_width,
@@ -405,7 +405,7 @@ from app.services.cv_generator_primitives import (
 
 - [ ] **Step 4: Insert the chip layout functions**
 
-Insert the following in `backend/app/services/cv_templates/shared/text.py` immediately after `_skill_group_body_content` (which ends at line 86, right before `def _measure_skill_group` on line 89):
+Insert the following in `backend/app/services/cv/templates/shared/text.py` immediately after `_skill_group_body_content` (which ends at line 86, right before `def _measure_skill_group` on line 89):
 
 ```python
 # Chip pill layout: horizontal padding/gap around each pill and vertical gap
@@ -510,7 +510,7 @@ Expected: PASS (6 tests)
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/text.py backend/tests/test_skill_chips.py
+git add backend/app/services/cv/templates/shared/text.py backend/tests/test_skill_chips.py
 git commit -m "feat: add wrapped chip-pill layout pass to shared skills text helpers"
 ```
 
@@ -519,7 +519,7 @@ git commit -m "feat: add wrapped chip-pill layout pass to shared skills text hel
 ### Task 4: Wire `mode="chips"` into `_place_skills_section` / `_measure_skill_group`
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/shared/text.py:89-120` (`_measure_skill_group`), `:146-218` (`_place_skills_section`)
+- Modify: `backend/app/services/cv/templates/shared/text.py:89-120` (`_measure_skill_group`), `:146-218` (`_place_skills_section`)
 - Test: Modify `backend/tests/test_skill_chips.py` (append test class)
 
 **Interfaces:**
@@ -531,7 +531,7 @@ git commit -m "feat: add wrapped chip-pill layout pass to shared skills text hel
 Append to `backend/tests/test_skill_chips.py`. Add this import alongside the existing ones at the top of the file:
 
 ```python
-from app.services.cv_templates.shared.text import _place_skills_section
+from app.services.cv.templates.shared.text import _place_skills_section
 ```
 
 Then append:
@@ -607,7 +607,7 @@ Expected: FAIL — `test_chips_mode_requires_chip_colors` fails because no `Valu
 
 - [ ] **Step 3: Update `_measure_skill_group`**
 
-Replace lines 89-120 of `backend/app/services/cv_templates/shared/text.py`:
+Replace lines 89-120 of `backend/app/services/cv/templates/shared/text.py`:
 
 Old:
 ```python
@@ -686,7 +686,7 @@ def _measure_skill_group(
 
 - [ ] **Step 4: Update `_place_skills_section`**
 
-Replace lines 146-218 of `backend/app/services/cv_templates/shared/text.py`:
+Replace lines 146-218 of `backend/app/services/cv/templates/shared/text.py`:
 
 Old:
 ```python
@@ -877,7 +877,7 @@ Expected: PASS — all existing tests, including `test_cv_template_layouts.py` a
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/text.py backend/tests/test_skill_chips.py
+git add backend/app/services/cv/templates/shared/text.py backend/tests/test_skill_chips.py
 git commit -m "feat: wire mode=chips into _place_skills_section with page-safe keep_together"
 ```
 
@@ -905,15 +905,15 @@ Insert a new `###` subsection in `README.md`'s English part, immediately after t
 ```markdown
 ### Skill chip pills (backend-only rendering capability)
 
-`_place_skills_section` in `backend/app/services/cv_templates/shared/text.py` accepts a third body style, `mode="chips"`, alongside the existing `"inline"` (mid-dot row) and `"bullets"` (vertical bullet list) styles used by the toggle above. In `chips` mode, each skill in a category renders as its own solid, rounded-pill `rectangle` element with a centered `text` label on top, wrapping to additional rows when a row's pills would overflow the section width. Wrapping is computed once by `_layout_skill_chips`, shared between the measure pass (`_measure_skill_chips_row`) and the place pass (`_place_skill_chips_row`) so the two can never disagree about row count — the category label plus every pill row is measured up front, then emitted inside the same `Builder.keep_together` block already used by `inline`/`bullets` mode, so a category is never split across a page mid-row.
+`_place_skills_section` in `backend/app/services/cv/templates/shared/text.py` accepts a third body style, `mode="chips"`, alongside the existing `"inline"` (mid-dot row) and `"bullets"` (vertical bullet list) styles used by the toggle above. In `chips` mode, each skill in a category renders as its own solid, rounded-pill `rectangle` element with a centered `text` label on top, wrapping to additional rows when a row's pills would overflow the section width. Wrapping is computed once by `_layout_skill_chips`, shared between the measure pass (`_measure_skill_chips_row`) and the place pass (`_place_skill_chips_row`) so the two can never disagree about row count — the category label plus every pill row is measured up front, then emitted inside the same `Builder.keep_together` block already used by `inline`/`bullets` mode, so a category is never split across a page mid-row.
 
 This is a generator-level capability, not yet enabled by any shipped template — no template currently passes `mode="chips"`, and there is no user-facing toggle for it (unlike the inline/bullets switch above, which is driven by `FlatSectionLayoutToggle` in the canvas editor). Enabling it for a specific template is a small, template-local change: passing `mode="chips"`, `chip_bg`, and `chip_fg` (the template's own palette colors) to that template's existing `_place_skills_section` call.
 
 Implementation:
 
-- `backend/app/services/cv_generator_primitives.py`, function `_rect` — gained `filled` / `borderRadius` keyword arguments (previously outline-only; `_circle`/`_ellipse` already supported `filled`)
-- `backend/app/services/cv_generator_primitives.py`, function `_text_width` — shared glyph-width measurement (`reportlab` `stringWidth` via `PDF_Generator._resolve_font`, falling back to a character-count estimate when font resolution fails), promoted out of `cv_templates/templates/axis.py` so both Axis's existing timeline chip row and the new shared chip mode measure text the same way
-- `backend/app/services/cv_templates/shared/text.py`, functions `_layout_skill_chips`, `_measure_skill_chips_row`, `_place_skill_chips_row`, and the `mode="chips"` branch inside `_place_skills_section` / `_measure_skill_group`
+- `backend/app/services/cv/layout/primitives.py`, function `_rect` — gained `filled` / `borderRadius` keyword arguments (previously outline-only; `_circle`/`_ellipse` already supported `filled`)
+- `backend/app/services/cv/layout/primitives.py`, function `_text_width` — shared glyph-width measurement (`reportlab` `stringWidth` via `PDF_Generator._resolve_font`, falling back to a character-count estimate when font resolution fails), promoted out of `cv/templates/generators/axis.py` so both Axis's existing timeline chip row and the new shared chip mode measure text the same way
+- `backend/app/services/cv/templates/shared/text.py`, functions `_layout_skill_chips`, `_measure_skill_chips_row`, `_place_skill_chips_row`, and the `mode="chips"` branch inside `_place_skills_section` / `_measure_skill_group`
 
 Tests:
 
@@ -928,15 +928,15 @@ Insert the Polish counterpart in `README.md`'s Polish part, immediately after "P
 ```markdown
 ### Chipsy umiejętności — pigułki (możliwość dostępna tylko w backendzie)
 
-`_place_skills_section` w `backend/app/services/cv_templates/shared/text.py` przyjmuje trzeci styl ciała sekcji, `mode="chips"`, obok istniejących stylów `"inline"` (wiersz z kropkami) i `"bullets"` (pionowa lista punktowana), które obsługuje przełącznik opisany wyżej. W trybie `chips` każdy skill w kategorii renderuje się jako osobny, w pełni wypełniony, zaokrąglony element `rectangle` z wyśrodkowaną etykietą `text` na wierzchu, zawijany do kolejnych wierszy, gdy pigułki w wierszu przekroczyłyby szerokość sekcji. Zawijanie liczy raz `_layout_skill_chips`, współdzielone między przebiegiem pomiarowym (`_measure_skill_chips_row`) a przebiegiem renderującym (`_place_skill_chips_row`), więc oba nigdy nie mogą się rozjechać co do liczby wierszy — etykieta kategorii wraz ze wszystkimi wierszami pigułek jest zmierzona z góry, a następnie wyemitowana wewnątrz tego samego bloku `Builder.keep_together`, którego już używa tryb `inline`/`bullets`, więc kategoria nigdy nie zostaje przecięta w połowie wiersza pigułek między stronami.
+`_place_skills_section` w `backend/app/services/cv/templates/shared/text.py` przyjmuje trzeci styl ciała sekcji, `mode="chips"`, obok istniejących stylów `"inline"` (wiersz z kropkami) i `"bullets"` (pionowa lista punktowana), które obsługuje przełącznik opisany wyżej. W trybie `chips` każdy skill w kategorii renderuje się jako osobny, w pełni wypełniony, zaokrąglony element `rectangle` z wyśrodkowaną etykietą `text` na wierzchu, zawijany do kolejnych wierszy, gdy pigułki w wierszu przekroczyłyby szerokość sekcji. Zawijanie liczy raz `_layout_skill_chips`, współdzielone między przebiegiem pomiarowym (`_measure_skill_chips_row`) a przebiegiem renderującym (`_place_skill_chips_row`), więc oba nigdy nie mogą się rozjechać co do liczby wierszy — etykieta kategorii wraz ze wszystkimi wierszami pigułek jest zmierzona z góry, a następnie wyemitowana wewnątrz tego samego bloku `Builder.keep_together`, którego już używa tryb `inline`/`bullets`, więc kategoria nigdy nie zostaje przecięta w połowie wiersza pigułek między stronami.
 
 To możliwość na poziomie generatora, jeszcze nie włączona w żadnym wydanym szablonie — żaden szablon obecnie nie przekazuje `mode="chips"`, nie ma też dla niej przełącznika widocznego dla użytkownika (w odróżnieniu od przełącznika inline/bullets opisanego wyżej, sterowanego przez `FlatSectionLayoutToggle` w edytorze canvas). Włączenie jej dla konkretnego szablonu to niewielka, lokalna dla szablonu zmiana: przekazanie `mode="chips"`, `chip_bg` i `chip_fg` (kolorów z własnej palety szablonu) do istniejącego wywołania `_place_skills_section` w tym szablonie.
 
 Implementacja:
 
-- `backend/app/services/cv_generator_primitives.py`, funkcja `_rect` — zyskała argumenty nazwane `filled` / `borderRadius` (wcześniej tylko obrys; `_circle`/`_ellipse` już wspierały `filled`)
-- `backend/app/services/cv_generator_primitives.py`, funkcja `_text_width` — współdzielony pomiar szerokości glifów (`reportlab` `stringWidth` przez `PDF_Generator._resolve_font`, z fallbackiem do szacowania po liczbie znaków, gdy rozwiązanie fontu się nie powiedzie), przeniesiona z `cv_templates/templates/axis.py`, żeby istniejący wiersz chipsów osi czasu w Axis i nowy współdzielony tryb chips mierzyły tekst tak samo
-- `backend/app/services/cv_templates/shared/text.py`, funkcje `_layout_skill_chips`, `_measure_skill_chips_row`, `_place_skill_chips_row` oraz gałąź `mode="chips"` wewnątrz `_place_skills_section` / `_measure_skill_group`
+- `backend/app/services/cv/layout/primitives.py`, funkcja `_rect` — zyskała argumenty nazwane `filled` / `borderRadius` (wcześniej tylko obrys; `_circle`/`_ellipse` już wspierały `filled`)
+- `backend/app/services/cv/layout/primitives.py`, funkcja `_text_width` — współdzielony pomiar szerokości glifów (`reportlab` `stringWidth` przez `PDF_Generator._resolve_font`, z fallbackiem do szacowania po liczbie znaków, gdy rozwiązanie fontu się nie powiedzie), przeniesiona z `cv/templates/generators/axis.py`, żeby istniejący wiersz chipsów osi czasu w Axis i nowy współdzielony tryb chips mierzyły tekst tak samo
+- `backend/app/services/cv/templates/shared/text.py`, funkcje `_layout_skill_chips`, `_measure_skill_chips_row`, `_place_skill_chips_row` oraz gałąź `mode="chips"` wewnątrz `_place_skills_section` / `_measure_skill_group`
 
 Testy:
 

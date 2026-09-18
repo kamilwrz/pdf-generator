@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from app.services.ai_assistant_service import (
+from app.services.ai.assistant.service import (
     _rewrite_profile_content,
     _translate_cv,
     analyze_action,
 )
-from app.services.cv_data import normalize_cv_data
+from app.services.cv.data import normalize_cv_data
 
 
 def test_translate_returns_normalized_profile_for_future_template_fills():
@@ -30,7 +30,7 @@ def test_translate_returns_normalized_profile_for_future_template_fills():
     }
 
     with patch(
-        "app.services.ai_assistant_service._gpt",
+        "app.services.ai.assistant.service._gpt",
         return_value=(model_result, {"cost_pln_estimate": 0.01}),
     ):
         result = _translate_cv(
@@ -59,7 +59,7 @@ def test_content_actions_return_a_canonical_profile_for_template_switching():
         },
     }
     with patch(
-        "app.services.ai_assistant_service._gpt",
+        "app.services.ai.assistant.service._gpt",
         return_value=(model_result, {"cost_pln_estimate": 0.01}),
     ):
         result = _rewrite_profile_content(
@@ -115,7 +115,7 @@ def test_translation_keeps_localized_grouped_section_headings():
     }
 
     with patch(
-        "app.services.ai_assistant_service._gpt",
+        "app.services.ai.assistant.service._gpt",
         return_value=(model_result, {"cost_pln_estimate": 0.01}),
     ):
         result = _rewrite_profile_content(
@@ -146,7 +146,7 @@ def test_translation_dispatch_uses_profile_aware_result_when_cv_data_exists():
         "cv_language": "pl",
     }
     with patch(
-        "app.services.ai_assistant_service._rewrite_profile_content",
+        "app.services.ai.assistant.service._rewrite_profile_content",
         return_value=expected,
     ) as rewrite:
         result = analyze_action(

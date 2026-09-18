@@ -1,0 +1,323 @@
+from __future__ import annotations
+
+from app.services.cv.layout.primitives import (
+    get_spacing,
+    SPACE_AFTER_HEADER_RULE,
+    SPACE_AFTER_MASTHEAD,
+    Builder,
+    _block,
+    _line,
+    _rect,
+    _text,
+    section_chrome_height,
+)
+from app.services.cv.templates.shared.extras import (
+    _extra_sections,
+    _fit_sidebar_sections,
+    _flatten_extra_items,
+    _sidebar_candidates,
+)
+from app.services.cv.templates.shared.records import (
+    _education_record_height,
+    _education_sidebar_content,
+    _experience_record_height,
+    _language_sidebar_lines,
+    _obsidian_education_parts,
+    _place_education_record,
+    _place_experience_record,
+)
+from app.services.cv.templates.shared.text import (
+    _place_skills_section,
+    _bullets,
+    _compact_text,
+    _company_period,
+    _labels,
+)
+from app.services.cv.templates.shared.contact import (
+    _contact_channel_items,
+    _place_wrapping_icon_contacts,
+    build_contact_band_anchor,
+)
+from app.services.cv.templates.shared.icons import _icon
+from app.services.cv.templates.shared.masthead import tag_masthead_identity
+
+def _gen_monument(cv: dict) -> list[dict]:
+    """
+    Generate the monochrome Monument editorial layout.
+
+    The font hierarchy bottoms out at 9 px. The summary uses the same size as
+    body copy so it does not appear one step larger than surrounding text.
+    Section navigation uses numbered filled rectangles paired with outlined
+    title frames, while all dynamic content remains in a single readable column
+    that can reflow across as many A4 pages as the CV requires.
+    """
+    C = {
+        "paper": "#F7F7F7",
+        "white": "#FFFFFF",
+        "ink": "#111111",
+        "body": "#343434",
+        "muted": "#6D6D6D",
+        "rule": "#C8C8C8",
+        "pale": "#E8E8E8",
+    }
+    L, W = 102, 427
+    DISPLAY, SANS = "CormorantGaramond", "Montserrat"
+    SECTION_CHROME = 44.0
+    BODY_FS, BODY_LH = 9.0, 14.0
+
+    class MonumentBuilder(Builder):
+        """Continue the editorial column below the repeated page frame."""
+
+        def continuation_top(self) -> float:
+            return 72.0
+
+    # Preserve the complete identity; width fitting owns the photo clearance
+    # and wraps only after reaching the shared minimum display size.
+    name = str(cv.get("name") or "")
+    title = _compact_text(cv.get("title"), 52)
+    # The portrait frame follows the masthead geometry visible in the editor:
+    # 80pt wide with a 3:4-like vertical measure. A real uploaded photo covers
+    # the black glyph while the outline remains visible above it.
+    photo_frame = {
+        **_rect(425, 47, 80, 107, C["ink"], 1.5, zIndex=3),
+        "id": "monument-masthead-frame",
+        "photoSlot": "frame",
+        "photoShape": "ornament-frame",
+        "fixedToPage": True,
+        "locked": True,
+    }
+    portrait_glyph = {
+        **_icon("monument", "portrait", 449, 82, 32, zIndex=4),
+        "photoSlot": "glyph",
+        "fixedToPage": True,
+        "locked": True,
+        "alignWithText": False,
+    }
+    contact_items = _contact_channel_items(cv)
+    contact_elements, contact_bottom, contact_descriptor = _place_wrapping_icon_contacts(
+        theme="monument",
+        items=contact_items,
+        start_x=76,
+        start_y=136,
+        right_limit=405,
+        text_fs=9,
+        icon_size=10,
+        text_color=C["ink"],
+        font=SANS,
+        icon_gap=14,
+        item_pad=10,
+        line_step=14,
+        band_id="monument-contact",
+    )
+    name_element = {
+        **_text(name, 33, DISPLAY, C["ink"], 74, 59, zIndex=3, bold=True),
+        "flowRole": "masthead",
+    }
+    title_prototype = {
+        **_block(
+            title, 76, 104, 337, 20, 12.5, 16, C["body"], SANS,
+            zIndex=3, bold=True,
+        ),
+        "flowRole": "masthead",
+    }
+    title_prototype["letterSpacing"] = 1.1
+    title_element = title_prototype if title else None
+    header = [name_element]
+    if title_element is not None:
+        header.append(title_element)
+    header.extend([*contact_elements, photo_frame, portrait_glyph])
+    header.append(build_contact_band_anchor(contact_descriptor))
+    # Monument permanently reserves the title slot between the name and the
+    # fixed contact/photo geometry. Toggling the title therefore changes only
+    # its visibility; moving the surrounding masthead would break that frame.
+    header.append(tag_masthead_identity(
+        name_element,
+        title_element,
+        title_prototype=title_prototype,
+        band_id="monument-masthead",
+        name_default_uppercase=False,
+        title_default_uppercase=False,
+        band_top=104.0,
+        title_reclaim_pt=0.0,
+        contact_band_id="monument-contact",
+    ))
+
+    # Contacts can wrap into several rows. Keep the first section below both
+    # that dynamic band and the portrait frame, so imported contact-rich CVs
+    # never collide with the numbered section chrome.
+    masthead_bottom = max(154.0, contact_bottom + 14.0)
+    b = MonumentBuilder(masthead_bottom + SPACE_AFTER_MASTHEAD)
+    section_number = 0
+
+    def section(label: str) -> None:
+        """
+        Draw one numbered heading unit and advance to its content baseline.
+
+        The fixed frame width keeps every section aligned. Long custom labels
+        are shortened only in this decorative slot; their content is preserved.
+        """
+        nonlocal section_number
+        section_number += 1
+        top = b.y
+        display_label = _compact_text(label, 31)
+        # The ordinal badge ("01", "02", …) is decorative chrome, not the
+        # section's title — the frontend's structural editor (Sections panel)
+        # must not list it as its own section alongside the real label. Tag it
+        # `isDecorativeChromeText` so `isSectionHeading` (sectionStructure.js)
+        # can tell the two chrome-tagged text elements apart.
+        number_badge = {
+            **_text(f"{section_number:02d}", 11, SANS, C["white"], 74, top + 8,
+                    zIndex=5, page=b.pg, bold=True),
+            "isDecorativeChromeText": True,
+        }
+        chrome = [
+            _line(66, top, 32, 32, C["ink"], zIndex=2, page=b.pg),
+            number_badge,
+            _rect(106, top, 251, 32, C["ink"], 1.2, zIndex=2, page=b.pg),
+            _text(display_label, 12.5, DISPLAY, C["ink"], 118, top + 8,
+                  zIndex=5, page=b.pg, bold=True),
+            _line(369, top + 15, 160, 2, C["rule"], zIndex=1, page=b.pg),
+        ]
+        chrome[-2]["letterSpacing"] = 0.35
+        # Keep the marker, number, title frame, label, and rule as one reflow
+        # cluster. Without explicit roles, the browser's legacy fallback treats
+        # text and shapes independently and can break the heading alignment.
+        b.els.extend({**element, "flowRole": "section-chrome"} for element in chrome)
+        b.y += SECTION_CHROME
+
+    def experience_height(job: dict) -> float:
+        height = (
+            b.measure_block(job.get("title", ""), W, 11, 14, SANS, bold=True, min_h=14)
+            + get_spacing().stack
+            + b.measure_block(_company_period(job), W, 9, 12, SANS, min_h=12)
+        )
+        bullets = _bullets(job)
+        if bullets:
+            height += get_spacing().stack + b.measure_block(
+                bullets, W, BODY_FS, BODY_LH, SANS, bulletList=True
+            )
+        return height
+
+    def education_height(education: dict) -> float:
+        return _education_record_height(
+            b, education, W, SANS,
+            degree_fs=10, degree_lh=13,
+            meta_fs=9, meta_lh=12,
+            body_fs=BODY_FS, body_lh=BODY_LH,
+        )
+
+    lbl = _labels(cv)
+
+    if cv.get("summary"):
+        # Keep summary at BODY_FS. A larger lead paragraph would fight the
+        # compact editorial hierarchy this template is built around.
+        summary_height = b.measure_block(cv["summary"], W, BODY_FS, BODY_LH, SANS)
+        b.need_section(SECTION_CHROME, summary_height)
+        section(lbl["summary"])
+        b.block(cv["summary"], L, W, BODY_FS, BODY_LH, C["body"], SANS)
+        b.gap(get_spacing().section)
+
+    if cv.get("experience"):
+        jobs = cv["experience"]
+        b.need_section(SECTION_CHROME, experience_height(jobs[0]))
+        section(lbl["experience"])
+        for index, job in enumerate(jobs):
+            with b.keep_together(experience_height(job)):
+                b.block(job.get("title", ""), L, W, 11, 14, C["ink"], SANS,
+                        bold=True, min_h=14)
+                b.gap(get_spacing().stack)
+                b.block(_company_period(job), L, W, 9, 12, C["muted"], SANS, min_h=12)
+                bullets = _bullets(job)
+                if bullets:
+                    b.gap(get_spacing().stack)
+                    b.block(bullets, L, W, BODY_FS, BODY_LH, C["body"], SANS, bulletList=True)
+            if index < len(jobs) - 1:
+                b.gap(get_spacing().record)
+        b.gap(get_spacing().section)
+
+    _extra_sections(
+        b, cv, "after_experience", section, C, L, W, SANS,
+        fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME,
+    )
+
+    if cv.get("education"):
+        entries = cv["education"]
+        b.need_section(SECTION_CHROME, education_height(entries[0]))
+        section(lbl["education"])
+        for index, education in enumerate(entries):
+            _place_education_record(
+                b, education, L, W,
+                ink=C["ink"], muted=C["muted"], body=C["body"], font=SANS,
+                degree_fs=10, degree_lh=13,
+                meta_fs=9, meta_lh=12,
+                body_fs=BODY_FS, body_lh=BODY_LH,
+                after_gap=get_spacing().record if index < len(entries) - 1 else None,
+            )
+        b.gap(get_spacing().section)
+
+    if _place_skills_section(
+        b, cv, section, L, W, C["body"], SANS, BODY_FS, BODY_LH,
+        section_chrome_h=SECTION_CHROME,
+    ):
+        b.gap(get_spacing().section)
+
+    _extra_sections(
+        b, cv, "after_skills", section, C, L, W, SANS,
+        fs=BODY_FS, lh=BODY_LH, section_chrome_h=SECTION_CHROME,
+    )
+
+    flow = b.build()
+    selectable = [
+        {
+            **element,
+            "flowRole": element.get("flowRole", "content"),
+            **(
+                {"preserveInitialLayout": True}
+                if element.get("category") == "textarea"
+                else {}
+            ),
+        }
+        for element in header + flow
+    ]
+    pages_used = max([element.get("page", 1) for element in selectable] or [1])
+    page_decorations = []
+    for page in range(1, pages_used + 1):
+        page_background = {
+            **_line(0, 0, 595, 842, C["paper"], zIndex=0, page=page),
+            "fixedToPage": True,
+        }
+        if page == 1:
+            # Persist the authored appearance on stable page chrome. Palette
+            # and text-size changes update this anchor; ReportLab ignores the
+            # editor-only metadata while saved documents restore the controls.
+            page_background["appearanceTemplateId"] = "monument"
+            page_background["appearanceSettings"] = {
+                "palette": "inkstone",
+                "textSize": "M",
+            }
+        page_decorations.extend([
+            page_background,
+            {**_rect(34, 32, 527, 778, C["rule"], 0.8, page=page), "fixedToPage": True},
+        ])
+        # The tall bars belong to the name-and-position masthead. Repeating
+        # them on continuation pages incorrectly suggests a missing header.
+        if page == 1:
+            page_decorations.extend([
+                {
+                    **_line(51, 54, 8, 111, C["ink"], zIndex=2, page=page),
+                    "fixedToPage": True,
+                    "repeatOnContinuation": False,
+                },
+                {
+                    **_line(529, 54, 8, 111, C["pale"], zIndex=2, page=page),
+                    "fixedToPage": True,
+                    "repeatOnContinuation": False,
+                },
+            ])
+        page_decorations.extend([
+            {**_line(66, 779, 463, 1, C["rule"], zIndex=2, page=page), "fixedToPage": True},
+            {**_line(66, 792, 28, 8, C["ink"], zIndex=2, page=page), "fixedToPage": True},
+            {**_text(f"{page:02d}", 9, SANS, C["muted"], 512, 787,
+                     zIndex=3, page=page), "fixedToPage": True},
+        ])
+    return page_decorations + selectable

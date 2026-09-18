@@ -5,9 +5,9 @@ from unittest.mock import patch
 import pytest
 
 from app.models.models import InterviewSession, AiCreditReservation
-from app.services import interview_service as service
-from app.services.interview_fit import initialise_fit, _stop
-from app.services.interview_credits import interview_credit_usage
+from app.services.interviews import service
+from app.services.interviews.fit import initialise_fit, _stop
+from app.services.interviews.credits import interview_credit_usage
 from app.schemas.interview_schema import PreviewFitWrite
 from test_interviews import environment, create, confirm, version
 
@@ -177,7 +177,7 @@ def test_paid_attempt_ceiling_is_persisted_across_requests(environment, ratio, l
         elements = deepcopy(state['preview']['elements'])
         elements[1]['content'] = data['summary']
         return elements
-    with patch.object(service, '_gpt', side_effect=outputs) as provider, patch('app.services.interview_fit._render', side_effect=render):
+    with patch.object(service, '_gpt', side_effect=outputs) as provider, patch('app.services.interviews.fit._render', side_effect=render):
         for index in range(limit):
             result = post(client, session, required_reduction=ratio, editable_height=500-index*50)
             assert result.status_code == 200, result.text

@@ -15,8 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from regenerate_template_starters import TEMPLATES, tag_flow_roles, relativize_assets
 from render_iconic_mockups import render_theme, rasterize_first_page
-from app.services.cv_generator import generate_resume
-from app.services.entitlements import FREE_STARTER_TEMPLATE_IDS
+from app.services.cv.generator import generate_resume
+from app.services.billing.entitlements import FREE_STARTER_TEMPLATE_IDS
 
 ENGLISH_DEMO = {
     "name": "Julia Bernat", "title": "AML and Compliance Analyst",

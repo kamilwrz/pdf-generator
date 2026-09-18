@@ -1,6 +1,6 @@
 import sys, json, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from app.services.cv_templates.registry import generate_resume
+from app.services.cv.templates.registry import generate_resume
 
 cv = {
   "name": "Mikhail Navumchyk",

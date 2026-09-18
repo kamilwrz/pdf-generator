@@ -8,9 +8,9 @@ import pytest
 
 from app.core.localisation import ui_language
 from app.schemas.interview_schema import Question
-from app.services import interview_service as service
-from app.services.interview_discovery import next_entry, scoped_question
-from app.services.interview_questions import (
+from app.services.interviews import service
+from app.services.interviews.discovery import next_entry, scoped_question
+from app.services.interviews.questions import (
     ANGLES, RECENT_WINDOW, fallback_question, is_distinct_question, question_guidance,
 )
 from test_interviews import environment, create, confirm, version

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import fitz
 from reportlab.pdfgen.canvas import Canvas
 
-from app.services.pdf_generator import PDF_Generator
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 class PdfUnicodeFontTests(unittest.TestCase):
@@ -37,7 +37,7 @@ class PdfUnicodeFontTests(unittest.TestCase):
             document.close()
 
     def test_null_and_nbsp_are_stripped_from_exported_text(self):
-        from app.services.pdf_generator import sanitize_pdf_text
+        from app.services.documents.rendering.pdf import sanitize_pdf_text
 
         self.assertEqual(
             sanitize_pdf_text("Bachelor of Laws (LL.B.)\x00"),

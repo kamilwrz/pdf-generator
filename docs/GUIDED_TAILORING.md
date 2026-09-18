@@ -10,7 +10,7 @@ This guide describes the account-owned `/app/tailor` workflow. The README's **Gu
 backend/
   alembic/versions/20260916_0019_tailoring_flows.py
   app/api/routes/tailoring.py
-  app/services/tailoring_history.py
+  app/services/tailoring/history.py
   tests/test_tailoring_history.py
   tests/test_tailoring.py
 frontend/
@@ -56,7 +56,7 @@ Migration `20260916_0019` follows `20260912_0018`. Table `tailoring_flows`:
 
 Defaults are application/ORM defaults, not SQL server defaults. State contains `source_kind`, `source_id`, `offer_kind`, `job_description`, `job_offer_url`, `language`, `step`, an internal source digest and optional `locked`. Source IDs are references inside JSON, not cascading foreign keys: deleting intake or its original source must not delete an independent generated CV. Sources are rechecked against the owner when used. The interview/document link is obtained from owned interview state, not accepted from the browser. The internal digest is excluded from ordinary API payloads.
 
-Account export includes drafts and account erasure removes them through `account_data_service.py`. The draft DELETE endpoint removes only intake; it leaves interviews/documents intact. No additional automatic retention period or background cleanup job is introduced. Stored advert text and source references may contain personal data and follow existing account storage/access controls. Do not log payloads. URL resolution uses the existing interview offer resolver and its validation; a draft save does not fetch an external URL.
+Account export includes drafts and account erasure removes them through `accounts/data.py`. The draft DELETE endpoint removes only intake; it leaves interviews/documents intact. No additional automatic retention period or background cleanup job is introduced. Stored advert text and source references may contain personal data and follow existing account storage/access controls. Do not log payloads. URL resolution uses the existing interview offer resolver and its validation; a draft save does not fetch an external URL.
 
 ## API contract
 
@@ -137,7 +137,7 @@ Przewodnik opisuje należącą do konta ścieżkę `/app/tailor`. Sekcja README 
 backend/
   alembic/versions/20260916_0019_tailoring_flows.py
   app/api/routes/tailoring.py
-  app/services/tailoring_history.py
+  app/services/tailoring/history.py
   tests/test_tailoring_history.py
   tests/test_tailoring.py
 frontend/
@@ -183,7 +183,7 @@ Migracja `20260916_0019` następuje po `20260912_0018`. Tabela `tailoring_flows`
 
 Wartości domyślne należą do aplikacji/ORM, nie do serwera SQL. Stan obejmuje `source_kind`, `source_id`, `offer_kind`, `job_description`, `job_offer_url`, `language`, `step`, wewnętrzny skrót źródła i opcjonalne `locked`. Identyfikatory źródeł są odwołaniami w JSON, a nie kaskadowymi kluczami obcymi: usunięcie formularza lub oryginalnego źródła nie może usunąć niezależnego wynikowego CV. Przy użyciu źródła ponownie sprawdzany jest właściciel. Powiązanie wywiadu/dokumentu pochodzi z własnego stanu wywiadu, a nie z danych przeglądarki. Wewnętrzny skrót nie występuje w zwykłych odpowiedziach API.
 
-Eksport konta zawiera wersje robocze, a usuwanie konta usuwa je przez `account_data_service.py`. Endpoint DELETE usuwa tylko formularz, zachowując wywiady i dokumenty. Nie wprowadzono dodatkowego automatycznego okresu retencji ani zadania czyszczącego w tle. Tekst oferty i odwołania do źródeł mogą zawierać dane osobowe i podlegają istniejącemu zapisowi oraz kontroli dostępu konta. Nie loguj treści żądań. Odczyt URL używa istniejącego mechanizmu oferty i jego walidacji; zapis formularza nie pobiera zewnętrznego adresu.
+Eksport konta zawiera wersje robocze, a usuwanie konta usuwa je przez `accounts/data.py`. Endpoint DELETE usuwa tylko formularz, zachowując wywiady i dokumenty. Nie wprowadzono dodatkowego automatycznego okresu retencji ani zadania czyszczącego w tle. Tekst oferty i odwołania do źródeł mogą zawierać dane osobowe i podlegają istniejącemu zapisowi oraz kontroli dostępu konta. Nie loguj treści żądań. Odczyt URL używa istniejącego mechanizmu oferty i jego walidacji; zapis formularza nie pobiera zewnętrznego adresu.
 
 ## Kontrakt API
 

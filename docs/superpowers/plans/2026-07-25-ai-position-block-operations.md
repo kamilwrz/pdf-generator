@@ -22,10 +22,10 @@ Reference: `docs/superpowers/specs/2026-07-25-ai-position-block-operations-desig
 
 ---
 
-### Task 1: Block-aware resolution in `layout_analysis.py`
+### Task 1: Block-aware resolution in `cv/layout/analysis.py`
 
 **Files:**
-- Modify: `backend/app/services/layout_analysis.py`
+- Modify: `backend/app/services/cv/layout/analysis.py`
 - Test: `backend/tests/test_layout_analysis.py` (extend existing file)
 
 **Interfaces:**
@@ -157,7 +157,7 @@ Expected: the 20 pre-existing tests still **PASS**; the 6 new tests **FAIL** wit
 
 - [ ] **Step 3: Implement**
 
-In `backend/app/services/layout_analysis.py`, find the current `resolve_directed_operation` function in full:
+In `backend/app/services/cv/layout/analysis.py`, find the current `resolve_directed_operation` function in full:
 
 ```python
 def resolve_directed_operation(
@@ -428,7 +428,7 @@ Expected: **PASS** — `Ran 26 tests ... OK` (20 pre-existing + 6 new).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/layout_analysis.py backend/tests/test_layout_analysis.py
+git add backend/app/services/cv/layout/analysis.py backend/tests/test_layout_analysis.py
 git commit -m "feat: resolve multi-element block position operations"
 ```
 
@@ -437,7 +437,7 @@ git commit -m "feat: resolve multi-element block position operations"
 ### Task 2: Teach `_chat()` about `target_groups`
 
 **Files:**
-- Modify: `backend/app/services/ai_assistant_service.py`
+- Modify: `backend/app/services/ai/assistant/service.py`
 - Test: `backend/tests/test_ai_chat_command.py` (extend existing file)
 
 **Interfaces:** None new — `_chat()`'s signature and Python logic are unchanged. `raw.get("position_operation")` already gets forwarded to `resolve_directed_operation(elements, directive, page_size)` as a whole dict regardless of its shape (line ~608), so this task is a prompt-text change only, plus fixing one now-stale sentence.
@@ -496,7 +496,7 @@ Expected: this new test **PASSES already** — Task 1 already made `resolve_dire
 
 - [ ] **Step 3: Update the prompt**
 
-In `backend/app/services/ai_assistant_service.py`, find this block inside `_chat()`'s `system` prompt (the `(3) POLECENIEM dotyczącym POZYCJI...` paragraph):
+In `backend/app/services/ai/assistant/service.py`, find this block inside `_chat()`'s `system` prompt (the `(3) POLECENIEM dotyczącym POZYCJI...` paragraph):
 
 ```python
         "(3) POLECENIEM dotyczącym POZYCJI elementów (np. \"przesuń nagłówki sekcji o 50px w lewo\", "
@@ -572,7 +572,7 @@ Expected: **38 tests total** (31 in the pre-existing baseline + 6 new from Task 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/ai_assistant_service.py backend/tests/test_ai_chat_command.py
+git add backend/app/services/ai/assistant/service.py backend/tests/test_ai_chat_command.py
 git commit -m "feat: teach the CV chat action to target multi-element blocks"
 ```
 
@@ -605,7 +605,7 @@ Save as `verify_block_operations.py` in a scratch/temp directory of your choice 
 import sys
 sys.path.insert(0, r"c:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\backend")
 
-from app.services.ai_assistant_service import analyze_action
+from app.services.ai.assistant.service import analyze_action
 
 PAGE_SIZE = {"width": 595, "height": 842}
 
@@ -674,4 +674,4 @@ c:\Users\Kamil\learningCode\PROJECTS\PDF\pdf-generator\backend\.venv\Scripts\pyt
 3. `layout_issues` should be empty and exactly one `layout_groups` entry should be present.
 4. If GPT instead tried to move `job1-title` alone, or moved all 9 experience elements independently (ignoring the block structure), or declined the request again — that's a prompt-wording gap in Task 2's system prompt, not a plumbing bug (Tasks 1-2's automated tests already prove the plumbing with a hand-built `target_groups` directive). Adjust the wording, re-run this script, and re-run `tests.test_ai_chat_command` to confirm the automated test still passes before moving on.
 
-- [ ] **Step 4: No commit** — this is a verification pass, not a code change. If you tweak the prompt in `_chat()` as a result, that's a normal edit to the existing `ai_assistant_service.py` file — commit it with a message describing what the prompt fix addresses.
+- [ ] **Step 4: No commit** — this is a verification pass, not a code change. If you tweak the prompt in `_chat()` as a result, that's a normal edit to the existing `ai/assistant/service.py` file — commit it with a message describing what the prompt fix addresses.

@@ -29,14 +29,14 @@ reopening that failure mode.
   set and a operation with parameters (an offset, an axis, an anchor, an
   optional explicit value); Python computes every actual `left`/`top` from
   the elements' real current measured positions, exactly like
-  `layout_analysis.py` already does for the deterministic auto-scan.
+  `cv/layout/analysis.py` already does for the deterministic auto-scan.
 - Every proposal is validated before being shown: nothing may leave the page,
   and nothing may create a new overlap that didn't already exist. If a
   request can't be satisfied safely, the assistant explains why in its reply
   instead of silently producing nothing or a broken result.
 - Explicit instructions are not distance-capped the way the deterministic
   auto-scanner's speculative nudges are (`MAX_SAFE_SNAP_MOVE` /
-  `MAX_SAFE_BOUNDS_MOVE` in `layout_analysis.py`) — a user who explicitly asks
+  `MAX_SAFE_BOUNDS_MOVE` in `cv/layout/analysis.py`) — a user who explicitly asks
   for a 200px move gets it, provided it still passes the bounds/overlap check.
 - Ambiguous requests get a clarifying question in the chat reply, not a
   guessed operation. This reuses the existing chat history UI as-is — no new
@@ -77,7 +77,7 @@ reopening that failure mode.
 - **`distribute`** — equalize the gaps between a target set of elements along
   one axis, holding the first and last element fixed and repositioning the
   ones between them. Requires at least 3 targets (first, last, and at least
-  one to redistribute) — matching `layout_analysis.py`'s existing
+  one to redistribute) — matching `cv/layout/analysis.py`'s existing
   `MIN_CLUSTER_SIZE` convention for spacing detection; a directive with fewer
   than 3 targets resolves to no patch plus an explanation.
 
@@ -87,7 +87,7 @@ target `element_id` list, axis/anchor/offset/value as applicable — never a
 produce; everything else about `_chat()`'s existing question/content-style
 behavior is unchanged.
 
-**Resolution and validation** happen entirely in `layout_analysis.py`, which
+**Resolution and validation** happen entirely in `cv/layout/analysis.py`, which
 already states "this module is the sole authority for layout coordinates."
 New functions (`resolve_shift`, `resolve_align`, `resolve_distribute`) take
 the directive plus the elements' real current bounds and produce concrete

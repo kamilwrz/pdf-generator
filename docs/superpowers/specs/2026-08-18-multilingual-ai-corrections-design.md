@@ -2,7 +2,7 @@
 
 **Data:** 2026-08-18
 **Status:** Zatwierdzony do planu implementacji
-**Obszar:** `backend/app/services/ai_assistant_service.py`, `backend/app/api/routes/ai_assistant.py`, `frontend/src/components/ai/AiAssistant/`
+**Obszar:** `backend/app/services/ai/assistant/service.py`, `backend/app/api/routes/ai_assistant.py`, `frontend/src/components/ai/AiAssistant/`
 
 ---
 
@@ -18,7 +18,7 @@ dokument użytkownika.
 
 ### Przyczyna w kodzie (stan obecny)
 
-W `backend/app/services/ai_assistant_service.py` cztery handlery edytujące treść
+W `backend/app/services/ai/assistant/service.py` cztery handlery edytujące treść
 mają zaszyte na sztywno polecenie zwracania treści po polsku:
 
 - `_fix_grammar` (akcja `grammar`) — „content poprawek (…) zwracaj po polsku".
@@ -79,7 +79,7 @@ w testach).
 
 ### 4.1 Detektor języka — `_detect_cv_language(elements) -> dict`
 
-Nowa funkcja w `ai_assistant_service.py`.
+Nowa funkcja w `ai/assistant/service.py`.
 
 - **Wejście:** lista elementów kanwy (jak pozostałe akcje).
 - **Wyjście:** słownik

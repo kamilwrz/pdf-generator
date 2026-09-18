@@ -4,9 +4,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
-from app.services.pdf_generator import PDF_Generator
-from app.utils.build_pdf import build_pdf_to_buffer
-from app.utils.image_src_to_path import image_src_to_local_path
+from app.services.documents.rendering.pdf import PDF_Generator
+from app.services.documents.rendering.build import build_pdf_to_buffer
+from app.services.storage.image_resolver import image_src_to_local_path
 
 
 class RecordingPath:
@@ -222,7 +222,7 @@ class PdfShapeTests(unittest.TestCase):
         except ImportError:
             self.skipTest("pymupdf/Pillow required for raster smoke check")
 
-        from app.services.cv_generator import generate_resume
+        from app.services.cv.generator import generate_resume
 
         elements = [
             SimpleNamespace(**element)

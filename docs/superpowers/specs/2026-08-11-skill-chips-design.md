@@ -40,10 +40,10 @@ Rozważane opcje:
 - **A (wybrana): rozszerzyć `shared/text.py` o tryb `"chips"`, emitujący
   istniejące kategorie elementów `rectangle` + `text`.** Zero zmian w
   schemacie (`pdf_schema.py`, `shared/pdf-element.schema.json`), zero nowego
-  case'u w dispatchu renderera (`pdf_generator.py`), zero nowego komponentu
+  case'u w dispatchu renderera (`documents/rendering/pdf.py`), zero nowego komponentu
   canvas. `rectangle` już ma sprawdzoną parytetową obsługę `borderRadius` +
   `filled` po obu stronach (canvas `Rectangle.jsx`, PDF `renderRectangle` w
-  `pdf_generator.py:223`, dispatch `pdf_generator.py:1105`). Wzorzec
+  `documents/rendering/pdf.py:223`, dispatch `documents/rendering/pdf.py:1105`). Wzorzec
   zawijania do kolejnych wierszy już istnieje jako jednorazowy hack w
   `axis.py` (`_place_skill_chips`, linie 221–237) — generalizujemy go do
   `shared/text.py`, naprawiając przy okazji lukę opisaną w sekcji 5.
@@ -62,7 +62,7 @@ Rozważane opcje:
 
 ## 4. Przepływ danych i miejsce zmian
 
-`_place_skills_section` (`backend/app/services/cv_templates/shared/text.py:146`)
+`_place_skills_section` (`backend/app/services/cv/templates/shared/text.py:146`)
 zyskuje trzecią wartość `mode`: `"inline" | "bullets" | "chips"`. Dla
 `mode="chips"`:
 
@@ -91,7 +91,7 @@ oparte o `PDF_Generator._resolve_font` + `stringWidth`), a gdy
 dół.
 
 `_text_width` zostaje **przeniesione do `shared/text.py`** (lub
-`cv_generator_primitives.py`) jako funkcja współdzielona, bo `axis.py` i
+`cv/layout/primitives.py`) jako funkcja współdzielona, bo `axis.py` i
 nowy kod w `shared/text.py` potrzebują tej samej logiki pomiaru.
 
 **Poprawka:** `axis.py:225` rezerwuje miejsce tylko na jeden wiersz
@@ -103,7 +103,7 @@ dopiero potem rysuje (place pass) wewnątrz `keep_together(group_h)`, tak jak
 już dziś robi to `_place_skills_section` dla trybu `inline`/`bullets`
 (linia 203). To realizuje wymaganie #4 z sekcji 2 bez nowej logiki
 podziału stron — cały mechanizm dziedziczymy z `Builder.keep_together`
-(`cv_generator_primitives.py:244`).
+(`cv/layout/primitives.py:244`).
 
 Renderowanie pojedynczego chipa:
 
@@ -116,7 +116,7 @@ Renderowanie pojedynczego chipa:
   tak jak dziś np. `C['bg']` na kolorowym tle w innych miejscach szablonów).
 
 Konieczna mała, addytywna zmiana: `_rect()` w
-`cv_generator_primitives.py:168` dziś tworzy wyłącznie obrys (bez
+`cv/layout/primitives.py:168` dziś tworzy wyłącznie obrys (bez
 `filled`/`borderRadius` — w przeciwieństwie do `_circle`/`_ellipse`, które
 już mają `filled`). Dodajemy oba parametry jako opcjonalne kwargs z
 wartościami domyślnymi zgodnymi z obecnym zachowaniem (`filled=False,
@@ -127,14 +127,14 @@ zmienia.
 
 Zmienione:
 
-- `backend/app/services/cv_templates/shared/text.py` — `mode="chips"` w
+- `backend/app/services/cv/templates/shared/text.py` — `mode="chips"` w
   `_place_skills_section`, `_skill_group_body_content`,
   `_measure_skill_group`; nowe `_place_skill_chips_row`,
   `_measure_skill_chips_row`.
-- `backend/app/services/cv_generator_primitives.py` — `_rect()` zyskuje
+- `backend/app/services/cv/layout/primitives.py` — `_rect()` zyskuje
   `filled`/`borderRadius` kwargs (linia 168); ewentualnie przenosi się tu
   `_text_width` jako współdzielony helper pomiaru.
-- `backend/app/services/cv_templates/templates/axis.py` — `_place_skill_chips`
+- `backend/app/services/cv/templates/generators/axis.py` — `_place_skill_chips`
   zaczyna korzystać ze współdzielonego `_text_width` (usunięcie duplikacji);
   bez zmiany wizualnej dla Axis (Axis zostaje przy swoim stylu
   tekst+podkreślenie, nie przechodzi na `rectangle`-pigułki, chyba że
@@ -148,7 +148,7 @@ Bez zmian (potwierdzone w rozpoznaniu):
 
 - `backend/app/schemas/pdf_schema.py`, `shared/pdf-element.schema.json` —
   `rectangle` już ma `borderRadius`/`filled` w schemacie.
-- `backend/app/services/pdf_generator.py` — `renderRectangle`/dispatch już
+- `backend/app/services/documents/rendering/pdf.py` — `renderRectangle`/dispatch już
   obsługują zaokrąglone, wypełnione prostokąty.
 - `frontend/src/components/canvas/Rectangle/Rectangle.jsx`,
   `frontend/src/utils/a4ElementFactories.js` — brak zmian, bo chipsy nie są

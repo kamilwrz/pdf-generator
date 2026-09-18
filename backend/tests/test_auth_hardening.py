@@ -37,12 +37,12 @@ from app.dependencies import get_db
 from app.main import app
 from app.models.models import AuthRateLimit, Base, User, UserSubscription
 from app.schemas.user_schema import UserCreateRequest
-from app.services.auth_rate_limit import (
+from app.services.accounts.rate_limit import (
     AuthRateLimitExceeded,
     claim_rate_limit,
     client_ip,
 )
-from app.services.entitlements import seed_plans
+from app.services.billing.entitlements import seed_plans
 from app.testing_support import ensure_test_auth_env
 
 

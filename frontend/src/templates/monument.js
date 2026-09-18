@@ -4,7 +4,7 @@
  * Monochrome editorial single column with strong rules and plates.
  *
  * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/monument.py`) for
+ * (`backend/app/services/cv/templates/generators/monument.py`) for
  * representative demo content (Julia Bernat — three roles, one degree, five skills, and three languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at

@@ -25,9 +25,9 @@
 
 Backend:
 - `backend/app/schemas/pdf_schema.py` (modify) — add `textTransform`, `mastheadRole`, `mastheadBandId`, `mastheadIdentity` to `PdfElement`.
-- `backend/app/services/pdf_generator.py` (modify) — `renderText` honors `textTransform`; call site passes it.
-- `backend/app/services/cv_templates/shared/masthead.py` (create) — `tag_masthead_identity`, `build_masthead_identity_anchor`.
-- `backend/app/services/cv_templates/templates/{harbor,atrium,portico,cardinal,tessera,slate,nova,volt}.py` (modify) — drop inline `.upper()`, call the helper, append the anchor.
+- `backend/app/services/documents/rendering/pdf.py` (modify) — `renderText` honors `textTransform`; call site passes it.
+- `backend/app/services/cv/templates/shared/masthead.py` (create) — `tag_masthead_identity`, `build_masthead_identity_anchor`.
+- `backend/app/services/cv/templates/generators/{harbor,atrium,portico,cardinal,tessera,slate,nova,volt}.py` (modify) — drop inline `.upper()`, call the helper, append the anchor.
 - `backend/app/crud/pdfs.py` (modify) — round-trip the four new fields (1 unpack site ~lines 53–106; 3 pack sites ~182, ~321, ~377).
 
 Frontend:
@@ -51,7 +51,7 @@ The foundation: an element field the canvas and PDF both honor, so uppercasing i
 
 **Files:**
 - Modify: `backend/app/schemas/pdf_schema.py`
-- Modify: `backend/app/services/pdf_generator.py`
+- Modify: `backend/app/services/documents/rendering/pdf.py`
 - Modify: `backend/app/crud/pdfs.py`
 - Test: `backend/tests/test_text_transform.py` (create)
 
@@ -64,7 +64,7 @@ The foundation: an element field the canvas and PDF both honor, so uppercasing i
 # backend/tests/test_text_transform.py
 """renderText applies the textTransform flag so canvas-uppercased names render
 uppercase in the PDF while the stored content keeps its original case."""
-from app.services.pdf_generator import PDF_Generator
+from app.services.documents.rendering.pdf import PDF_Generator
 
 
 def _capturing_generator():
@@ -94,7 +94,7 @@ Expected: FAIL (`renderText` has no `textTransform` parameter).
 
 - [ ] **Step 3: Add `textTransform` to `renderText`**
 
-In `pdf_generator.py`, change the `renderText` signature (line ~544) to accept the flag and uppercase before drawing:
+In `documents/rendering/pdf.py`, change the `renderText` signature (line ~544) to accept the flag and uppercase before drawing:
 
 ```python
     def renderText(self, left, top, fontFamily, fontSize, color, content, bold=False, italic=False, underline=False, runs=None, textTransform=None):
@@ -200,7 +200,7 @@ Expected: PASS.
 - [ ] **Step 9: Commit**
 
 ```bash
-git add backend/app/schemas/pdf_schema.py backend/app/services/pdf_generator.py backend/app/crud/pdfs.py backend/tests/test_text_transform.py
+git add backend/app/schemas/pdf_schema.py backend/app/services/documents/rendering/pdf.py backend/app/crud/pdfs.py backend/tests/test_text_transform.py
 git commit -m "feat(masthead): parity-safe textTransform field + round-trip"
 ```
 
@@ -211,7 +211,7 @@ git commit -m "feat(masthead): parity-safe textTransform field + round-trip"
 A shared helper that tags the name/title elements, seeds the reversible case default, captures the title spec for re-add, and returns the zero-footprint identity anchor.
 
 **Files:**
-- Create: `backend/app/services/cv_templates/shared/masthead.py`
+- Create: `backend/app/services/cv/templates/shared/masthead.py`
 - Test: `backend/tests/test_masthead_identity.py` (create)
 
 **Interfaces:**
@@ -225,8 +225,8 @@ A shared helper that tags the name/title elements, seeds the reversible case def
 # backend/tests/test_masthead_identity.py
 """The masthead identity helper tags name/title, seeds reversible uppercase
 defaults, records the title spec + reflow blockPt, and returns the anchor."""
-from app.services.cv_generator_primitives import _text
-from app.services.cv_templates.shared.masthead import (
+from app.services.cv.layout.primitives import _text
+from app.services.cv.templates.shared.masthead import (
     build_masthead_identity_anchor,
     tag_masthead_identity,
 )
@@ -369,7 +369,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/masthead.py backend/tests/test_masthead_identity.py
+git add backend/app/services/cv/templates/shared/masthead.py backend/tests/test_masthead_identity.py
 git commit -m "feat(masthead): identity tagging helper + anchor builder"
 ```
 
@@ -380,7 +380,7 @@ git commit -m "feat(masthead): identity tagging helper + anchor builder"
 Each template builds name/title as today but stops baking `.upper()`, tags them via the helper, and appends the identity anchor. Uppercasing moves to the reversible `textTransform` flag, so drawn PDFs stay byte-identical.
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/templates/{harbor,atrium,portico,cardinal,tessera,slate,nova,volt}.py`
+- Modify: `backend/app/services/cv/templates/generators/{harbor,atrium,portico,cardinal,tessera,slate,nova,volt}.py`
 - Test: `backend/tests/test_masthead_templates.py` (create)
 
 **Interfaces:**
@@ -395,7 +395,7 @@ Each template builds name/title as today but stops baking `.upper()`, tags them 
 and templates that used to bake `.upper()` now carry the reversible flag with
 original-case content."""
 import pytest
-from app.services.cv_templates.registry import get_template  # adjust to real accessor
+from app.services.cv.templates.registry import get_template  # adjust to real accessor
 
 _CV = {
     "name": "Jan Kowalski", "title": "AML Analyst",
@@ -457,7 +457,7 @@ Change the `header` construction (lines 61–64) to keep references to the name/
 Add `tag_masthead_identity` to the shared import and, after the contact band anchor is appended (line ~117), append the identity anchor (Harbor's contact `start_y` is `104.0`, so `band_top=104.0`; name was uppercased by design):
 
 ```python
-    from app.services.cv_templates.shared.masthead import tag_masthead_identity
+    from app.services.cv.templates.shared.masthead import tag_masthead_identity
     header.append(tag_masthead_identity(
         name_el, title_el if title else None,
         band_id="masthead-main", name_default_uppercase=True,
@@ -494,7 +494,7 @@ Expected: PASS. The `.upper()` → flag move must not change drawn output; if a 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/templates/ backend/tests/test_masthead_templates.py
+git add backend/app/services/cv/templates/generators/ backend/tests/test_masthead_templates.py
 git commit -m "feat(masthead): tag name/title + emit identity anchor on all 8 templates"
 ```
 
@@ -1180,7 +1180,7 @@ Expected: a diff adding `textTransform`, `mastheadRole`, `mastheadBandId`, `mast
 
 - [ ] **Step 2: Update README (EN + PL)**
 
-Add a "Masthead identity" Features entry describing: (a) a name-case toggle (Aa/AA) that flips a reversible `textTransform` flag honored by canvas + PDF; (b) a title/role-line show-hide that reflows the masthead up/down by `blockPt` and re-adds an editable title; (c) coverage on all eight contact-band templates (Harbor, Atrium, Portico, Cardinal, Tessera, Slate, Nova, Volt); (d) key files: `shared/masthead.py` (`tag_masthead_identity`), `pdf_generator.py` `renderText` (`textTransform`), `mastheadIdentityOps.js` (`applyNameCaseToggle`, `applyTitleToggle`), `mastheadBands.js`, `MastheadIdentityControls`. Mirror the same content in the Polish section. Verify any line references against the final files.
+Add a "Masthead identity" Features entry describing: (a) a name-case toggle (Aa/AA) that flips a reversible `textTransform` flag honored by canvas + PDF; (b) a title/role-line show-hide that reflows the masthead up/down by `blockPt` and re-adds an editable title; (c) coverage on all eight contact-band templates (Harbor, Atrium, Portico, Cardinal, Tessera, Slate, Nova, Volt); (d) key files: `shared/masthead.py` (`tag_masthead_identity`), `documents/rendering/pdf.py` `renderText` (`textTransform`), `mastheadIdentityOps.js` (`applyNameCaseToggle`, `applyTitleToggle`), `mastheadBands.js`, `MastheadIdentityControls`. Mirror the same content in the Polish section. Verify any line references against the final files.
 
 - [ ] **Step 3: Manual QA on the running app**
 

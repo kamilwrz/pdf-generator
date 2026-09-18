@@ -20,7 +20,7 @@ from app.dependencies import get_db
 from app.main import app
 from app.core.security import DEFAULT_JWT_KEY_VERSION, verify_token_optional
 from app.models.models import Base, User
-from app.services import entitlements as ent
+from app.services.billing import entitlements as ent
 from app.testing_support import ensure_test_auth_env
 
 

@@ -17,7 +17,7 @@ matching the pattern used in `test_ai_chat_command.py`.
 import unittest
 from unittest.mock import patch
 
-from app.services import ai_assistant_service as svc
+from app.services.ai.assistant import service as svc
 
 
 def _text_el(element_id, content, **extra):

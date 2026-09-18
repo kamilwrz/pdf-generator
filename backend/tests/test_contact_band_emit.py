@@ -1,5 +1,5 @@
 """Contact placers tag pairs and return a reflow descriptor; geometry unchanged."""
-from app.services.cv_templates.shared.contact import (
+from app.services.cv.templates.shared.contact import (
     _place_centered_icon_contacts,
     _place_chip_icon_contacts,
     _place_stacked_icon_contacts,

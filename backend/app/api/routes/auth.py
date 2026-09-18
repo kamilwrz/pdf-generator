@@ -37,8 +37,8 @@ from app.core.security import (
 )
 from datetime import datetime, timedelta, timezone
 from app.dependencies import get_db
-from app.services.entitlements import get_entitlements
-from app.services.auth_rate_limit import (
+from app.services.billing.entitlements import get_entitlements
+from app.services.accounts.rate_limit import (
     AuthRateLimitExceeded,
     claim_rate_limit,
     clear_rate_limit,
@@ -47,12 +47,12 @@ from app.services.auth_rate_limit import (
 )
 from app.models.models import User
 from app.core.config import FRONTEND_URL
-from app.services.email_service import send_verification_email
-from app.services.email_verification import (
+from app.services.accounts.email import send_verification_email
+from app.services.accounts.verification import (
     consume_email_verification_token,
     issue_email_verification_token,
 )
-from app.services.google_auth_service import verify_google_credential
+from app.services.accounts.google_auth import verify_google_credential
 
 import hashlib
 import re

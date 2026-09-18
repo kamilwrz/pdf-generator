@@ -5,7 +5,7 @@
  * centered contact band, and exact-anchor record metadata.
  *
  * This static starter is the backend generator's own output
- * (`backend/app/services/cv_templates/templates/aurelia.py`) for
+ * (`backend/app/services/cv/templates/generators/aurelia.py`) for
  * representative demo content (Julia Bernat — four roles, two degrees, eight skills, and four languages, sized to fit page 1 of the mockup), so the
  * picker preview matches what `/ai/fill_template` produces pixel-for-pixel.
  * Image `src` values are stored relative and get the API base prepended at

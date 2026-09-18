@@ -4,7 +4,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from app.models.models import CareerProfile, CvImportSnapshot, InterviewSession, Pdf
-from app.services import interview_service as service
+from app.services.interviews import service
 from test_interviews import environment, create
 
 

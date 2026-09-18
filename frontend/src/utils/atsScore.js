@@ -2,7 +2,7 @@ import { t as uiText } from "../i18n/index.js";
 /**
  * ATS overall scoring helpers shared by the AI assistant dashboard.
  *
- * Weights must stay in sync with `backend/app/services/ats_readability.py`
+ * Weights must stay in sync with `backend/app/services/cv/readability.py`
  * (`CATEGORY_WEIGHTS`). The UI must not display ATS overall as `rating × 10`
  * alone — the 1–10 integer scale rounds 96% to 10 → a false 100% badge.
  */

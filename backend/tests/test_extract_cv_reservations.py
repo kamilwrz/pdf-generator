@@ -19,8 +19,8 @@ from app.dependencies import get_db
 from app.main import app
 from app.models.models import AiCreditReservation, Base, CvImportSnapshot, UsageCounter, User
 from app.schemas.user_schema import UserCreateRequest
-from app.services.ai_service import CvExtractionError
-from app.services.entitlements import seed_plans
+from app.services.imports.extraction import CvExtractionError
+from app.services.billing.entitlements import seed_plans
 from app.testing_support import ensure_test_auth_env
 
 

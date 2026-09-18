@@ -23,7 +23,7 @@
 ### Task 1: Pure two-column planner (`column_planner.py`)
 
 **Files:**
-- Create: `backend/app/services/cv_templates/shared/column_planner.py`
+- Create: `backend/app/services/cv/templates/shared/column_planner.py`
 - Test: `backend/tests/test_column_planner.py`
 
 **Interfaces:**
@@ -38,7 +38,7 @@
 Create `backend/tests/test_column_planner.py`:
 
 ```python
-from app.services.cv_templates.shared.column_planner import (
+from app.services.cv.templates.shared.column_planner import (
     ColumnPlan,
     PlaceableSection,
     plan_columns,
@@ -105,7 +105,7 @@ Expected: FAIL with `ModuleNotFoundError: ... column_planner`.
 
 - [ ] **Step 3: Implement the planner**
 
-Create `backend/app/services/cv_templates/shared/column_planner.py`:
+Create `backend/app/services/cv/templates/shared/column_planner.py`:
 
 ```python
 """Balance-driven two-column section placement for sidebar CV templates.
@@ -281,7 +281,7 @@ Expected: PASS (5 tests).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/column_planner.py backend/tests/test_column_planner.py
+git add backend/app/services/cv/templates/shared/column_planner.py backend/tests/test_column_planner.py
 git commit -m "feat: pure two-column section placement planner"
 ```
 
@@ -360,7 +360,7 @@ git commit -m "test: balancing behaviour for the column planner"
 ### Task 2: Section-descriptor builder + Sterling wiring
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/templates/sterling.py` (replace the fixed sidebar/main split in `_gen_sterling`)
+- Modify: `backend/app/services/cv/templates/generators/sterling.py` (replace the fixed sidebar/main split in `_gen_sterling`)
 - Test: `backend/tests/test_cv_template_layouts.py` (add a Sterling placement test)
 
 **Interfaces:**
@@ -376,7 +376,7 @@ Add to `backend/tests/test_cv_template_layouts.py` (near the other Sterling-free
 ```python
     def test_sterling_balances_education_into_the_main_column(self):
         """Short experience → Education renders in the main column, not the rail."""
-        from app.services.cv_generator import generate_resume
+        from app.services.cv.generator import generate_resume
         cv = {
             "name": "Maja Zielińska",
             "title": "Studentka Marketingu",
@@ -431,18 +431,18 @@ Expected: FAIL — today Education renders as a sidebar kicker at `left == 34`.
 Inside `_gen_sterling`, after `content_top` is computed and the type-size constants (`BODY_FS`, `BODY_LH`, `SIDE_SUMMARY_FS`, `SIDE_SUMMARY_LH`, `SECTION_CHROME`, `TITLE_FS2`, `TITLE_LH2`, `META_FS`, `META_LH`) are known, build the descriptor list. Add imports at the top:
 
 ```python
-from app.services.cv_templates.shared.column_planner import (
+from app.services.cv.templates.shared.column_planner import (
     PlaceableSection,
     plan_columns,
 )
-from app.services.cv_templates.shared.extras import (
+from app.services.cv.templates.shared.extras import (
     _sidebar_wrapped_height,
 )
-from app.services.cv_templates.shared.records import (
+from app.services.cv.templates.shared.records import (
     _sidebar_education_entries,
     _sidebar_education_section_height,
 )
-from app.services.cv_templates.shared.extras import _sidebar_education_type_sizes
+from app.services.cv.templates.shared.extras import _sidebar_education_type_sizes
 ```
 
 (Keep the existing imports; add only the missing names.)
@@ -533,12 +533,12 @@ Simple sidebar candidates (skills / languages / interests / certifications) reus
             cand["content"], SIDE_W, SIDE_SUMMARY_FS, SIDE_SUMMARY_LH,
         ) + SIDEBAR_CHROME
         if cand["kind"] == "skills":
-            from app.services.cv_data import skill_groups
+            from app.services.cv.data import skill_groups
             main_body = _measure_skills_body(
                 probe, skill_groups(cv.get("skills")), MAIN_W, BODY_FS, BODY_LH, SANS,
             )
         elif cand["kind"] == "languages":
-            from app.services.cv_templates.shared.text import _language_entries
+            from app.services.cv.templates.shared.text import _language_entries
             main_body = _measure_languages_grid_height(
                 probe, _language_entries(cv), MAIN_W, font=SANS, fs=BODY_FS, lh=BODY_LH,
             )
@@ -555,8 +555,8 @@ Simple sidebar candidates (skills / languages / interests / certifications) reus
 Add the missing imports used above at the top of the module:
 
 ```python
-from app.services.cv_templates.shared.text import _measure_skills_body
-from app.services.cv_templates.shared.extras import _measure_languages_grid_height  # if re-exported; else import from text
+from app.services.cv.templates.shared.text import _measure_skills_body
+from app.services.cv.templates.shared.extras import _measure_languages_grid_height  # if re-exported; else import from text
 ```
 
 (Verify the exact module each name lives in: `_measure_skills_body` and `_measure_languages_grid_height` are defined in `shared/text.py`; import them from there.)
@@ -685,7 +685,7 @@ Expected: PASS, including `test_sterling_balances_education_into_the_main_column
 - [ ] **Step 8: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/templates/sterling.py backend/tests/test_cv_template_layouts.py
+git add backend/app/services/cv/templates/generators/sterling.py backend/tests/test_cv_template_layouts.py
 git commit -m "feat: route Sterling sections via the two-column planner"
 ```
 
@@ -757,16 +757,16 @@ Open `frontend/public/template-mockups/sterling.png` and verify the columns are 
 
 In `README.md`, in both the English "Sterling" section (~line 900) and the Polish "Szablon Sterling" section (~line 2512), add a paragraph describing the planner. English draft:
 
-> **Section placement is balance-driven.** Rather than filling the sidebar first, Sterling measures every section's height in both column widths and calls the shared `plan_columns` planner (`backend/app/services/cv_templates/shared/column_planner.py`) to partition sections between the columns, minimising page-1 imbalance. Experience is anchored to the main column; every other section is movable. Because the sidebar cannot paginate, the sidebar assignment is a hard page-1 fit while the main column may overflow onto later pages. In practice a short Experience block lets Education sit in the main column beside a lighter sidebar; a long Experience block pushes Education (and, if needed, another section) into the sidebar.
+> **Section placement is balance-driven.** Rather than filling the sidebar first, Sterling measures every section's height in both column widths and calls the shared `plan_columns` planner (`backend/app/services/cv/templates/shared/column_planner.py`) to partition sections between the columns, minimising page-1 imbalance. Experience is anchored to the main column; every other section is movable. Because the sidebar cannot paginate, the sidebar assignment is a hard page-1 fit while the main column may overflow onto later pages. In practice a short Experience block lets Education sit in the main column beside a lighter sidebar; a long Experience block pushes Education (and, if needed, another section) into the sidebar.
 
 Polish draft:
 
-> **Rozmieszczanie sekcji jest sterowane balansem.** Zamiast najpierw wypełniać sidebar, Sterling mierzy wysokość każdej sekcji w obu szerokościach kolumn i wywołuje wspólny planer `plan_columns` (`backend/app/services/cv_templates/shared/column_planner.py`), który dzieli sekcje między kolumny, minimalizując nierównowagę na stronie 1. Doświadczenie jest zakotwiczone w kolumnie głównej; każda inna sekcja jest ruchoma. Ponieważ sidebar nie może dzielić się na strony, jego przydział to twarde dopasowanie do strony 1, podczas gdy kolumna główna może przechodzić na kolejne strony. W praktyce krótkie Doświadczenie pozwala umieścić Wykształcenie w kolumnie głównej obok lżejszego sidebara; długie Doświadczenie przenosi Wykształcenie (a w razie potrzeby kolejną sekcję) do sidebara.
+> **Rozmieszczanie sekcji jest sterowane balansem.** Zamiast najpierw wypełniać sidebar, Sterling mierzy wysokość każdej sekcji w obu szerokościach kolumn i wywołuje wspólny planer `plan_columns` (`backend/app/services/cv/templates/shared/column_planner.py`), który dzieli sekcje między kolumny, minimalizując nierównowagę na stronie 1. Doświadczenie jest zakotwiczone w kolumnie głównej; każda inna sekcja jest ruchoma. Ponieważ sidebar nie może dzielić się na strony, jego przydział to twarde dopasowanie do strony 1, podczas gdy kolumna główna może przechodzić na kolejne strony. W praktyce krótkie Doświadczenie pozwala umieścić Wykształcenie w kolumnie głównej obok lżejszego sidebara; długie Doświadczenie przenosi Wykształcenie (a w razie potrzeby kolejną sekcję) do sidebara.
 
 Also add a Features entry (English + Polish Features sections) with verified references:
-- `backend/app/services/cv_templates/shared/column_planner.py` — `plan_columns`, `PlaceableSection`, `ColumnPlan`
+- `backend/app/services/cv/templates/shared/column_planner.py` — `plan_columns`, `PlaceableSection`, `ColumnPlan`
 - `backend/tests/test_column_planner.py` — planner unit tests
-- `backend/app/services/cv_templates/templates/sterling.py` — descriptor builder + planner call in `_gen_sterling`
+- `backend/app/services/cv/templates/generators/sterling.py` — descriptor builder + planner call in `_gen_sterling`
 
 Verify the line numbers of the Sterling section against the current file before writing them (they shift as the README grows).
 

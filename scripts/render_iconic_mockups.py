@@ -31,8 +31,8 @@ import fitz  # PyMuPDF
 from reportlab.pdfgen import canvas as rl_canvas
 
 from app.schemas.pdf_schema import PdfElement
-from app.services.pdf_generator import PDF_Generator
-from app.utils.image_src_to_path import image_src_to_local_path
+from app.services.documents.rendering.pdf import PDF_Generator
+from app.services.storage.image_resolver import image_src_to_local_path
 
 ELEMENTS_JSON = REPO_ROOT / "frontend" / "scripts" / "iconic-templates.json"
 OUTPUT_DIR = REPO_ROOT / "frontend" / "public" / "template-mockups"

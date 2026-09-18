@@ -22,12 +22,12 @@ from app.dependencies import get_db
 from app.main import app
 from app.models.models import Base, Payment, UserSubscription
 from app.schemas.user_schema import UserCreateRequest
-from app.services.email_verification import (
+from app.services.accounts.verification import (
     consume_email_verification_token,
     issue_email_verification_token,
 )
-from app.services import email_service
-from app.services.entitlements import seed_plans
+from app.services.accounts import email as email_service
+from app.services.billing.entitlements import seed_plans
 from app.testing_support import ensure_test_auth_env
 
 

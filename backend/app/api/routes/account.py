@@ -13,7 +13,7 @@ from app.core.security import get_current_user
 from app.dependencies import get_db
 from app.models.models import User
 from app.schemas.account_schema import AccountDeletionRequest
-from app.services.account_data_service import build_account_export, delete_account_data
+from app.services.accounts.data import build_account_export, delete_account_data
 
 router = APIRouter(prefix="/account", tags=["account"])
 

@@ -1,7 +1,7 @@
 """A rejected suggestion must not discard confirmed content or valid changes."""
-from app.services import interview_service as service
-from app.services.interview_recovery import assemble_reviewed_draft
-from app.services.cv_data import normalize_cv_data
+from app.services.interviews import service
+from app.services.interviews.recovery import assemble_reviewed_draft
+from app.services.cv.data import normalize_cv_data
 
 
 def test_report_chronology_and_project_technology_rejections_keep_usable_cv():
@@ -49,7 +49,7 @@ def test_unlocatable_verifier_rejection_does_not_apply_unchecked_claims():
 
 def test_clarification_round_respects_caps_and_does_not_repeat_answered_topics():
     from types import SimpleNamespace
-    from app.services.interview_clarification import clarification_queue, start_clarifications
+    from app.services.interviews.clarification import clarification_queue, start_clarifications
     from app.schemas.interview_schema import Verification, provider_schema
     profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
     row = SimpleNamespace(id='session', state={'answers': [], 'dismissed_clarifications': []})
@@ -75,7 +75,7 @@ def test_clarification_round_respects_caps_and_does_not_repeat_answered_topics()
 
 def test_clarifications_ignore_technical_errors_and_record_cascade():
     from types import SimpleNamespace
-    from app.services.interview_clarification import clarification_queue
+    from app.services.interviews.clarification import clarification_queue
     profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
     ref = profile['facts'][0]['id']
     row = SimpleNamespace(id='session', state={'answers': []})
@@ -89,7 +89,7 @@ def test_clarifications_ignore_technical_errors_and_record_cascade():
 
 def test_duplicate_claims_survive_reordering_and_skipping_without_reappearing():
     from types import SimpleNamespace
-    from app.services.interview_clarification import clarification_queue, dismiss_clarifications
+    from app.services.interviews.clarification import clarification_queue, dismiss_clarifications
     profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
     row = SimpleNamespace(id='session', state={'answers': []})
     fields = [{'path': f'/experience/{i}/bullets/0', 'value': 'Python w portalu CV.', 'evidence_refs': [profile['facts'][0]['id']]} for i in range(8)]
@@ -106,7 +106,7 @@ def test_duplicate_claims_survive_reordering_and_skipping_without_reappearing():
 
 def test_legacy_queue_repair_is_idempotent_and_preserves_answers():
     from copy import deepcopy
-    from app.services.interview_clarification import repair_clarification_state, finish_clarification_answer
+    from app.services.interviews.clarification import repair_clarification_state, finish_clarification_answer
     questions = [{'id': str(i), 'topic': f'old-path-{i}', 'text': 'Jak należy poprawnie opisać ten fragment dotyczący: Treść CV?',
                   'suggested_text': 'Python w portalu CV', 'clarification': True, 'context': 'Treść CV'} for i in range(8)]
     state = {'phase': 'clarification', 'question': questions[0], 'pending_clarifications': questions[1:],
@@ -126,7 +126,7 @@ def test_legacy_queue_repair_is_idempotent_and_preserves_answers():
 
 def test_five_clarification_answers_close_budget_even_for_new_claims():
     from types import SimpleNamespace
-    from app.services.interview_clarification import clarification_queue, repair_clarification_state
+    from app.services.interviews.clarification import clarification_queue, repair_clarification_state
     profile = {'facts': service.source_facts(normalize_cv_data({'name': 'Anna'}), 'manual')}
     state = {'answers': [{'question': {'clarification': True}, 'status': 'skipped'} for _ in range(8)],
              'phase': 'clarification', 'proposed_facts': [], 'preview': {'cv_data': {'name': 'Anna'}},
@@ -158,7 +158,7 @@ def test_duplicate_additions_are_omitted_but_distinct_and_other_roles_survive():
 
 def test_clarification_targets_suppress_reworded_questions_and_protect_other_facts():
     from types import SimpleNamespace
-    from app.services.interview_clarification import clarification_queue, answer_proposals
+    from app.services.interviews.clarification import clarification_queue, answer_proposals
     profile = {'facts': service.source_facts({'name': 'Anna', 'experience': [{'bullets': ['Research SoF.']}]}, 'manual')}
     fact = next(f for f in profile['facts'] if f['path'] == '/experience/0/bullets/0')
     row = SimpleNamespace(id='s', state={'answers': []})

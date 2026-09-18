@@ -127,7 +127,7 @@ Expected: FAIL ("contactItemWidth is not a function" / module not found).
 /**
  * Pure contact-band layout engine.
  *
- * Ports the backend placement math (cv_templates/shared/contact.py:
+ * Ports the backend placement math (cv/templates/shared/contact.py:
  * _place_centered_icon_contacts / _place_wrapping_icon_contacts) so the canvas
  * can recompute icon+label positions live when a channel is added or removed.
  * Geometry units are points == CSS px. `bottomY` is the TOP of the last row
@@ -364,9 +364,9 @@ git commit -m "feat(contact): persist contact channel identity + band descriptor
 Stamp channel/band identity onto each emitted contact pair and return a descriptor; append the band-anchor at the Harbor (wrapping) call site as the reference integration. Drawn geometry is unchanged.
 
 **Files:**
-- Modify: `backend/app/services/cv_templates/shared/contact.py`
+- Modify: `backend/app/services/cv/templates/shared/contact.py`
   (`_place_centered_icon_contacts`, `_place_wrapping_icon_contacts`)
-- Modify: `backend/app/services/cv_templates/templates/harbor.py` (header block, lines ~65–104)
+- Modify: `backend/app/services/cv/templates/generators/harbor.py` (header block, lines ~65–104)
 - Test: `backend/tests/test_contact_band_emit.py` (create)
 
 **Interfaces:**
@@ -384,7 +384,7 @@ Stamp channel/band identity onto each emitted contact pair and return a descript
 ```python
 # backend/tests/test_contact_band_emit.py
 """Contact placers tag pairs and return a reflow descriptor; geometry unchanged."""
-from app.services.cv_templates.shared.contact import (
+from app.services.cv.templates.shared.contact import (
     _place_wrapping_icon_contacts,
     build_contact_band_anchor,
 )
@@ -424,7 +424,7 @@ Expected: FAIL (`build_contact_band_anchor` missing; placer returns a 2-tuple).
 
 - [ ] **Step 3: Implement descriptor emission + anchor helper**
 
-In `backend/app/services/cv_templates/shared/contact.py`:
+In `backend/app/services/cv/templates/shared/contact.py`:
 
 Add the helper:
 
@@ -481,7 +481,7 @@ Apply the equivalent change to `_place_centered_icon_contacts` (tag both element
 
 - [ ] **Step 4: Wire the Harbor call site**
 
-In `backend/app/services/cv_templates/templates/harbor.py`, replace the manual contact loop (lines ~65–81) with a call to `_place_wrapping_icon_contacts` (theme `"harbor"`, `start_x=MAIN_X`, `start_y=104`, `right_limit=551`, `text_fs=8.4`, `icon_size=11`, `text_color=C["body"]`, `font=SANS`, a generated `band_id`), extend `header` with its elements, then after the header rule is appended set `descriptor["downstream"] = {"ruleElementId": <rule element_id or None>, "sectionStartOffsetPt": section_start - bottom_y}` and `header.append(build_contact_band_anchor(descriptor))`. Keep `header_rule_y`/`section_start` derived from the returned `bottom_y` exactly as before so drawn geometry is unchanged.
+In `backend/app/services/cv/templates/generators/harbor.py`, replace the manual contact loop (lines ~65–81) with a call to `_place_wrapping_icon_contacts` (theme `"harbor"`, `start_x=MAIN_X`, `start_y=104`, `right_limit=551`, `text_fs=8.4`, `icon_size=11`, `text_color=C["body"]`, `font=SANS`, a generated `band_id`), extend `header` with its elements, then after the header rule is appended set `descriptor["downstream"] = {"ruleElementId": <rule element_id or None>, "sectionStartOffsetPt": section_start - bottom_y}` and `header.append(build_contact_band_anchor(descriptor))`. Keep `header_rule_y`/`section_start` derived from the returned `bottom_y` exactly as before so drawn geometry is unchanged.
 
 Note: elements gain `element_id` downstream in the pipeline; if the rule's id is not known at emit time, leave `ruleElementId` `None` and let the client resolve the rule by `flowRole=="masthead"` + line category nearest below the band (documented in Task 5).
 
@@ -493,7 +493,7 @@ Expected: PASS (new tags present; existing geometry assertions unchanged).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/services/cv_templates/shared/contact.py backend/app/services/cv_templates/templates/harbor.py backend/tests/test_contact_band_emit.py
+git add backend/app/services/cv/templates/shared/contact.py backend/app/services/cv/templates/generators/harbor.py backend/tests/test_contact_band_emit.py
 git commit -m "feat(contact): tag contact pairs and emit reflow descriptor"
 ```
 

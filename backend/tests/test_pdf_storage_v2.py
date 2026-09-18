@@ -17,8 +17,9 @@ from sqlalchemy.pool import StaticPool
 from app.crud.pdfs import create_new_pdf, enqueue_storage_cleanup
 from app.models.models import Base, Pdf, StorageCleanupJob, User
 from app.schemas.pdf_schema import PDFCreateRequest, PDFUpdateRequest
-from app.services import document_service, pdf_storage
-from app.utils.pdf_file_ops import delete_pdf_file
+from app.services.documents import service as document_service
+from app.services.storage import pdf as pdf_storage
+from app.services.storage.legacy_file_ops import delete_pdf_file
 
 
 def _text_element(content: str = "Storage V2") -> dict:
@@ -645,7 +646,7 @@ class PdfStorageV2Tests(unittest.TestCase):
             storage_key=key,
         )
         with patch(
-            "app.services.s3_storage.download_bytes",
+            "app.services.storage.s3.download_bytes",
             side_effect=RuntimeError("bucket=secret-bucket credential=secret"),
         ):
             with self.assertRaisesRegex(OSError, "private PDF object") as raised:

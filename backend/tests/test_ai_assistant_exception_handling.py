@@ -9,8 +9,8 @@ from app.api.routes import ai_assistant as ai_assistant_route
 from app.core.security import verify_token
 from app.dependencies import get_db
 from app.main import app
-from app.services import ai_assistant_service
-from app.services.ai_assistant_service import AIServiceError
+from app.services.ai.assistant import service as ai_assistant_service
+from app.services.ai.assistant.service import AIServiceError
 from app.testing_support import ensure_test_auth_env
 
 

@@ -3,8 +3,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from app.crud.bio_cv_drafts import delete_bio_cv_draft, upsert_bio_cv_draft
-from app.services.cv_data import CvDataValidationError, normalize_cv_data
-from app.services.cv_generator import generate_resume
+from app.services.cv.data import CvDataValidationError, normalize_cv_data
+from app.services.cv.generator import generate_resume
 
 
 class CvDataNormalizationTests(unittest.TestCase):

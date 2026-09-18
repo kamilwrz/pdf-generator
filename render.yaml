@@ -18,7 +18,7 @@ services:
     plan: 0.5c-512mb
     autoDeployTrigger: checksPass
     buildCommand: pip install -r requirements.txt
-    preDeployCommand: python -m app.services.deployment_bootstrap
+    preDeployCommand: python -m app.jobs.bootstrap
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /ready
     envVars:
@@ -106,7 +106,7 @@ services:
     autoDeployTrigger: checksPass
     schedule: "*/5 * * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m app.services.storage_cleanup_worker
+    startCommand: python -m app.jobs.storage_cleanup
     envVars:
       - key: DATABASE_URL
         fromDatabase:

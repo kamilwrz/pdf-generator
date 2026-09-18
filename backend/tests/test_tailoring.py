@@ -14,8 +14,8 @@ from app.dependencies import get_db
 from app.core.security import get_current_user, verify_token
 from app.models.database import Base
 from app.models.models import User, Pdf, TailoringFlow, InterviewSession, CareerProfile
-from app.services.entitlements import seed_plans, set_user_plan
-from app.services.account_data_service import build_account_export, delete_account_data
+from app.services.billing.entitlements import seed_plans, set_user_plan
+from app.services.accounts.data import build_account_export, delete_account_data
 
 
 @pytest.fixture

@@ -13,9 +13,9 @@ from app.dependencies import get_db
 from app.models.models import TailoringFlow, InterviewSession, Pdf
 from app.crud.cv_import_snapshots import get_owned_snapshot
 from app.schemas.interview_schema import Contract, InterviewCreate, ConfirmWrite
-from app.services import interview_service as service
-from app.services.interview_sources import available_interview_sources, has_interview_source
-from app.services.tailoring_history import flow_session_id, tailoring_summaries
+from app.services.interviews import service
+from app.services.interviews.sources import available_interview_sources, has_interview_source
+from app.services.tailoring.history import flow_session_id, tailoring_summaries
 from app.api.routes.interviews import create_interview, confirm_interview
 
 router = APIRouter(prefix="/tailoring", tags=["tailoring"])
@@ -155,7 +155,7 @@ def start_flow(flow_id: UUID, request: Start, http_request: Request,
     existing = session_for(db, user, row)
     if existing and existing.state.get("confirmed"):
         return payload(db, user, row)
-    from app.services.entitlements import assert_can_use_ai_action
+    from app.services.billing.entitlements import assert_can_use_ai_action
     assert_can_use_ai_action(db, user, "interview")
     state = dict(row.state)
     data = source_data(db, user, state)

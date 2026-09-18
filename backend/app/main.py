@@ -38,9 +38,9 @@ from app.core.config import (
 )
 from app.core.security import assert_secret_key_configured
 from app.schemas.pdf_schema import MAX_PDF_REQUEST_BYTES
-from app.services.ai_assistant_service import AIServiceError
-from app.services.deployment_bootstrap import run_predeploy
-from app.services.readiness import is_database_route, readiness_gate
+from app.services.ai.assistant.service import AIServiceError
+from app.jobs.bootstrap import run_predeploy
+from app.core.readiness import is_database_route, readiness_gate
 
 # Without this, logger.info()/logger.error() calls anywhere in the app
 # (ai_assistant, events, etc.) are silently dropped — the root logger has no

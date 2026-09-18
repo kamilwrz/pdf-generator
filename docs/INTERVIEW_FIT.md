@@ -50,7 +50,7 @@ Deploy backend before frontend. Old clients cannot save a new pending multi-page
 
 ## Tests and implementation
 
-- `backend/app/services/interview_fit.py`: baseline, validation, bounds, paid stages and atomic finalisation.
+- `backend/app/services/interviews/fit.py`: baseline, validation, bounds, paid stages and atomic finalisation.
 - `frontend/src/utils/interviewFit.js`: measured fitting, progressive goals, filling earlier pages and browser orchestration; `templatePageFit.js` reuses the template typography transactions.
 - `backend/tests/test_interview_fit.py`: ownership, revisions, content guards, semantic rejection, limits, restore and replayed billing.
 - `frontend/src/utils/interviewFit.test.js`: measurable prose, lifecycle cancellation and revision propagation.
@@ -114,7 +114,7 @@ Wdrażaj backend przed frontendem. Stary klient nie zapisze nowego niedokończon
 
 ## Testy i implementacja
 
-- `backend/app/services/interview_fit.py`: baza, walidacja, limity, płatne etapy i atomowa finalizacja.
+- `backend/app/services/interviews/fit.py`: baza, walidacja, limity, płatne etapy i atomowa finalizacja.
 - `frontend/src/utils/interviewFit.js`: mierzone dopasowanie, stopniowe cele, zapełnianie wcześniejszych stron i koordynacja przeglądarkowa; `templatePageFit.js` wykorzystuje transakcje typografii szablonów.
 - `backend/tests/test_interview_fit.py`: własność, rewizje, ochrona treści, odrzucanie utraty znaczenia, limity, przywracanie i rozliczenia ponowień.
 - `frontend/src/utils/interviewFit.test.js`: mierzalne opisy, anulowanie wraz z cyklem życia i przekazywanie rewizji.

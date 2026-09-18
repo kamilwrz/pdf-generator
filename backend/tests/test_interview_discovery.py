@@ -8,9 +8,9 @@ import pytest
 
 from app.models.models import InterviewSession
 from app.schemas.interview_schema import Discovery, provider_schema
-from app.services import interview_service as service
-from app.services.cv_data import normalize_cv_data
-from app.services.interview_discovery import (
+from app.services.interviews import service
+from app.services.cv.data import normalize_cv_data
+from app.services.interviews.discovery import (
     discovery_entries, entry_answers, next_entry, scoped_question, update_discovery_budget,
 )
 from test_interviews import environment, create, confirm, version

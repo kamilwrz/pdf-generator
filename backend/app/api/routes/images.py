@@ -5,7 +5,7 @@ Files are stored under immutable server-generated owner-id keys, either in the
 private local image root or in S3 when `USE_S3` is enabled. Database rows record
 the server-side locator so PDF elements can reference images by `img_id`.
 
-Uploads pass through the trust boundary in `app.utils.upload_security`: the
+Uploads pass through the trust boundary in `app.services.storage.upload_validation`: the
 real image format is verified from bytes (not the client-declared type), the
 object key is server-generated (blocking traversal), the body is size-capped,
 and a per-user count guards against storage abuse. Publication is a saga: a DB
@@ -41,7 +41,7 @@ from app.crud.images import (
 from app.crud.pdfs import enqueue_storage_cleanup
 from app.models.models import Image, PdfElements
 from app.dependencies import get_db
-from app.services.image_storage import (
+from app.services.storage.image import (
     S3_BACKEND,
     configured_backend,
     delete_image_object,
@@ -50,8 +50,8 @@ from app.services.image_storage import (
     put_image_bytes,
     target_for_image,
 )
-from app.services.pdf_storage import IMAGE_RESOURCE, process_cleanup_jobs
-from app.utils.upload_security import (
+from app.services.storage.pdf import IMAGE_RESOURCE, process_cleanup_jobs
+from app.services.storage.upload_validation import (
     IMAGE_SNIFF_BYTES,
     sniff_image_type,
 )
@@ -250,7 +250,7 @@ def get_image_content(
     try:
         target = target_for_image(image, root=IMAGES_UPLOAD_DIR)
         if target.backend == S3_BACKEND:
-            from app.services import s3_storage
+            from app.services.storage import s3 as s3_storage
 
             return Response(
                 content=s3_storage.download_bytes(target.key),

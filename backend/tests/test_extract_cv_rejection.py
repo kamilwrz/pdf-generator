@@ -16,8 +16,8 @@ from app.dependencies import get_db
 from app.main import app
 from app.models.models import Base, CvImportSnapshot, UsageCounter, User
 from app.schemas.user_schema import UserCreateRequest
-from app.services import entitlements as ent
-from app.services.ai_service import CvExtractionError
+from app.services.billing import entitlements as ent
+from app.services.imports.extraction import CvExtractionError
 from app.testing_support import ensure_test_auth_env
 
 

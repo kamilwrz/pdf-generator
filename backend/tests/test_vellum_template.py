@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.cv_templates.registry import TEMPLATE_LAYOUTS, generate_resume
+from app.services.cv.templates.registry import TEMPLATE_LAYOUTS, generate_resume
 
 _SUMMARY = "Łączę analizę ryzyka z jasną komunikacją decyzji."
 

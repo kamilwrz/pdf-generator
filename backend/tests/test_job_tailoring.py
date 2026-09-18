@@ -5,9 +5,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-from app.services import ai_assistant_service
-from app.services.job_matching_policy import JOB_ANALYSIS_TASK, JOB_MATCHING_RULES
-from app.services.job_tailoring import build_evidence_catalog, build_job_tailoring_result
+from app.services.ai.assistant import service as ai_assistant_service
+from app.services.tailoring.policy import JOB_ANALYSIS_TASK, JOB_MATCHING_RULES
+from app.services.tailoring.analysis import build_evidence_catalog, build_job_tailoring_result
 
 
 class JobTailoringTests(unittest.TestCase):

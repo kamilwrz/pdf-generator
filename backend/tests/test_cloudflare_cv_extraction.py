@@ -12,8 +12,8 @@ import httpx
 from openai import RateLimitError
 from reportlab.pdfgen import canvas
 
-from app.services import ai_service
-from app.services.cv_generator import generate_resume
+from app.services.imports import extraction as ai_service
+from app.services.cv.generator import generate_resume
 
 
 def _pdf_bytes(text: str = "") -> bytes:
@@ -1608,7 +1608,7 @@ class ImportedHeadingLanguageTests(unittest.TestCase):
     def test_native_import_restores_source_headings_independently_of_ui_language(self):
         """A translated provider response cannot replace visible source titles."""
         from app.core.localisation import ui_language
-        from app.services.cv_generator import _GENERATORS
+        from app.services.cv.generator import _GENERATORS
 
         for language, expected in (
             ("English", ["PROFESSIONAL PROFILE", "EMPLOYMENT HISTORY", "EDUCATION", "SKILLS", "SELECTED PROJECTS"]),
@@ -1687,7 +1687,7 @@ class ImportedHeadingLanguageTests(unittest.TestCase):
 
     def test_letter_spaced_source_headings_keep_their_language(self):
         """Repair typography without replacing English phrases with Polish ones."""
-        from app.services.cv_source_layout import _heading_kind, _source_title
+        from app.services.imports.source_layout import _heading_kind, _source_title
 
         for source, expected in (
             ("P R O F E S S I O N A L  P R O F I L E", "PROFESSIONAL PROFILE"),
