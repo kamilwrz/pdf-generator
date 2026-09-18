@@ -38,20 +38,17 @@
 .utility .link { border: 0; padding-inline: 0; font-weight: 400; text-decoration: underline; text-underline-offset: var(--space-1); }
 .utility [aria-disabled='true'] { opacity: .55; cursor: wait; }
 .interview .taskTitle { font-size: var(--interview-title-size, 1.125rem); line-height: 1.1; letter-spacing: -.02em; margin-bottom: var(--space-4); }
-.stages { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--space-4); list-style: none; padding: 0; margin: 0 0 var(--space-6); }
-.stages li { display: flex; align-items: center; gap: var(--space-3); padding-block: var(--space-4); border-bottom: 2px solid var(--color-border); color: var(--color-muted); font-size: var(--text-ui); }
+.stages { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--space-4); list-style: none; padding: 0; margin: 0 0 var(--space-3); }
+.stages li { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); padding-block: var(--space-2); border-bottom: 2px solid var(--color-border); color: var(--color-muted); font-size: var(--text-ui); }
 .stages li > span { flex-shrink: 0; font: 1.5rem/1 var(--font-mono); }
 .stages li[aria-current] { border-color: var(--color-accent); color: var(--interview-ink); font-weight: 700; }
 .stages li[aria-current] > span { color: var(--color-accent); }
 .stageBody { animation: stage-enter var(--motion-slow) var(--motion-ease) both; }
-.sourceList, .templateGrid { list-style: none; padding: 0; margin: var(--space-4) 0; }
-.sourceList { display: grid; gap: var(--space-2); }
-.sourceList button { width: 100%; justify-content: space-between; gap: var(--space-4); padding: var(--space-4); text-align: left; }
-.sourceList button span { color: var(--color-accent); }
+.templateGrid { list-style: none; padding: 0; margin: var(--space-4) 0; }
 .templateGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
 .templateGrid li { min-width: 0; }
 .templateGrid button { width: 100%; display: grid; gap: var(--space-3); padding: var(--space-3); text-align: left; background: var(--color-canvas); }
-.templateGrid img { display: block; width: 100%; aspect-ratio: 210 / 297; object-fit: contain; background: var(--color-paper); }
+.templateGrid img { display: block; width: 100%; height: clamp(96px, 16dvh, 160px); object-fit: contain; background: var(--color-paper); }
 .templateGrid button > span { display: flex; justify-content: space-between; gap: var(--space-2); }
 .templateGrid button:hover:not(:disabled) { border-color: var(--color-accent); }
 @keyframes stage-enter { from { opacity: 0; transform: translateY(var(--space-3)); } to { opacity: 1; transform: translateY(0); } }
@@ -74,11 +71,11 @@
 .nextStep { padding-block: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--color-border); display: grid; gap: var(--space-3); }
 .nextStep p { color: var(--color-muted); margin: 0; }
 .nextStep .actions { margin: 0; }
-.optionalNotes { margin-block: var(--space-1); }
 .moreQuestions { border-top: 1px solid var(--color-border); }
+.optionalNotes { margin-block: var(--space-1); }
 .moreQuestions p { margin-bottom: var(--space-4); }
-.interview .preparation { max-width: 72ch; padding-block: var(--space-4); background: var(--color-paper); border-block: 1px solid var(--color-border); margin-inline: auto; }
-.interview .preparation legend { padding-inline: var(--space-2); }
+.interview .preparation { padding-block: var(--space-3); background: var(--color-paper); }
+.preparation > .actions { margin-bottom: 0; }
 .resultActions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-4); }
 .resultActions > p { color: var(--color-muted); font-size: .875rem; margin: 0; max-width: 40ch; }
 .resultActions .actions { margin: 0; }
@@ -104,3 +101,15 @@
 .interview fieldset > .primary { margin-top: var(--space-3); }
 .interview fieldset > .primary + .hint { margin-top: var(--space-2); margin-bottom: 0; }
 @container interview (max-width: 480px) { .taskHeader { display: block; } .taskHeader .utility { margin-top: var(--space-2); margin-bottom: 0; padding: 0; } }
+
+.answerForm { min-width: 0; }
+.answerForm > label { margin-block: var(--space-2); }
+.answerForm > .actions { margin-block: var(--space-2); }
+.answerForm > .hint, .answerForm > h3 { margin-bottom: var(--space-2); }
+.conversationQuestion { border-bottom: 0; padding-bottom: 0; }
+@container interview (min-width: 900px) {
+  .conversationQuestion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; gap: var(--space-6); }
+  .questionContext:empty { display: none; }
+  .conversationQuestion:has(.questionContext:empty) { grid-template-columns: minmax(0, 1fr); }
+  .templateGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}

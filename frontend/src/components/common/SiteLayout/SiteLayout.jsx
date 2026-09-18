@@ -38,7 +38,7 @@ export function SiteFooter() {
 }
 
 /** Route changes reset reading position and focus, while anchors keep native navigation. */
-export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, workspace = false, breadcrumbs, heroAside, heroActions, compact = false, dense = false, children }) {
+export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, workspace = false, breadcrumbs, heroAside, heroActions, compact = false, dense = false, focused = false, children }) {
   useTranslation();
   const heading = useRef(null);
   const { pathname, hash } = useLocation();
@@ -60,17 +60,19 @@ export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, worksp
       target?.focus({ preventScroll: true });
     }
   }, [pathname, hash]);
-  return <div className={classes.site}>
+  return <div className={`${classes.site} ${focused ? classes.focused : ''}`}>
     <a className={classes.skip} href="#site-content">{uiText("public:siteLayout.skipToContent")}</a>
     <SiteHeader workspace={workspace} />
     <main id="site-content" tabIndex={-1} className={`${classes.main} ${workspace ? classes.workspace : ''}`}>
+      <div className={focused ? classes.workspaceHeading : undefined}>
       {breadcrumbs && <nav className={classes.breadcrumbs} aria-label={uiText("public:siteLayout.breadcrumbs")}>{breadcrumbs.map((item) => item.to ? <Link key={item.label} to={item.to}>{item.label}</Link> : <span key={item.label} aria-current="page">{item.label}</span>)}</nav>}
       <div className={`${heroAside ? classes.hero : ''} ${compact ? classes.compactHero : ''} ${dense ? classes.denseHero : ''}`}>
         <div className={classes.introduction}><p className={classes.eyebrow}>{eyebrow}</p><h1 ref={heading} tabIndex={-1}>{title}</h1>{intro && <p>{intro}</p>}{heroActions && <div className={classes.actions}>{heroActions}</div>}</div>
         {heroAside && <aside className={classes.heroAside}>{heroAside}</aside>}
       </div>
+      </div>
       {children}
     </main>
-    <SiteFooter />
+    {!focused && <SiteFooter />}
   </div>;
 }

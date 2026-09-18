@@ -23,6 +23,7 @@ import InterviewPreview from './InterviewPreview';
 import { templatePreviewPath } from '../../../i18n/templatePreviews';
 import InterviewReviewNotice from './InterviewReviewNotice';
 import InterviewSourceRequired from './InterviewSourceRequired';
+import InterviewSourcePicker from './InterviewSourcePicker';
 import InterviewTemplateOptions from './InterviewTemplateOptions';
 import InterviewAnswerHelp from './InterviewAnswerHelp';
 import classes from './Interview.module.css';
@@ -391,17 +392,15 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     && session?.phase !== 'clarification' && session?.answers.length < session?.question_limit;
   const canExtend = !session?.discovery_complete && session?.question_limit < 50
     && (session?.phase === 'review' || session?.phase === 'preview');
+  const languageControl = <label>{uiText(initialSource ? 'interview:interviewFlow.newCvLanguage' : 'common:documentLanguage')}<select value={language} onChange={event => setLanguage(event.target.value)}>{Object.entries(languageLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>;
   return <section className={`${classes.flow} ${classes.interview}`} aria-label={uiText("interview:interviewFlow.careerInterview")}>
     {!guided && <InterviewStages active={stage} />}
-    <header className={classes.taskHeader}><h2 ref={heading} tabIndex={-1} className={classes.taskTitle}>{activePanel === 'prepare' ? uiText("interview:interviewFlow.prepareYourVersionOfTheCv") : reviewing ? uiText('interview:simple.content') : session?.phase === 'clarification' ? uiText("interview:interviewFlow.letSClarifyTheDetails") : session?.phase === 'preview' ? uiText("interview:interviewFlow.yourNewCvVersion") : mode === 'tailor' || session?.mode === 'tailor' ? uiText("interview:interviewFlow.jobSpecificInterview") : uiText("interview:interviewFlow.conversationTitle")}</h2><div className={classes.utility}>{!guided && <Link aria-disabled={waiting} onClick={(event) => { if (waiting) event.preventDefault(); }} className={classes.link} to="/app/conversations">{uiText("interview:simple.history")}</Link>}<Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer" aria-label={uiText("interview:interviewFlow.interviewHelpNewTab")}>{uiText("ai:task.help")}</Link>{onClose && <button type="button" disabled={waiting} onClick={onClose}>{uiText("interview:interviewFlow.backToAssistant")}</button>}</div></header>
+    <header className={classes.taskHeader}><h2 ref={heading} tabIndex={-1} className={classes.taskTitle}>{!session && !initialSource ? uiText('interview:simple.chooseCv') : activePanel === 'prepare' ? uiText("interview:interviewFlow.prepareYourVersionOfTheCv") : reviewing ? uiText('interview:simple.content') : session?.phase === 'clarification' ? uiText("interview:interviewFlow.letSClarifyTheDetails") : session?.phase === 'preview' ? uiText("interview:interviewFlow.yourNewCvVersion") : mode === 'tailor' || session?.mode === 'tailor' ? uiText("interview:interviewFlow.jobSpecificInterview") : uiText("interview:interviewFlow.conversationTitle")}</h2><div className={classes.utility}>{session && !legacy && <button type="button" disabled={waiting || factEditing} aria-expanded={reviewing} onClick={() => goTo(reviewing ? (session.preview ? 'preview' : 'conversation') : 'facts')}>{uiText('interview:simple.content')}</button>}{!guided && <Link aria-disabled={waiting} onClick={(event) => { if (waiting) event.preventDefault(); }} className={classes.link} to="/app/conversations">{uiText("interview:simple.history")}</Link>}<Link className={classes.link} to="/help#wywiad" target="_blank" rel="noopener noreferrer" aria-label={uiText("interview:interviewFlow.interviewHelpNewTab")}>{uiText("ai:task.help")}</Link>{onClose && <button type="button" disabled={waiting} onClick={onClose}>{uiText("interview:interviewFlow.backToAssistant")}</button>}</div></header>
     {error && <div className={classes.error} role="alert"><p>{error}</p><button disabled={busy} type="button" onClick={() => run(load)}>{uiText("interview:interviewFlow.loadSavedState")}</button></div>}
     <p role="status" aria-live="polite">{!waiting ? notice : ''}</p>
     {session && <InterviewCredits showBalance={!onClose} sessionId={session.id} revision={session.revision} busy={waiting} entitlements={entitlements} balanceLoading={balanceLoading} balanceError={balanceError} onRefreshBalance={() => { refresh(); onCreditsChanged?.(); }} />}
     {waiting && <InterviewLoading compact={inlineWaiting} operation={initialLoading ? 'load' : pendingOperation} facts={session || !isolated ? profile?.facts.length : undefined} answers={session?.answers.length} language={languageLabels[session?.language || language]} template={TEMPLATES.find((item) => item.id === template)?.name} />}
     <div key={stage} className={classes.stageBody} data-stage={stage} hidden={waiting && !inlineWaiting} aria-busy={waiting}>
-    {session && !legacy && <div className={classes.actions}>
-      <button type="button" disabled={waiting || factEditing} aria-expanded={reviewing} onClick={() => goTo(reviewing ? (session.preview ? 'preview' : 'conversation') : 'facts')}>{uiText('interview:simple.content')}</button>
-    </div>}
     {!canAi && entitlements && <p>{uiText("interview:interviewFlow.aiInterviewsRequireProYouCanStill")} <Link to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</Link></p>}
     {sourceChanged && <p className={classes.error} role="status">{uiText(editorSourceChanged ? "interview:interviewFlow.theCvInTheEditorHasChanged" : "interview:interviewFlow.savedSourceChanged")}</p>}
     {session && !legacy && (sourceChanged || (reviewing && session.source_document_id)) && <button disabled={busy || factEditing || hasLocalFactChanges || session.phase === 'completed' || Boolean(answer.trim())} type="button" onClick={() => run(async () => { const next = await operation('source', currentSource || {}); onSourceRefreshed?.(); if (alive.current && next) await operation('confirm', { facts: reviewFacts(interviewEvidence(profile, next), next) }); })}>{uiText("interview:interviewFlow.loadCurrentCvIntoTheInterview")}</button>}
@@ -411,18 +410,10 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
           : session.source_import_id ? <Link className={classes.link} to="/app/import" target="_blank" rel="noopener noreferrer">{uiText("interview:interviewFlow.openSourceImport")}</Link> : null}
       {hasLocalFactChanges && <p className={classes.hint}>{uiText("interview:interviewFlow.saveNotesBeforeSourceRefresh")}</p>}
     </div>}
-    {!profile && !error && <p>{uiText("interview:interviewFlow.loadingCareerProfile")}</p>}
-    {!session && profile && <fieldset disabled={busy}>
-      <legend>{uiText('interview:simple.chooseCv')}</legend>
+    {!session && profile && <fieldset disabled={busy} aria-label={uiText('interview:simple.chooseCv')}>
       {(sourceReady || documents.length > 0 || imports.length > 0) && <>
-        <details className={classes.optionalNotes}><summary>{uiText('interview:interviewFlow.languageSetting', { language: languageLabels[language] })}</summary>
-          <label>{uiText('interview:interviewFlow.newCvLanguage')}<select value={language} onChange={event => setLanguage(event.target.value)}>{Object.entries(languageLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
-        </details>
-        {initialSource ? <button type="button" className={classes.primary} disabled={!canAi} onClick={() => start()}>{uiText('interview:interviewFlow.startInterview')}</button> :
-          <ul className={classes.sourceList}>
-            {documents.map(doc => <li key={'document:' + doc.id}><button type="button" disabled={!canAi} onClick={() => start('document:' + doc.id)}>{doc.title}<span aria-hidden="true">→</span></button></li>)}
-            {imports.map(item => <li key={'import:' + item.id}><button type="button" disabled={!canAi} onClick={() => start('import:' + item.id)}>{item.filename || uiText('editor:topbar.importPdf')}<span aria-hidden="true">→</span></button></li>)}
-          </ul>}
+        {initialSource ? <><details className={classes.optionalNotes}><summary>{uiText('interview:interviewFlow.languageSetting', { language: languageLabels[language] })}</summary>{languageControl}</details><button type="button" className={classes.primary} disabled={!canAi} onClick={() => start()}>{uiText('interview:interviewFlow.startInterview')}</button></> :
+          <InterviewSourcePicker documents={documents} imports={imports} disabled={!canAi || busy} onSelect={start} languageControl={languageControl} />}
       </>}
       {!sourceReady && (initialSource || (!documents.length && !imports.length)) && <InterviewSourceRequired onReturn={onClose} />}
     </fieldset>}
@@ -491,21 +482,21 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             </div>
           </details>
         </div>}
-        {session.question && !clarificationQuestion && <div key={session.question.id} className={`${classes.question} ${classes.stageBody}`}><InterviewRequirements requirements={session.requirements} question={session.question} focused /><InterviewQuestionContext question={session.question} facts={profile?.facts} />{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3><p className={classes.hint}>{session.question.reason}</p>
+        {session.question && !clarificationQuestion && <div key={session.question.id} className={`${classes.question} ${classes.stageBody} ${classes.conversationQuestion}`}><div className={classes.questionContext}><InterviewRequirements requirements={session.requirements} question={session.question} focused /><InterviewQuestionContext question={session.question} facts={profile?.facts} /></div><div className={classes.answerForm}>{session.mode === 'tailor' && session.question.entry_id?.startsWith('requirement:') && <p className={classes.hint}>{uiText('ai:jobMatch.questionProgress', { number: 1 + session.answers.filter((item) => item.question.entry_id === session.question.entry_id).length })}</p>}<h3>{session.question.text}</h3>{session.question.reason && <p className={classes.hint}>{session.question.reason}</p>}
           <p className={classes.hint} id={`answer-help-${session.question.id}`}>{uiText("interview:interviewFlow.answerInYourOwnWordsWhenPreparing")}</p>
           {session.question.follow_up_to && <p className={classes.hint}>{uiText("interview:interviewFlow.aFollowUpToAnEarlierAnswer")}</p>}
-          <label>{uiText("interview:factEditor.yourAnswer")}<textarea ref={answerField} rows={5} maxLength={4000} value={answer} onChange={(event) => changeAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}${assistedAnswer?.questionId === session.question.id ? ` answer-confirm-${session.question.id}` : ''}`} /></label>
+          <label>{uiText("interview:factEditor.yourAnswer")}<textarea ref={answerField} rows={4} maxLength={4000} value={answer} onChange={(event) => changeAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}${assistedAnswer?.questionId === session.question.id ? ` answer-confirm-${session.question.id}` : ''}`} /></label>
           <InterviewAnswerHelp key={`${session.id}-${session.question.id}`} session={session} answer={answer}
             disabled={busy || factEditing || sourceChanged || hasLocalFactChanges} canAi={canAi}
             usedSuggestionId={assistedAnswer?.questionId === session.question.id ? assistedAnswer.suggestionId : null}
             onGenerate={generateAnswerHelp} onUse={useAnswerHelp} />
           {assistedAnswer?.questionId === session.question.id && <p className={classes.hint} id={`answer-confirm-${session.question.id}`}>{uiText('interview:answerHelp.confirmHint')}</p>}
-          <div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText(assistedAnswer?.questionId === session.question.id ? 'interview:answerHelp.confirmSave' : 'interview:simple.send')}</button></div>
+          <div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText(assistedAnswer?.questionId === session.question.id ? 'interview:answerHelp.confirmSave' : 'interview:simple.send')}</button><button type="button" disabled={busy || sourceChanged} onClick={() => saveAnswer(hasAnswerDraft ? 'answered' : 'skipped', answer, true)}>{uiText(hasAnswerDraft ? assistedAnswer ? 'interview:simple.confirmAndFinish' : 'interview:simple.answerAndFinish' : 'interview:simple.finish')}</button></div>
           <details><summary>{uiText('ai:task.otherAnswers')}</summary><div className={classes.actions}>
             <button disabled={busy} onClick={() => saveAnswer('no_experience', '')}>{uiText("interview:interviewFlow.iDoNotHaveThatExperience")}</button>
             <button disabled={busy} onClick={() => saveAnswer('unknown', '')}>{uiText("interview:interviewFlow.iCannotRemember")}</button>
             <button disabled={busy} onClick={() => saveAnswer('skipped', '')}>{uiText("ai:aiAssistant.skip")}</button>
-          </div></details></div>}
+          </div></details></div></div>}
         {hasPending && session.phase !== 'completed' && !session.question && session.phase !== 'clarification' && <div className={classes.actions}>
           <button disabled={busy || Boolean(assistedAnswer && assistedAnswer.questionId === session.question?.id)} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
         </div>}
@@ -523,10 +514,8 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
             <button disabled={busy || !canAi || sourceChanged} onClick={() => run(() => operation('extend'))}>{uiText("interview:interviewFlow.exploreFurtherUpToQuestions")}</button>
           </details>}
         </div>}
-        {session.question && !clarificationQuestion && <button type="button" disabled={busy || sourceChanged} onClick={() => saveAnswer(hasAnswerDraft ? 'answered' : 'skipped', answer, true)}>{uiText(hasAnswerDraft ? assistedAnswer ? 'interview:simple.confirmAndFinish' : 'interview:simple.answerAndFinish' : 'interview:simple.finish')}</button>}
         </>}
-        {activePanel === 'prepare' && session.phase !== 'completed' && session.phase !== 'clarification' && <fieldset disabled={busy} className={classes.preparation}>
-          <legend>{uiText('interview:simple.templateStep')}</legend>
+        {activePanel === 'prepare' && session.phase !== 'completed' && session.phase !== 'clarification' && <fieldset disabled={busy} className={classes.preparation} aria-label={uiText('interview:simple.templateStep')}>
           <p className={classes.hint}>{uiText('interview:simple.templateHint')}</p>
           {hasPending && <p>{uiText('interview:interviewFlow.confirmOrRemoveNewInformationBeforeGenerating')}</p>}
           <ul className={classes.templateGrid}>
@@ -537,10 +526,12 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
               </button>
             </li>)}
           </ul>
+          <div className={classes.actions}>
           {availableTemplates.length > 6 && <button type="button" aria-expanded={allTemplates} onClick={() => setAllTemplates(value => !value)}>{uiText(allTemplates ? 'interview:simple.fewerTemplates' : 'interview:simple.moreTemplates')}</button>}
           <button type="button" disabled={busy || factEditing} onClick={() => goTo('conversation')}>{uiText('interview:interviewFlow.backToInterview')}</button>
           {fitPending && <button type="button" disabled={busy || sourceChanged} onClick={() => createWithTemplate({ id: template })}>{uiText('interview:fit.resume')}</button>}
           {fitPending && <button type="button" disabled={busy || sourceChanged} onClick={() => run(() => operation('preview-fit', { action: 'restore' }))}>{uiText('interview:fit.restore')}</button>}
+          </div>
         </fieldset>}
         {activePanel === 'preview' && session.preview && session.phase !== 'clarification' && <>
           {session.preview.fit && <div className={classes.hint}>

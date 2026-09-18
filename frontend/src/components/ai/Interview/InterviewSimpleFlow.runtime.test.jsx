@@ -106,6 +106,7 @@ it('retains a saved answer after the next question fails and retry does not subm
 
 it('requires an explicit retry after first-question failure; loading the saved state never calls AI', async () => {
   failNext = true; mount();
+  await userEvent.click(await screen.findByRole('tab', { name: /Importy/ }));
   await userEvent.click(await screen.findByRole('button', { name: 'Import.pdf' }));
   await screen.findByRole('alert');
   expect(writes()[0][2]).toMatchObject({ source_import_id: 8, include_profile: false });

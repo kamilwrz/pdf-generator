@@ -232,3 +232,15 @@
 .denseHero .introduction { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); max-width: none; }
 .denseHero .introduction h1 { font-size: 1.5rem; margin: 0; order: -1; }
 .denseHero .introduction > .eyebrow { margin: 0; }
+
+/* Focused workspaces spend height on the task. Natural page overflow remains
+   available for long content, small screens and enlarged text. */
+.focused .header { padding-block: var(--space-4); }
+.focused .main { padding-block: var(--space-4); }
+.workspaceHeading { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--space-4); margin-bottom: var(--space-4); }
+.workspaceHeading .breadcrumbs, .workspaceHeading .introduction { margin: 0; }
+.workspaceHeading .introduction { justify-content: center; text-align: center; }
+@media (max-width: 900px) {
+  .workspaceHeading { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .workspaceHeading .breadcrumbs { justify-content: center; }
+}

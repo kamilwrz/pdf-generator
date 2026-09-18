@@ -1,5 +1,28 @@
 # English
 
+## Compact source selection in the CV Assistant
+
+At `/app/interview`, choose **My CVs** or **Imports**. Counted tabs keep those collections separate; local name search and four rows per page keep a large library compact. Each tab retains its search and page. Accounts with imports alone open Imports automatically. Empty tabs offer the appropriate creation/import link; an unmatched search offers Clear search. The document-language selector stays visible. Only activating a source row creates the isolated conversation and requests its first AI question; browsing and filtering are free. Existing entitlement checks, source IDs, retries and answer persistence remain unchanged.
+
+`InterviewSourcePicker` owns only local browsing state and calls the existing `InterviewFlow.start` with `document:id` or `import:id`. It preserves server order and clamps a stale page after a source-list refresh. Arrow keys, Home and End activate tabs; pagination focuses the results panel and clearing search restores the search input. The shared site tab style and global control/type/colour tokens remain authoritative. The source step has one task heading. `InterviewPage` opts into `SiteLayout.focused`: a centred title, compact breadcrumb/header spacing and no narrative footer. Normal source selection fits a 1280×720 laptop viewport; small screens, long names, expanded content and 200% text retain natural page scrolling. CV content is a header action. On wide panels the question context sits beside the answer form, with Send and Finish together. Six bounded template thumbnails share one row; compact panels retain the smaller grid. Long questions and expanded assistance retain natural scrolling. Other site routes and PDF geometry are unaffected.
+
+New files live beside the existing interview components and browser tests. Current complete-file references:
+
+- `frontend/src/components/ai/Interview/InterviewSourcePicker.jsx`, 1–89.
+- `frontend/src/components/ai/Interview/InterviewSourcePicker.module.css`, 1–26.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–571.
+- `frontend/src/components/ai/Interview/Interview.module.css`, 1–115.
+- `frontend/src/pages/Site/InterviewPage.jsx`, 1–19.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, 1–78.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, 1–246.
+- `frontend/src/components/ai/Interview/InterviewSourcePicker.runtime.test.jsx`, 1–53.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132.
+- `frontend/e2e/assistant-source-picker.spec.js`, 1–82.
+- `frontend/e2e/assistant-three-steps.spec.js`, 1–93.
+
+From `frontend`, run `npm run test:runtime -- src/components/ai/Interview --maxWorkers=2`, `npm run test:e2e -- e2e/assistant-source-picker.spec.js e2e/assistant-three-steps.spec.js --project=desktop-chromium --workers=2`, `npm run check:locales`, `npm run lint -- --quiet` and `npm run build`. Synthetic fixtures cover PL/EN, 390/834/1280/1920px, laptop height, keyboard tabs, pagination/search, empty tabs, disabled selection, source isolation, reduced motion and 200% text. The [WAI tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) explains the tab/panel relationships and keyboard contract. There are no API, storage, dependency or configuration changes; use the existing frontend deployment process.
+
+
 ## Identifiable saved tailoring
 
 On `/app/tailor`, **Resume tailoring** now identifies each saved application by the available job title and company, with the source CV/import name and candidate underneath. It also shows the saved phase, start and last-activity dates including local hours/minutes, saved-answer count and latest question. Choose **Continue tailoring** to resume that exact flow; a saved result also exposes the existing editor link. Opening this list or resuming does not start AI.
@@ -72,7 +95,7 @@ Implementation (current complete file ranges):
 - `frontend/src/components/common/SiteLayout/AssistantChoices.jsx`, lines 1–34, `AssistantChoices`: shared feature region and mode-level entitlement decisions.
 - `frontend/src/pages/Site/AssistantPage.jsx`, lines 1–12, `AssistantPage`: authenticated mode selection; `DocumentsPage.jsx`, lines 1–116, embeds the same region above the library.
 - `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, lines 1–43, `WorkflowChoice`: subordinate mode headings and explicit links; `SiteLayout.module.css`, lines 209–229: grouping and responsive dividers.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–76, `SiteHeader`: one active feature navigation entry; `frontend/src/App.jsx`, lines 1–135: route registration.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–78, `SiteHeader`: one active feature navigation entry; `frontend/src/App.jsx`, lines 1–135: route registration.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–19, and `TailoringPage.jsx`, lines 1–264: feature breadcrumbs; `frontend/src/utils/siteRoutes.js`, lines 23–33, `safeReturnTo`: authentication continuation.
 
 `pages/Site/AssistantPage.jsx` and `components/common/SiteLayout/AssistantChoices.jsx` are the only new implementation files, in the existing route and shared-site directories. Both canonical locale catalogues and their generated bundles contain the copy. No API, database, dependency, environment or deployment configuration changes are needed; publish with the existing frontend build process.
@@ -134,7 +157,7 @@ The implemented `/app/tailor` route guides a signed-in user through **Your CV �
 Implementation and verified source ranges:
 
 - `frontend/src/pages/Site/TailoringPage.jsx`, lines 24–264 (`TailoringPage`, `FlowList`, `Workspace`); styles: `TailoringPage.module.css`, lines 1–30.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 32–558 (`InterviewFlow`): optional guided stage/document callbacks; ordinary interviews retain their navigation.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571 (`InterviewFlow`): optional guided stage/document callbacks; ordinary interviews retain their navigation.
 - `frontend/src/pages/Billing/CheckoutResult.jsx`, lines 14–57 (`CheckoutResult`), and `frontend/src/utils/siteRoutes.js`, lines 23–33 (`safeReturnTo`): safe return to the saved task.
 - `backend/app/api/routes/tailoring.py`, lines 24–211: intake contracts, owned reads, revision-based writes, start and draft deletion.
 - `backend/app/api/routes/billing.py`, lines 47–146 (`SelectPlanRequest`, `select_plan`): optional owned `tailoring_flow_id`.
@@ -175,14 +198,14 @@ The career-profile page, navigation entry, source option and same-person checkbo
 
 Implementation and tests (verified full-file ranges):
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–580, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–571, `InterviewFlow`.
 - `frontend/src/components/ai/Interview/InterviewStages.jsx`, 1–19, `InterviewStages`.
 - `frontend/src/components/ai/Interview/FactEditor.jsx`, 1–142, `FactEditor`.
 - `frontend/src/pages/Site/ConversationsPage.jsx`, 1–99, `ConversationsPage`.
 - `frontend/src/pages/Site/ConversationsPage.module.css`, 1–20, `conversation layout`.
-- `frontend/src/components/ai/Interview/Interview.module.css`, 1–106, `stage and template layout`.
-- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–131, `transaction and recovery tests`.
-- `frontend/e2e/assistant-three-steps.spec.js`, 1–91, `PL/EN browser tests`.
+- `frontend/src/components/ai/Interview/Interview.module.css`, 1–115, `stage and template layout`.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132, `transaction and recovery tests`.
+- `frontend/e2e/assistant-three-steps.spec.js`, 1–93, `PL/EN browser tests`.
 
 `ConversationsPage.jsx` replaces the removed profile page. Its CSS module is shared with `SavedConversationDetails`. `InterviewStages` replaces the four-stage selector with a three-step progress list. Existing templates, backend endpoints, database tables, dependencies and environment variables remain unchanged; deploy the frontend through the usual build pipeline. No saved data cleanup is part of deployment.
 
@@ -233,7 +256,7 @@ A saved interview now checks its source document when reopened. Previously, the 
 
 The shared `InterviewFlow` combines the server flag with unsaved editor changes, so standalone and embedded interviews use the same recovery controls and disabled states. The translated status uses the existing error styling and keyboard-operable button; it never enters the CV or PDF. [WAI status messages](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) explains the non-interrupting announcement.
 
-Implementation: `backend/app/api/routes/interviews.py`, lines 237–257 (`get_interview`), and `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 83–85 and 370–371 (`InterviewFlow`). Regression tests: `backend/tests/test_interviews.py`, lines 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` covers recovery and draft retention; `frontend/e2e/interview-workspace.spec.js` covers keyboard recovery at 390, 834, 1280 and 1920px, 200% text scaling and reduced motion. Tests use synthetic records and mocked AI. Deploy backend and frontend together through the existing pipeline; no migration, dependency or configuration change is needed.
+Implementation: `backend/app/api/routes/interviews.py`, lines 237–257 (`get_interview`), and `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571 (`InterviewFlow`). Regression tests: `backend/tests/test_interviews.py`, lines 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` covers recovery and draft retention; `frontend/e2e/interview-workspace.spec.js` covers keyboard recovery at 390, 834, 1280 and 1920px, 200% text scaling and reduced motion. Tests use synthetic records and mocked AI. Deploy backend and frontend together through the existing pipeline; no migration, dependency or configuration change is needed.
 
 ## Language of a CV created through the interview
 
@@ -275,7 +298,7 @@ The native disclosure supports keyboard activation and visible focus. Labels and
 
 The affected states include intake with and without optional notes, source review and unsaved changes, ordinary and assisted answers, round completion, factual clarification, preparation, result, pending operations, errors/retries and saved responses. Components reuse `DESIGN.md` tokens, native disclosures and the existing desktop stage buttons/compact selector. Focus, 44px targets, disabled actions, 200% reflow and reduced motion apply to both hosts. All controls stay outside the document and PDF tree.
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–580, function `InterviewFlow`, coordinates drafts, explicit operations and stage transitions; `goTo` persists changed information before leaving and retains it on failure.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571, function `InterviewFlow`, coordinates drafts, explicit operations and stage transitions; `goTo` persists changed information before leaving and retains it on failure.
 - `frontend/src/components/ai/Interview/Interview.module.css` owns the interview working layout. `InterviewCredits.jsx`, lines 13–75, and the adjacent `InterviewCredits.module.css` own the shared receipt; the CSS Module is the only new production file.
 - `frontend/src/i18n/locales/pl.json` and `en.json` are the source dictionaries. Generated workspace dictionaries come from `scripts/generate-locale-bundles.mjs`; edit source dictionaries only.
 - `InterviewFlowNavigation.runtime.test.jsx`, lines 1–299, covers primary actions, explicit paid boundaries and draft protection. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` and `InterviewLoading.runtime.test.jsx` cover confirmation, billing and operation feedback. `frontend/e2e/interview-simple-flow.spec.js`, lines 1–166, covers keyboard clarification, retained drafts and PL/EN at 390, 834, 1280 and 1920px, including enlarged text.
@@ -290,7 +313,7 @@ The final layout can be saved even when the browser receives a network error. Du
 
 If initial generation fails, `InterviewFlow.operation` refreshes saved session state so an existing pending fit can be resumed explicitly with the current revision. If that read also fails, the original generation/fitting error remains visible. This performs no automatic paid retry. The shared HTTP client marks opaque transport failures with `code: network_error` in both JSON and download requests, so recovery works independently of translated wording. Its Polish and English messages no longer assert that the server is starting.
 
-Implementation: `frontend/src/utils/interviewFit.js`, lines 1–566 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–566 (`operation`); `frontend/src/services/api.js`, lines 1–566 (`ApiClient`, `isTransientNetworkError`). Tests: `frontend/src/utils/interviewFit.test.js`, lines 1–566; `frontend/src/services/api.test.js`, lines 1–566; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, lines 1–566; `frontend/e2e/interview-fit.spec.js`, lines 1–566. The browser regression commits the layout and then aborts the response, covering PL/EN, four viewport widths, keyboard use, 200% text zoom and reduced motion. Synthetic fixtures never call paid AI. Run the existing unit/runtime/lint/build scripts and the interview-fit Playwright suite from `frontend`.
+Implementation: `frontend/src/utils/interviewFit.js`, lines 1–566 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571 (`operation`); `frontend/src/services/api.js`, lines 1–566 (`ApiClient`, `isTransientNetworkError`). Tests: `frontend/src/utils/interviewFit.test.js`, lines 1–566; `frontend/src/services/api.test.js`, lines 1–566; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, lines 1–566; `frontend/e2e/interview-fit.spec.js`, lines 1–566. The browser regression commits the layout and then aborts the response, covering PL/EN, four viewport widths, keyboard use, 200% text zoom and reduced motion. Synthetic fixtures never call paid AI. Run the existing unit/runtime/lint/build scripts and the interview-fit Playwright suite from `frontend`.
 
 This is a frontend recovery fix; no API endpoint, database schema, dependency or configuration changes are required. It does not diagnose production network interruptions or poll a still-running operation. If no completed result is available at recovery time, the user must load saved state and explicitly resume. [MDN Fetch documentation](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) explains browser network rejection; it does not establish whether an application write was committed.
 
@@ -322,7 +345,7 @@ Implementation and tests (current complete file ranges, with relevant symbols):
 | `backend/app/services/interview_service.py` | 1–686; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–580; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–571; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–420; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -370,7 +393,7 @@ Verified implementation and regression references:
 
 - `backend/app/services/interview_templates.py`, lines 1–168, `preview_templates` and `select_preview_template`; `backend/app/schemas/interview_schema.py`, lines 126–130, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, lines 671–679, the two authenticated route handlers.
 - `frontend/src/utils/interviewTemplateFit.js`, lines 1–229, `measureInterviewTemplateCandidate` and `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, lines 1–222, shared S typography registration and `applyTemplateSmallTypography`. `frontend/src/utils/fitToPages.js`, lines 34–50, `buildSpacingLadder`, supplies the shared spacing steps. The scan yields to the browser between candidates and between tighter-spacing trials so progress and cancellation remain responsive with cached fonts.
-- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, lines 1–580, optional comparison, progress, cancellation and the revision-bound staged choice; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 242–260, `saveDocument`, applies that choice before creating the document; `InterviewTemplateOptions.module.css` supplies the token-based responsive sample layout.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, lines 1–580, optional comparison, progress, cancellation and the revision-bound staged choice; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571, `saveDocument`, applies that choice before creating the document; `InterviewTemplateOptions.module.css` supplies the token-based responsive sample layout.
 - `backend/tests/test_interview_templates.py`, lines 1–283; `frontend/src/utils/interviewTemplateFit.test.js`, lines 1–283 (33-field height regression: lines 34–54; cached-font cancellation: lines 179–190; fitting below compact spacing with the loosest successful step: lines 210–230; cancellation between spacing trials: lines 232–245); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, lines 1–283 (all choices: lines 53–67; clearing pending choices: lines 69–92); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx`, lines 100–163, direct save, fresh versions, failures/retry and current-template preservation; `frontend/e2e/interview-templates.spec.js`, lines 1–283 (direct Aurelia save, retry and editor reload: lines 13–120). The generated synthetic fixtures are `frontend/e2e/fixtures/interview-templates.json` and `frontend/e2e/fixtures/interview-regent-sterling.json`. The latter covers the complete two-page Regent fitting flow followed by a one-page Sterling choice, including slow comparison, cancellation and failure; browser selection covers Linden, Cadenza, Sterling and Meridian in both PL and EN. `frontend/e2e/fixtures/interview-template-spacing.json` adds nine canonical alternatives for a synthetic CV whose Aurelia layout needs spacing below compact. The PL/390px and EN/1280px regressions expose multiple matching options, choose Aurelia, save directly with the keyboard, retain the choice after a failed application and verify the selected template, text and typography after opening and reloading the saved editor.
 
 Run the existing test/runtime/lint/build commands and `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium` from `frontend`; backend commands are in the tutorial. Coverage includes PL/EN at 390/834/1280/1920px, keyboard selection, 200% text zoom, reduced motion, failed selection retry and restore. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) explains actual-font measurement; [React effect cleanup](https://react.dev/reference/react/useEffect) explains ignoring late comparison results. [React state snapshots](https://react.dev/learn/state-as-a-snapshot) explains why the save handler uses the template response's version fields for the next request. Unsupported or unmeasurable layouts are excluded, so the feature makes no guarantee that every CV can fit one page.
@@ -420,7 +443,7 @@ Implementation files and responsibilities:
 - `frontend/src/components/ai/Interview/InterviewStages.jsx`, `InterviewFlow.jsx` and `InterviewLoading.jsx`: shared responsive stages and operation states for embedded and standalone interviews.
 - `frontend/src/index.css`, lines 44–52, typography tokens; `frontend/src/components/ai/shared/AiTask.module.css`, lines 1–24, `controls`, `actions` and `change`: shared sizes, button states and review presentation.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, lines 1–1046, `.panel`, `.home`, `.taskBody` and `.interviewBody`; `JobMatchPanel.module.css`, lines 1–38, `.workspace`; `CvAuditPanel.module.css`, lines 1–72, `.audit`: consistent assistant shell and task surfaces.
-- `frontend/src/components/ai/Interview/Interview.module.css`, lines 37–89, `.interview`, `.taskTitle`, `.question` and control-size fallback; `FactEditor.module.css`, line 10, `.editor.editor h2`; `InterviewLoading.module.css`, line 4, loading heading: inherited compact sizes inside the assistant, standalone defaults elsewhere.
+- `frontend/src/components/ai/Interview/Interview.module.css`, lines 1–115, `.interview`, `.taskTitle`, `.question` and control-size fallback; `FactEditor.module.css`, line 10, `.editor.editor h2`; `InterviewLoading.module.css`, line 4, loading heading: inherited compact sizes inside the assistant, standalone defaults elsewhere.
 
 The existing `frontend/e2e/ai-task-workspace.spec.js`, lines 1–66, captures home/review screenshots and checks 390/834/1280/1920px widths, 44px controls, enlarged text and unchanged document content before acceptance. `cv-audit.spec.js`, `job-match-workspace.spec.js` and `ai-assistant-scroll.spec.js` cover the related report, draft, focus, pending/error and scrolling contracts; runtime review tests cover explicit Apply/Skip and stale-source protection. These are mocked regression checks, not a claim that every assistive-technology combination has been tested.
 
@@ -514,7 +537,7 @@ Implementation references (verified against this revision):
 - `frontend/src/i18n/index.js`, lines 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, lines 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, lines 1–18, `LanguageSelect`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–76, `SiteHeader` and its opt-in `showLanguageSelect` placement.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–78, `SiteHeader` and its opt-in `showLanguageSelect` placement.
 - `frontend/src/pages/Hero/Hero.jsx`, line 120, the sole `SiteHeader` call that enables the application-language selector.
 - `frontend/src/utils/cvStarter.js`, lines 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, lines 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
@@ -579,7 +602,7 @@ Implementation (whole-module ranges, including `Hero`, `PricingPage`, `HelpPage`
 
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–379.
 - `frontend/src/pages/Site/PublicPages.jsx`, lines 1–122.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–76.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–78.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–19.
 
 Tests: `frontend/e2e/interview-positioning.spec.js` adds the bilingual discovery journey under the existing `frontend/e2e/` directory. Run `npm run test:e2e -- e2e/interview-positioning.spec.js --project=desktop-chromium --workers=1` from `frontend/`. It checks 390/834/1280/1920px layouts, 200% text zoom at 834px, reduced motion, keyboard anchor focus, guest login return and absence of paid AI calls. `Hero.test.js` checks presentation contracts; `StartChooser.runtime.test.jsx` checks Pro/Free/unresolved/revoked access. These mocked tests do not assess live AI quality or production PDF rendering. [WAI page structure](https://www.w3.org/WAI/tutorials/page-structure/) explains the semantic regions, headings and navigation used here.
@@ -605,9 +628,9 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–379, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, lines 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–19, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–580, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–76, `SiteLayout`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–228, `guideFaq`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–78, `SiteLayout`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, lines 1–246, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, lines 1–100, `Playwright`.
 
 Tests: `frontend/e2e/interview-discovery.spec.js` covers pricing-to-help navigation and focus, keyboard disclosures, 390/834/1280/1920 px widths, 200% text zoom, Pro invitations, Free/unavailable access, landing and start-chooser links, registration and plan-picker copy without paid calls. `planPresentation.test.js` verifies canonical benefits and retained server pricing. Run `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` and `npm run build` from `frontend/`. The new browser test lives in the existing `frontend/e2e/` directory; application folder and database structures are unchanged. Deploy through the existing frontend pipeline. Tests use mocked account data and do not verify production activation or live AI quality. [WAI page structure](https://www.w3.org/WAI/tutorials/page-structure/) explains semantic regions, headings and navigation used by the guide.
@@ -648,7 +671,7 @@ Implementation (verified file extents; the listed exports own the complete workf
 - `frontend/src/pages/Site/AccountPage.jsx`, component `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, exports `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, component `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–76, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–78, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, lines 3–201, `TEMPLATES` — picker summaries and detail-page copy for all ten templates.
 - `frontend/src/utils/planPresentation.js`, lines 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, lines 2–46, `listOwnedDocuments, loadOwnedDocument`.
@@ -1215,19 +1238,19 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–61; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
-| `frontend/src/components/ai/Interview/Interview.module.css` | 1–106; stages, question, preparation, resultActions |
+| `frontend/src/components/ai/Interview/Interview.module.css` | 1–115; stages, question, preparation, resultActions |
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–580; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–571; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grouping, identity, limits, interview-question titles |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–132; apply, cancel, undo, focus, search, question-and-answer presentation |
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–88; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/ConversationsPage.module.css` | 1–20; sessions, sessionList, deleteControls |
-| `frontend/e2e/assistant-three-steps.spec.js` | 1–176; grouped profile, responsive question-and-answer display, editing and persistence |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–76; SiteLayout compact |
-| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–228; compactHero |
+| `frontend/e2e/assistant-three-steps.spec.js` | 1–93; grouped profile, responsive question-and-answer display, editing and persistence |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–78; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–246; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `source-only interview review, notes and persistence` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–142; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
@@ -1971,7 +1994,7 @@ Implementation:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, component `StartChooser` — three primary cards (`onNew`, `onImport`, entitlement-aware interview link) plus secondary saved-document and legacy-recovery actions
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, lines 8–454 — Swiss/grid styling with an application-shell overlay, visible CV Studio brand, rectilinear axis rules, three columns on wide screens, two columns with a full-width third choice on tablets, and one column on compact screens, secondary action row, safe scroll alignment, mobile collapse, and responsive logout control
 - `frontend/src/App.jsx`, lines 54–74, functions `StartRoute` and `CreateCvRoute` — resolves generic `/app/new` to `start=choose` for an account and `start=new` for a guest or an explicit template; `/app/import` remains directed
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–122, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–122, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–122, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–78, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, lines 1–122, `Hero`; and `frontend/src/pages/Site/PublicPages.jsx`, lines 1–122, `PricingPage` — generic creation CTAs use `/app/new`, while template CTAs retain direct setup
 - `frontend/src/utils/startChooser.js`, lines 30–46, function `shouldShowStartChooser` — pure visibility gate for an empty unsaved workspace (not demo/loading/conversion/dismissed)
 - `frontend/src/pages/PdfCanvas.jsx`, lines 253–265 and 1110–1135, component `EditorController` — consumes the `choose` intent, keeps the chooser ahead of automatic template selection, and wires new/import/documents/recovery actions while omitting editor chrome
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` and `frontend/src/pages/PdfCanvas.jsx` — a new A4 setup is generated directly; legacy browser drafts require the explicit recovery action
@@ -3929,6 +3952,29 @@ Notable product facts:
 
 # Polski
 
+## Zwarty wybór źródła w Asystencie CV
+
+Na `/app/interview` wybierz **Moje CV** albo **Importy**. Zakładki z licznikami rozdzielają te zbiory; lokalne wyszukiwanie po nazwie i cztery pozycje na stronie utrzymują zwarty układ dużej biblioteki. Każda zakładka zachowuje własne wyszukiwanie i stronę. Konto z samymi importami otwiera automatycznie Importy. Pusta zakładka oferuje odpowiedni link utworzenia/importu, a brak wyników wyszukiwania przycisk wyczyszczenia. Wybór języka dokumentu pozostaje widoczny. Dopiero kliknięcie dokumentu tworzy izolowaną rozmowę i pobiera pierwsze pytanie AI; przeglądanie i filtrowanie są bezpłatne. Dotychczasowe uprawnienia, identyfikatory źródeł, ponowienia i zapis odpowiedzi pozostają bez zmian.
+
+`InterviewSourcePicker` zarządza wyłącznie lokalnym przeglądaniem i wywołuje istniejące `InterviewFlow.start` z `document:id` albo `import:id`. Zachowuje kolejność serwera i koryguje numer strony po skróceniu listy źródeł. Strzałki, Home i End przełączają zakładki; zmiana strony ustawia fokus na panelu wyników, a wyczyszczenie wyszukiwania na polu. Obowiązują wspólny styl zakładek serwisu oraz globalne tokeny kontrolek, tekstu i kolorów. Etap źródła ma jeden nagłówek zadania. `InterviewPage` włącza `SiteLayout.focused`: wyśrodkowany tytuł, zwarte odstępy nagłówka i nawigacji oraz brak narracyjnej stopki. Zwykły wybór źródła mieści się w oknie laptopa 1280×720; małe ekrany, długie nazwy, rozwinięta treść i tekst 200% zachowują naturalne przewijanie strony. Treść CV jest akcją nagłówka. W szerokim panelu kontekst pytania znajduje się obok odpowiedzi, a wysłanie i zakończenie rozmowy są zgrupowane. Sześć ograniczonych miniatur szablonów zajmuje jeden rząd; wąski panel zachowuje mniejszą siatkę. Długie pytania i rozwinięte podpowiedzi zachowują naturalne przewijanie. Pozostałe strony i geometria PDF nie zmieniają się.
+
+Nowe pliki znajdują się obok istniejących komponentów wywiadu i testów przeglądarkowych. Aktualne zakresy całych plików:
+
+- `frontend/src/components/ai/Interview/InterviewSourcePicker.jsx`, 1–89.
+- `frontend/src/components/ai/Interview/InterviewSourcePicker.module.css`, 1–26.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–571.
+- `frontend/src/components/ai/Interview/Interview.module.css`, 1–115.
+- `frontend/src/pages/Site/InterviewPage.jsx`, 1–19.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, 1–78.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, 1–246.
+- `frontend/src/components/ai/Interview/InterviewSourcePicker.runtime.test.jsx`, 1–53.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132.
+- `frontend/e2e/assistant-source-picker.spec.js`, 1–82.
+- `frontend/e2e/assistant-three-steps.spec.js`, 1–93.
+
+Z `frontend` uruchom `npm run test:runtime -- src/components/ai/Interview --maxWorkers=2`, `npm run test:e2e -- e2e/assistant-source-picker.spec.js e2e/assistant-three-steps.spec.js --project=desktop-chromium --workers=2`, `npm run check:locales`, `npm run lint -- --quiet` i `npm run build`. Syntetyczne dane obejmują PL/EN, 390/834/1280/1920px, wysokość laptopa, zakładki klawiaturą, strony/wyszukiwanie, puste zakładki, nieaktywny wybór, izolację źródeł, ograniczony ruch i tekst 200%. [Wzorzec zakładek WAI](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) wyjaśnia relacje zakładek/paneli oraz obsługę klawiatury. Nie zmieniono API, przechowywania, zależności ani konfiguracji; obowiązuje dotychczasowy proces wdrożenia frontendu.
+
+
 ## Rozpoznawalne zapisane dopasowania
 
 Na `/app/tailor` lista **Wróć do dopasowania** rozpoznaje każdą zapisaną aplikację po dostępnym stanowisku i firmie; pod nimi pokazuje nazwę źródłowego CV/importu oraz osobę. Widoczne są też zapisany etap, daty rozpoczęcia i ostatniej aktywności z lokalną godziną i minutami, liczba zapisanych odpowiedzi oraz ostatnie pytanie. **Kontynuuj dopasowanie** otwiera dokładnie ten proces; zapisany wynik udostępnia również istniejący odnośnik do edytora. Otwarcie listy ani wznowienie nie uruchamia AI.
@@ -4003,7 +4049,7 @@ Implementacja (aktualne pełne zakresy plików):
 - `frontend/src/components/common/SiteLayout/AssistantChoices.jsx`, linie 1–34, `AssistantChoices`: wspólny obszar funkcji i uprawnienia poszczególnych trybów.
 - `frontend/src/pages/Site/AssistantPage.jsx`, linie 1–12, `AssistantPage`: wybór trybu dla konta; `DocumentsPage.jsx`, linie 1–116, osadza ten sam obszar nad biblioteką.
 - `frontend/src/components/common/SiteLayout/SitePrimitives.jsx`, linie 1–43, `WorkflowChoice`: podrzędne nagłówki trybów i jawne linki; `SiteLayout.module.css`, linie 209–229: grupowanie i responsywne linie podziału.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–76, `SiteHeader`: jedno aktywne wejście do funkcji; `frontend/src/App.jsx`, linie 1–135: rejestracja trasy.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–78, `SiteHeader`: jedno aktywne wejście do funkcji; `frontend/src/App.jsx`, linie 1–135: rejestracja trasy.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–19, oraz `TailoringPage.jsx`, linie 1–264: ścieżki powrotu do funkcji; `frontend/src/utils/siteRoutes.js`, linie 23–33, `safeReturnTo`: kontynuacja po uwierzytelnieniu.
 
 `pages/Site/AssistantPage.jsx` i `components/common/SiteLayout/AssistantChoices.jsx` to jedyne nowe pliki implementacji, w istniejących katalogach tras i wspólnego interfejsu serwisu. Teksty znajdują się w obu kanonicznych słownikach i generowanych pakietach. Nie są potrzebne zmiany API, bazy, zależności, środowiska ani konfiguracji wdrożenia; publikacja korzysta z obecnego procesu budowania frontendu.
@@ -4106,14 +4152,14 @@ Usunięto stronę profilu zawodowego, jej pozycję w nawigacji, opcję źródła
 
 Implementacja i testy (sprawdzone zakresy całych plików):
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–580, `InterviewFlow`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, 1–571, `InterviewFlow`.
 - `frontend/src/components/ai/Interview/InterviewStages.jsx`, 1–19, `InterviewStages`.
 - `frontend/src/components/ai/Interview/FactEditor.jsx`, 1–142, `FactEditor`.
 - `frontend/src/pages/Site/ConversationsPage.jsx`, 1–99, `ConversationsPage`.
 - `frontend/src/pages/Site/ConversationsPage.module.css`, 1–20, `conversation layout`.
-- `frontend/src/components/ai/Interview/Interview.module.css`, 1–106, `stage and template layout`.
-- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–131, `transaction and recovery tests`.
-- `frontend/e2e/assistant-three-steps.spec.js`, 1–91, `PL/EN browser tests`.
+- `frontend/src/components/ai/Interview/Interview.module.css`, 1–115, `stage and template layout`.
+- `frontend/src/components/ai/Interview/InterviewSimpleFlow.runtime.test.jsx`, 1–132, `transaction and recovery tests`.
+- `frontend/e2e/assistant-three-steps.spec.js`, 1–93, `PL/EN browser tests`.
 
 `ConversationsPage.jsx` zastępuje usuniętą stronę profilu. Jej moduł CSS jest współdzielony z `SavedConversationDetails`. `InterviewStages` zastępuje selektor czterech etapów listą trzech kroków. Szablony, endpointy backendu, tabele bazy, zależności i zmienne środowiskowe pozostają bez zmian; frontend wdraża się dotychczasowym procesem budowania. Wdrożenie nie usuwa zapisanych danych.
 
@@ -4164,7 +4210,7 @@ Zapisany wywiad sprawdza teraz dokument źródłowy podczas ponownego otwarcia. 
 
 Wspólny `InterviewFlow` łączy flagę serwera z niezapisanymi zmianami edytora, więc wywiad samodzielny i osadzony mają te same kontrolki odzyskiwania oraz stany zablokowania. Przetłumaczony komunikat używa istniejącego stylu błędu i przycisku obsługiwanego klawiaturą; nie trafia do CV ani PDF. [Komunikaty stanu WAI](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22) wyjaśniają ogłaszanie stanu bez przerywania pracy.
 
-Implementacja: `backend/app/api/routes/interviews.py`, linie 237–257 (`get_interview`), oraz `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 83–85 i 370–371 (`InterviewFlow`). Testy regresji: `backend/tests/test_interviews.py`, linie 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` sprawdza odzyskiwanie i zachowanie szkiców; `frontend/e2e/interview-workspace.spec.js` sprawdza odzyskiwanie klawiaturą przy 390, 834, 1280 i 1920px, powiększeniu tekstu 200% i ograniczonym ruchu. Testy używają danych syntetycznych i symulowanego AI. Wdróż backend i frontend razem istniejącym procesem; nie potrzeba migracji, zależności ani zmiany konfiguracji.
+Implementacja: `backend/app/api/routes/interviews.py`, linie 237–257 (`get_interview`), oraz `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–571 (`InterviewFlow`). Testy regresji: `backend/tests/test_interviews.py`, linie 367–404 (`test_resumed_tailoring_exposes_source_conflict_and_recovers`); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx` sprawdza odzyskiwanie i zachowanie szkiców; `frontend/e2e/interview-workspace.spec.js` sprawdza odzyskiwanie klawiaturą przy 390, 834, 1280 i 1920px, powiększeniu tekstu 200% i ograniczonym ruchu. Testy używają danych syntetycznych i symulowanego AI. Wdróż backend i frontend razem istniejącym procesem; nie potrzeba migracji, zależności ani zmiany konfiguracji.
 
 ## Język CV tworzonego przez wywiad
 
@@ -4206,7 +4252,7 @@ Natywne rozwinięcie obsługuje klawiaturę i widoczny fokus. Etykiety oraz dłu
 
 Zakres obejmuje rozpoczęcie z opcjonalną notatką i bez niej, przegląd źródła i niezapisane zmiany, zwykłe i wspomagane odpowiedzi, koniec rundy, doprecyzowanie faktów, przygotowanie, wynik, trwające operacje, błędy i ponowienia oraz zapisane odpowiedzi. Komponenty wykorzystują tokeny `DESIGN.md`, natywne rozwijane sekcje i dotychczasowe przyciski etapów oraz selektor w wąskim widoku. Fokus, cele 44px, blokady akcji, układ przy powiększeniu 200% i ograniczony ruch dotyczą obu miejsc uruchamiania. Kontrolki pozostają poza drzewem dokumentu i PDF.
 
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–580, funkcja `InterviewFlow`, koordynuje szkice, jawne operacje i przejścia; `goTo` zapisuje zmienione informacje przed opuszczeniem etapu i zachowuje je po błędzie.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–571, funkcja `InterviewFlow`, koordynuje szkice, jawne operacje i przejścia; `goTo` zapisuje zmienione informacje przed opuszczeniem etapu i zachowuje je po błędzie.
 - `frontend/src/components/ai/Interview/Interview.module.css` odpowiada za układ wywiadu. `InterviewCredits.jsx`, linie 13–75, i sąsiedni `InterviewCredits.module.css` odpowiadają za wspólne rozliczenie; moduł CSS jest jedynym nowym plikiem produkcyjnym.
 - `frontend/src/i18n/locales/pl.json` i `en.json` są słownikami źródłowymi. Słowniki robocze generuje `scripts/generate-locale-bundles.mjs`; edytuj wyłącznie słowniki źródłowe.
 - `InterviewFlowNavigation.runtime.test.jsx`, linie 1–299, sprawdza główne akcje, jawne granice płatnych operacji i ochronę szkiców. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` i `InterviewLoading.runtime.test.jsx` sprawdzają zatwierdzanie, rozliczenia i komunikaty operacji. `frontend/e2e/interview-simple-flow.spec.js`, linie 1–166, obejmuje doprecyzowanie klawiaturą, zachowanie szkiców oraz PL/EN przy 390, 834, 1280 i 1920px, w tym powiększony tekst.
@@ -4221,7 +4267,7 @@ Końcowy układ może zostać zapisany, mimo że przeglądarka otrzyma błąd si
 
 Po błędzie początkowego generowania `InterviewFlow.operation` odświeża zapisany stan sesji, aby istniejące oczekujące dopasowanie można było jawnie wznowić z bieżącą rewizją. Jeśli odczyt również zawiedzie, widoczny pozostaje pierwotny błąd generowania/dopasowania. Nie następuje automatyczne ponowienie płatnego AI. Wspólny klient HTTP oznacza nieprzejrzyste błędy transportu przez `code: network_error` zarówno dla JSON, jak i pobierania plików, dzięki czemu odzyskiwanie nie zależy od języka komunikatu. Komunikaty polskie i angielskie nie twierdzą już, że serwer się uruchamia.
 
-Implementacja: `frontend/src/utils/interviewFit.js`, linie 1–566 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–566 (`operation`); `frontend/src/services/api.js`, linie 1–566 (`ApiClient`, `isTransientNetworkError`). Testy: `frontend/src/utils/interviewFit.test.js`, linie 1–566; `frontend/src/services/api.test.js`, linie 1–566; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–566; `frontend/e2e/interview-fit.spec.js`, linie 1–566. Regresja przeglądarkowa zapisuje układ i zrywa odpowiedź; obejmuje PL/EN, cztery szerokości okna, klawiaturę, tekst powiększony do 200% i ograniczony ruch. Syntetyczne dane nie wywołują płatnego AI. Należy uruchomić istniejące skrypty testów jednostkowych/runtime, lint/build i zestaw Playwright interview-fit z katalogu `frontend`.
+Implementacja: `frontend/src/utils/interviewFit.js`, linie 1–566 (`completeInterviewFit`); `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–571 (`operation`); `frontend/src/services/api.js`, linie 1–566 (`ApiClient`, `isTransientNetworkError`). Testy: `frontend/src/utils/interviewFit.test.js`, linie 1–566; `frontend/src/services/api.test.js`, linie 1–566; `frontend/src/components/ai/Interview/Interview.runtime.test.jsx`, linie 1–566; `frontend/e2e/interview-fit.spec.js`, linie 1–566. Regresja przeglądarkowa zapisuje układ i zrywa odpowiedź; obejmuje PL/EN, cztery szerokości okna, klawiaturę, tekst powiększony do 200% i ograniczony ruch. Syntetyczne dane nie wywołują płatnego AI. Należy uruchomić istniejące skrypty testów jednostkowych/runtime, lint/build i zestaw Playwright interview-fit z katalogu `frontend`.
 
 To poprawka odzyskiwania we frontendzie; nie wymaga zmian endpointów API, schematu bazy, zależności ani konfiguracji. Nie diagnozuje przerw sieciowych na produkcji i nie odpytuje cyklicznie nadal trwającej operacji. Jeśli gotowy wynik nie jest dostępny podczas odczytu, użytkownik musi wczytać zapisany stan i jawnie wznowić pracę. [Dokumentacja Fetch w MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) wyjaśnia odrzucenie żądania przez przeglądarkę; nie rozstrzyga, czy zapis aplikacji został wykonany.
 
@@ -4253,7 +4299,7 @@ Implementacja i testy (aktualne pełne zakresy plików wraz z istotnymi symbolam
 | `backend/app/services/interview_service.py` | 1–686; `session_payload, paid_model` |
 | `backend/app/services/interview_credits.py` | 1–53; `interview_credit_usage` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.jsx` | 1–209; `InterviewAnswerHelp` |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–580; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–571; `InterviewFlow, generateAnswerHelp, useAnswerHelp, saveAnswer` |
 | `frontend/src/services/interviews.js` | 1–55; `interviewRequest` |
 | `backend/tests/test_interview_answer_help.py` | 1–420; `pytest` |
 | `frontend/src/components/ai/Interview/InterviewAnswerHelp.runtime.test.jsx` | 1–190; `Vitest` |
@@ -4301,7 +4347,7 @@ Zweryfikowane odwołania do implementacji i regresji:
 
 - `backend/app/services/interview_templates.py`, linie 1–168, `preview_templates` i `select_preview_template`; `backend/app/schemas/interview_schema.py`, linie 126–130, `PreviewTemplateWrite`; `backend/app/api/routes/interviews.py`, linie 671–679, dwa uwierzytelnione handlery tras.
 - `frontend/src/utils/interviewTemplateFit.js`, linie 1–229, `measureInterviewTemplateCandidate` i `measureInterviewTemplateCandidates`; `frontend/src/utils/templatePageFit.js`, linie 1–222, wspólna rejestracja typografii S i `applyTemplateSmallTypography`. `frontend/src/utils/fitToPages.js`, linie 34–50, `buildSpacingLadder`, dostarcza wspólne kroki odstępów. Porównanie oddaje przeglądarce sterowanie między wariantami i próbami mniejszych odstępów, aby postęp i przerwanie pozostawały responsywne również przy czcionkach w pamięci podręcznej.
-- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, linie 1–580, opcjonalne porównanie, postęp, przerwanie i tymczasowy wybór powiązany z rewizją; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 242–260, `saveDocument`, stosuje wybór przed utworzeniem dokumentu; `InterviewTemplateOptions.module.css` zapewnia responsywny układ próbki oparty na tokenach.
+- `frontend/src/components/ai/Interview/InterviewTemplateOptions.jsx`, linie 1–580, opcjonalne porównanie, postęp, przerwanie i tymczasowy wybór powiązany z rewizją; `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–571, `saveDocument`, stosuje wybór przed utworzeniem dokumentu; `InterviewTemplateOptions.module.css` zapewnia responsywny układ próbki oparty na tokenach.
 - `backend/tests/test_interview_templates.py`, linie 1–283; `frontend/src/utils/interviewTemplateFit.test.js`, linie 1–283 (regresja wysokości 33 pól: linie 34–54; przerwanie przy czcionkach z pamięci podręcznej: linie 179–190; dopasowanie poniżej odstępów kompaktowych z największym pasującym krokiem: linie 210–230; przerwanie między próbami odstępów: linie 232–245); `frontend/src/components/ai/Interview/InterviewTemplateOptions.runtime.test.jsx`, linie 1–283 (wszystkie opcje: linie 53–67; usuwanie oczekującego wyboru: linie 69–92); `frontend/src/components/ai/Interview/InterviewFlowNavigation.runtime.test.jsx`, linie 100–163, bezpośredni zapis, aktualne wersje, błędy/ponowienie i zachowanie obecnego szablonu; `frontend/e2e/interview-templates.spec.js`, linie 1–283 (bezpośredni zapis Aurelii, ponowienie i odczyt w edytorze: linie 13–120). Wygenerowane syntetyczne dane testowe to `frontend/e2e/fixtures/interview-templates.json` oraz `frontend/e2e/fixtures/interview-regent-sterling.json`. Drugi plik obejmuje pełny przepływ dopasowania dwustronicowego Regent i wyboru jednostronicowego Sterling, w tym wolne porównanie, przerwanie i błąd; wybór w przeglądarce obejmuje Linden, Cadenzę, Sterling i Meridian w wersjach PL i EN. `frontend/e2e/fixtures/interview-template-spacing.json` dodaje dziewięć kanonicznych alternatyw dla syntetycznego CV, którego układ Aurelia wymaga odstępów mniejszych od kompaktowych. Regresje PL/390px i EN/1280px pokazują kilka pasujących opcji, wybierają Aurelię, zapisują bezpośrednio klawiaturą, zachowują wybór po nieudanym zastosowaniu i sprawdzają wybrany szablon, tekst oraz typografię po otwarciu i ponownym wczytaniu zapisanego edytora.
 
 W `frontend` uruchom obecne polecenia testów/runtime/lint/build i `npm run test:e2e -- e2e/interview-templates.spec.js --project=desktop-chromium`; polecenia backendu są w instrukcji. Pokrycie obejmuje PL/EN przy 390/834/1280/1920px, wybór klawiaturą, powiększenie tekstu 200%, ograniczenie animacji, ponowienie nieudanego wyboru i przywracanie. [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) wyjaśnia pomiar rzeczywistych czcionek, a [czyszczenie efektów React](https://react.dev/reference/react/useEffect) odrzucanie spóźnionych wyników porównania. [Migawki stanu React](https://react.dev/learn/state-as-a-snapshot) wyjaśniają, dlaczego obsługa zapisu przekazuje do następnego żądania pola wersji otrzymane w odpowiedzi zastosowania szablonu. Układy nieobsługiwane lub niemożliwe do zmierzenia są wykluczane, więc funkcja nie gwarantuje zmieszczenia każdego CV na jednej stronie.
@@ -4351,7 +4397,7 @@ Pliki implementacji i odpowiedzialności:
 - `frontend/src/components/ai/Interview/InterviewStages.jsx`, `InterviewFlow.jsx` i `InterviewLoading.jsx`: wspólne responsywne etapy i stany operacji wywiadu osadzonego oraz samodzielnego.
 - `frontend/src/index.css`, linie 44–52, tokeny typografii; `frontend/src/components/ai/shared/AiTask.module.css`, linie 1–24, `controls`, `actions` i `change`: wspólne rozmiary, stany przycisków i prezentacja przeglądu.
 - `frontend/src/components/ai/AiAssistant/AiAssistant.module.css`, linie 1–1046, `.panel`, `.home`, `.taskBody` i `.interviewBody`; `JobMatchPanel.module.css`, linie 1–38, `.workspace`; `CvAuditPanel.module.css`, linie 1–72, `.audit`: spójna obudowa asystenta i widoki zadań.
-- `frontend/src/components/ai/Interview/Interview.module.css`, linie 37–89, `.interview`, `.taskTitle`, `.question` i wartość domyślna rozmiaru kontrolek; `FactEditor.module.css`, linia 10, `.editor.editor h2`; `InterviewLoading.module.css`, linia 4, nagłówek oczekiwania: dziedziczone zwarte rozmiary w asystencie i dotychczasowe wartości na samodzielnych stronach.
+- `frontend/src/components/ai/Interview/Interview.module.css`, linie 1–115, `.interview`, `.taskTitle`, `.question` i wartość domyślna rozmiaru kontrolek; `FactEditor.module.css`, linia 10, `.editor.editor h2`; `InterviewLoading.module.css`, linia 4, nagłówek oczekiwania: dziedziczone zwarte rozmiary w asystencie i dotychczasowe wartości na samodzielnych stronach.
 
 Istniejący `frontend/e2e/ai-task-workspace.spec.js`, linie 1–66, zapisuje zrzuty ekranu startu/przeglądu i sprawdza szerokości 390/834/1280/1920px, przyciski 44px, powiększony tekst oraz niezmienioną treść dokumentu przed akceptacją. `cv-audit.spec.js`, `job-match-workspace.spec.js` i `ai-assistant-scroll.spec.js` obejmują powiązane kontrakty raportu, szkiców, fokusu, oczekiwania/błędów i przewijania; testy runtime przeglądu sprawdzają jawne Zastosuj/Pomiń oraz ochronę przed nieaktualnym źródłem. Są to testy regresji z atrapami usług, bez deklaracji sprawdzenia każdej kombinacji technologii wspomagających.
 
@@ -4445,7 +4491,7 @@ Referencje implementacji (zweryfikowane dla tej rewizji):
 - `frontend/src/i18n/index.js`, linie 1–111, `initialLanguage, setUiLanguage, ensureWorkspaceMessages`.
 - `frontend/src/i18n/messageState.js`, linie 1–26, `messageRef, useMessageState, resolveMessage`.
 - `frontend/src/components/common/LanguageSelect/LanguageSelect.jsx`, linie 1–18, `LanguageSelect`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–76, `SiteHeader` i opcjonalne umiejscowienie przez `showLanguageSelect`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–78, `SiteHeader` i opcjonalne umiejscowienie przez `showLanguageSelect`.
 - `frontend/src/pages/Hero/Hero.jsx`, linia 120, jedyne wywołanie `SiteHeader`, które włącza selektor języka aplikacji.
 - `frontend/src/utils/cvStarter.js`, linie 1–423, `createDefaultStarterConfig, buildStarterDocument`.
 - `backend/app/core/localisation.py`, linie 1–81, `UiLanguageMiddleware, message, ui_language_policy`.
@@ -4510,7 +4556,7 @@ Implementacja (zakresy całych modułów obejmujące `Hero`, `PricingPage`, `Hel
 
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–379.
 - `frontend/src/pages/Site/PublicPages.jsx`, linie 1–122.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–76.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–78.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–19.
 
 Testy: `frontend/e2e/interview-positioning.spec.js` dodaje dwujęzyczną ścieżkę odkrywania w istniejącym katalogu `frontend/e2e/`. Uruchom `npm run test:e2e -- e2e/interview-positioning.spec.js --project=desktop-chromium --workers=1` z `frontend/`. Test sprawdza szerokości 390/834/1280/1920px, tekst powiększony do 200% przy 834px, ograniczony ruch, fokus kotwic z klawiatury, powrót po logowaniu gościa i brak płatnych wywołań AI. `Hero.test.js` kontroluje prezentację; `StartChooser.runtime.test.jsx` sprawdza dostęp Pro/Free/nieustalony/cofnięty. Testy z mockami nie oceniają jakości rzeczywistego AI ani produkcyjnego renderowania PDF. [Struktura strony według WAI](https://www.w3.org/WAI/tutorials/page-structure/) wyjaśnia użyte regiony semantyczne, nagłówki i nawigację.
@@ -4536,9 +4582,9 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–379, `Hero`.
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, linie 103–247, `StartChooser`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–19, `InterviewPage`.
-- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–580, `InterviewFlow`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–76, `SiteLayout`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–228, `guideFaq`.
+- `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–571, `InterviewFlow`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–78, `SiteLayout`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.module.css`, linie 1–246, `guideFaq`.
 - `frontend/e2e/interview-discovery.spec.js`, linie 1–100, `Playwright`.
 
 Testy: `frontend/e2e/interview-discovery.spec.js` sprawdza przejście z cennika do pomocy i fokus, rozwijanie klawiaturą, szerokości 390/834/1280/1920 px, zoom tekstu 200%, zaproszenia Pro, Free/niedostępne uprawnienia, linki ze strony głównej i ekranu startowego oraz opisy rejestracji i wyboru planu bez płatnych wywołań. `planPresentation.test.js` weryfikuje kanoniczne korzyści i zachowanie cen serwera. Uruchom `npm run test:e2e -- e2e/interview-discovery.spec.js e2e/site-architecture.spec.js --project=desktop-chromium`, `npm test`, `npm run test:runtime`, `npm run lint` i `npm run build` z `frontend/`. Nowy test przeglądarkowy znajduje się w istniejącym `frontend/e2e/`; struktura aplikacji i bazy pozostaje bez zmian. Wdrażaj przez istniejący proces frontendu. Testy używają mocków konta i nie weryfikują aktywacji produkcyjnej ani jakości rzeczywistych odpowiedzi AI. [Struktura strony według WAI](https://www.w3.org/WAI/tutorials/page-structure/) wyjaśnia semantyczne regiony, nagłówki i nawigację użyte w instrukcji.
@@ -4579,7 +4625,7 @@ Implementacja (zweryfikowane zakresy całych plików; wymienione eksporty odpowi
 - `frontend/src/pages/Site/AccountPage.jsx`, komponent `AccountPage`.
 - `frontend/src/pages/Site/PublicPages.jsx`, eksporty `TemplatesPage, TemplatePage, PricingPage, HelpPage`.
 - `frontend/src/pages/Site/PrivacyPage.jsx`, komponent `PrivacyPage`.
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–76, `SiteLayout, SiteHeader, SiteFooter`.
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–78, `SiteLayout, SiteHeader, SiteFooter`.
 - `frontend/src/templates/index.js`, linie 3–201, `TEMPLATES` — krótkie opisy pickerów i treść stron szczegółów wszystkich dziesięciu szablonów.
 - `frontend/src/utils/planPresentation.js`, linie 3–73, `FREE_PLAN_HIGHLIGHTS, PRO_PLAN_HIGHLIGHTS, PLAN_PRESENTATION`.
 - `frontend/src/services/documents.js`, linie 2–46, `listOwnedDocuments, loadOwnedDocument`.
@@ -5140,19 +5186,19 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–61; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
-| `frontend/src/components/ai/Interview/Interview.module.css` | 1–106; stages, question, preparation, resultActions |
+| `frontend/src/components/ai/Interview/Interview.module.css` | 1–115; stages, question, preparation, resultActions |
 | `frontend/src/utils/interviewPreview.js` | 1–27; previewRecords, recordContent |
 | `frontend/src/utils/interviewPreview.test.js` | 1–24; grouping, evidence, removed fields |
 | `frontend/e2e/interview-workspace.spec.js` | 1–178; bounded preview, delayed operations, failure recovery |
-| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–580; InterviewFlow |
+| `frontend/src/components/ai/Interview/InterviewFlow.jsx` | 1–571; InterviewFlow |
 | `frontend/src/utils/careerProfileView.js` | 1–90; groupCareerFacts, careerFieldLabel, isCareerNote |
 | `frontend/src/utils/careerProfileView.test.js` | 1–42; grupowanie, tożsamość, limity, tytuły z pytań wywiadu |
 | `frontend/src/components/ai/Interview/FactEditor.runtime.test.jsx` | 1–132; zastosowanie, anulowanie, cofanie, fokus, wyszukiwanie, prezentacja pytania z odpowiedzią |
 | `frontend/src/components/ai/Interview/FactEditor.module.css` | 1–88; editor, workspace, interviewAnswer, mobileNav |
 | `frontend/src/pages/Site/ConversationsPage.module.css` | 1–20; sessions, sessionList, deleteControls |
-| `frontend/e2e/assistant-three-steps.spec.js` | 1–176; grupowanie profilu, responsywne pytanie z odpowiedzią, edycja i zapis |
-| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–76; SiteLayout compact |
-| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–228; compactHero |
+| `frontend/e2e/assistant-three-steps.spec.js` | 1–93; grupowanie profilu, responsywne pytanie z odpowiedzią, edycja i zapis |
+| `frontend/src/components/common/SiteLayout/SiteLayout.jsx` | 1–78; SiteLayout compact |
+| `frontend/src/components/common/SiteLayout/SiteLayout.module.css` | 1–246; compactHero |
 | `frontend/e2e/interview-note-boundary.spec.js` | 1–88; `przegląd źródła w wywiadzie, notatki i trwałość zapisu` |
 | `frontend/src/components/ai/Interview/FactEditor.jsx` | 1–142; FactEditor |
 | `frontend/src/components/ai/Interview/CvContent.jsx` | 1–31; CvContent |
@@ -5891,7 +5937,7 @@ Implementacja:
 - `frontend/src/components/editor/StartChooser/StartChooser.jsx`, komponent `StartChooser` — trzy główne karty (`onNew`, `onImport`, link wywiadu zależny od uprawnień) oraz drugorzędne akcje dokumentów i recovery legacy
 - `frontend/src/components/editor/StartChooser/StartChooser.module.css`, linie 8–454 — styl Swiss/grid z overlayem całej powłoki aplikacji, znakiem CV Studio, prostokreślnymi osiami, trzema kolumnami na szerokim ekranie, dwiema z trzecią kartą na całą szerokość na tablecie i jedną na małym ekranie, wierszem akcji drugorzędnych, bezpiecznym wyrównaniem przewijania, układem mobilnym i responsywną kontrolką wylogowania
 - `frontend/src/App.jsx`, linie 54–74, funkcje `StartRoute` i `CreateCvRoute` — rozstrzyga ogólne `/app/new` jako `start=choose` dla konta i `start=new` dla gościa lub jawnego szablonu; `/app/import` pozostaje skierowany
-- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–122, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–122, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–122, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
+- `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–78, `SiteHeader`; `frontend/src/pages/Hero/Hero.jsx`, linie 1–122, `Hero`; oraz `frontend/src/pages/Site/PublicPages.jsx`, linie 1–122, `PricingPage` — ogólne CTA tworzenia używają `/app/new`, a CTA szablonów zachowują bezpośrednią konfigurację
 - `frontend/src/utils/startChooser.js`, linie 30–46, funkcja `shouldShowStartChooser` — czysta bramka widoczności pustego niezapisanego workspace (nie demo/ładowanie/konwersja/odrzucony)
 - `frontend/src/pages/PdfCanvas.jsx`, linie 253–265 i 1110–1135, komponent `EditorController` — zużywa intencję `choose`, utrzymuje chooser przed automatycznym wyborem szablonu i podpina nowe/import/dokumenty/recovery bez montowania chrome edytora
 - `frontend/src/components/editor/NewCvSetupModal/NewCvSetupModal.jsx` i `frontend/src/pages/PdfCanvas.jsx` — nowe A4 jest generowane bezpośrednio; starszy szkic przeglądarki wymaga jawnej akcji recovery

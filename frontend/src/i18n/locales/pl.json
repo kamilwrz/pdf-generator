@@ -1748,7 +1748,19 @@
     "simple.moreTemplates": "Więcej szablonów",
     "simple.fewerTemplates": "Mniej szablonów",
     "simple.answerAndFinish": "Zapisz odpowiedź i wybierz szablon",
-    "simple.confirmAndFinish": "Potwierdzam odpowiedź i wybieram szablon"
+    "simple.confirmAndFinish": "Potwierdzam odpowiedź i wybieram szablon",
+    "sourcePicker.sources": "Źródło CV",
+    "sourcePicker.documents": "Moje CV",
+    "sourcePicker.imports": "Importy",
+    "sourcePicker.search": "Szukaj po nazwie",
+    "sourcePicker.noMatches": "Brak wyników. Zmień nazwę lub wyczyść wyszukiwanie.",
+    "sourcePicker.noDocuments": "Nie masz jeszcze zapisanego CV. Wybierz import lub utwórz dokument.",
+    "sourcePicker.noImports": "Nie masz jeszcze importów. Wgraj PDF lub wybierz zapisane CV.",
+    "sourcePicker.startHint": "Wybór dokumentu rozpoczyna rozmowę i korzysta z kredytów AI.",
+    "sourcePicker.pagination": "Strony dokumentów",
+    "sourcePicker.page": "{{page}} z {{pages}}",
+    "sourcePicker.previous": "Poprzednia strona",
+    "sourcePicker.next": "Następna strona"
   },
   "errors": {
     "errorBoundary.couldNotDisplayTheEditor": "Nie udało się wyświetlić edytora",

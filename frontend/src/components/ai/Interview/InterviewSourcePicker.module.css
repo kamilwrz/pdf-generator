@@ -1,0 +1,26 @@
+.sourcePicker { min-width: 0; }
+.toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .5fr); align-items: end; gap: var(--space-4); margin-bottom: var(--space-4); }
+.sourcePicker .sourceTabs { margin: 0; }
+.sourcePicker .sourceTabs [role='tab'] { gap: var(--space-2); padding-inline: var(--space-3); border: 0; border-bottom: 2px solid transparent; border-radius: 0; font-size: var(--text-ui); }
+.sourcePicker .sourceTabs [aria-selected='true'] { border-bottom-color: var(--color-accent); }
+.count { color: var(--color-muted); font: var(--text-label)/1.25 var(--font-mono); }
+.sourcePicker .toolbar label { margin: 0; font-size: var(--text-ui); }
+.list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--color-border); }
+.list li { min-width: 0; border-bottom: 1px solid var(--color-border); }
+.sourcePicker .list button { display: flex; width: 100%; gap: var(--space-3); justify-content: flex-start; border: 0; border-radius: 0; padding: var(--space-3); text-align: left; }
+.list button span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.list svg { flex-shrink: 0; width: var(--space-4); height: var(--space-4); color: var(--color-accent); }
+.footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-3); }
+.sourcePicker .hint { color: var(--color-muted); font-size: var(--text-ui); margin: 0; max-width: 56ch; }
+.pagination { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-ui); min-height: var(--control-height); }
+.pagination > span { margin-right: var(--space-2); }
+.sourcePicker .pagination button { width: var(--control-height); padding: var(--space-2); }
+.empty { padding: var(--space-6) 0; }
+@container interview (max-width: 760px) {
+  .toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, .6fr); }
+  .sourceTabs { grid-column: 1 / -1; }
+}
+@container interview (max-width: 360px) {
+  .toolbar { grid-template-columns: minmax(0, 1fr); }
+  .pagination { flex-wrap: wrap; }
+}

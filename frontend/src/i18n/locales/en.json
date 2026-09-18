@@ -1724,7 +1724,19 @@
     "simple.moreTemplates": "More templates",
     "simple.fewerTemplates": "Fewer templates",
     "simple.answerAndFinish": "Save answer and choose a template",
-    "simple.confirmAndFinish": "Confirm answer and choose a template"
+    "simple.confirmAndFinish": "Confirm answer and choose a template",
+    "sourcePicker.sources": "CV source",
+    "sourcePicker.documents": "My CVs",
+    "sourcePicker.imports": "Imports",
+    "sourcePicker.search": "Search by name",
+    "sourcePicker.noMatches": "No matches. Try another name or clear your search.",
+    "sourcePicker.noDocuments": "No saved CVs yet. Choose an import or create a document.",
+    "sourcePicker.noImports": "No imports yet. Upload a PDF or choose a saved CV.",
+    "sourcePicker.startHint": "Choosing a document starts a conversation and uses AI credits.",
+    "sourcePicker.pagination": "Document pages",
+    "sourcePicker.page": "{{page}} of {{pages}}",
+    "sourcePicker.previous": "Previous page",
+    "sourcePicker.next": "Next page"
   },
   "errors": {
     "errorBoundary.couldNotDisplayTheEditor": "Could not display the editor",

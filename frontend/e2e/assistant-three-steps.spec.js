@@ -50,7 +50,7 @@ async function fixture(page, language) {
 
 for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920]) {
   test(`three numbered steps, keyboard and reflow ${language} ${width}`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 1000 });
+    await page.setViewportSize({ width, height: width === 1280 ? 720 : 1000 });
     await page.emulateMedia({ reducedMotion: width === 834 ? 'reduce' : 'no-preference' });
     const writes = await fixture(page, language);
     const t = copy[language];
@@ -66,6 +66,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     await source.focus(); await page.keyboard.press('Enter');
     await expect(page.getByRole('textbox', { name: t.answer, exact: true })).toBeVisible();
     await expect(page.locator('li[aria-current="step"]')).toContainText('02');
+    if (width >= 1280) expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
     await expect(page.getByRole('searchbox')).toHaveCount(0);
     expect(writes.map(item => item.path.split('/').at(-1))).toEqual(['interviews', 'confirm', 'next']);
     await page.screenshot({ path: `../tmp/assistant-question-${language}-${width}.png`, fullPage: true });
@@ -75,6 +76,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     const template = page.getByRole('button', { name: t.template, exact: true });
     await expect(template).toBeVisible();
     await expect(page.locator('li[aria-current="step"]')).toContainText('03');
+    if (width >= 1280) expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
     expect(writes.map(item => item.path.split('/').at(-1))).toEqual(['interviews', 'confirm', 'next', 'answers']);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     const stage = page.locator('[data-stage="prepare"]');
