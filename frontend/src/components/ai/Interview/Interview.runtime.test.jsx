@@ -226,6 +226,22 @@ it('lets the candidate inspect and save a recovered preview without technical pa
   expect(screen.getByRole('button', { name: 'Zapisz jako nowe CV' })).toBeEnabled();
 });
 
+it('keeps saving available when verification returns only wording advice', async () => {
+  session = { ...session, phase: 'preview', question: null, preview: {
+    pages: 1, profile_revision: 1, cv_data: { name: 'Anna Nowak', summary: 'Analiza raportów.' },
+    changes: [], remaining_gaps: [], review_notes: [{ path: '/summary', action: 'check_wording' }],
+  } };
+  render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
+  const save = await screen.findByRole('button', { name: 'Zapisz jako nowe CV' });
+  expect(save).toBeEnabled();
+  await userEvent.setup().click(screen.getByRole('button', { name: /^Do sprawdzenia/ }));
+  expect(screen.getByText(/To opcjonalna wskazówka/)).toBeVisible();
+  expect(screen.queryByText(/Nie wszystkie szczegóły zostały potwierdzone/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(save).toBeEnabled();
+  expect(interviewRequest.mock.calls.some(([path, method]) => path.endsWith('/preview') && method === 'POST')).toBe(false);
+});
+
 it('offers clarification before exposing the filtered preview and supports explicit skipping', async () => {
   session = { ...session, phase: 'clarification', question: null, pending_clarifications: [{ topic: 'project' }], preview: {
     pages: 1, profile_revision: 1, cv_data: { name: 'Anna' }, changes: [], remaining_gaps: [],

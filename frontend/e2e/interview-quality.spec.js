@@ -18,7 +18,8 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
       confirmed: true, proposed_facts: [], requirements: [], question_limit: 10, planned_question_count: 10,
       source_cv_data: { name: 'Anna Nowak', summary: 'Praca administracyjna.' },
       preview: { pages: 1, profile_revision: 1, cv_data: { name: 'Anna Nowak', summary: 'Zbieranie uwag.' },
-        changes: [{ path: '/summary', value: 'Zbieranie uwag.', evidence_refs: ['answer-q'] }], remaining_gaps: [] } };
+        changes: [{ path: '/summary', value: 'Zbieranie uwag.', evidence_refs: ['answer-q'] }], remaining_gaps: [],
+        review_notes: [{ path: '/summary', action: 'check_wording' }] } };
     const posts = [];
     let fail = true;
     await page.route('**/api/ai/interviews**', async (route) => {
@@ -36,6 +37,11 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     });
     await page.goto(`/app/interview/${ID}`);
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await page.getByRole('button', { name: english ? /^To review/ : /^Do sprawdzenia/ }).click();
+    await expect(page.getByText(english ? /This is optional advice/ : /To opcjonalna wskazówka/)).toBeVisible();
+    await expect(page.getByRole('button', { name: english ? 'Save as a new CV' : 'Zapisz jako nowe CV', exact: true })).toBeEnabled();
+    expect(posts).toHaveLength(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.getByRole('button', { name: english ? /^Changes/ : /^Zmiany/ }).click();
     const edit = page.getByRole('button', { name: english ? 'Edit this suggestion' : 'Popraw tę propozycję' });
     await edit.focus(); await page.keyboard.press('Enter');

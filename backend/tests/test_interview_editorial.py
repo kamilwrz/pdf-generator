@@ -80,7 +80,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert saved['preview']['cv_data']['summary'] == PROFESSIONAL
     assert any(PROFESSIONAL in str(element) for element in saved['preview']['elements'])
     assert saved['preview']['changes'][0]['evidence_refs'] == ['answer-q']
-    assert saved['preview']['pipeline_version'] == 8
+    assert saved['preview']['pipeline_version'] == 9
     assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert 'generation_attempt' not in saved
@@ -151,7 +151,7 @@ def test_assembly_recovery_requires_complete_current_pipeline(environment, chang
     assert result.json()['preview']['recovered_previous_attempt'] is not changed_profile
 
 
-@pytest.mark.parametrize('previous_version', [2, 5, 6, 7])
+@pytest.mark.parametrize('previous_version', [2, 5, 6, 7, 8])
 def test_upgraded_policy_does_not_replay_completed_older_generation_stages(environment, previous_version):
     """Unfinished older attempts restart under the current editorial contract."""
     client, db, user, _ = environment
@@ -171,7 +171,7 @@ def test_upgraded_policy_does_not_replay_completed_older_generation_stages(envir
         upgraded = generate(client, legacy.json())
     assert upgraded.status_code == 200, upgraded.text
     assert provider.call_count == 3
-    assert upgraded.json()['preview']['pipeline_version'] == 8
+    assert upgraded.json()['preview']['pipeline_version'] == 9
     assert upgraded.json()['preview']['recovered_previous_attempt'] is False
     assert upgraded.json()['answers'] == session['answers']
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == before
@@ -426,56 +426,54 @@ def aml_fixture(client, db):
     return session, profile, draft, repair, issue
 
 
-def test_aml_readability_repair_is_bounded_verified_and_preserves_evidence(environment):
+@pytest.mark.parametrize('mode', ['create', 'enrich', 'tailor'])
+def test_readability_advice_keeps_preview_and_charges_three_stages(environment, mode):
     client, db, user, _ = environment
-    session, profile, draft, repair, issue = aml_fixture(client, db)
+    session, profile, draft, _, issue = aml_fixture(client, db)
+    row = db.get(InterviewSession, session['id'])
+    row.state = {**row.state, 'mode': mode}
+    db.commit()
     snapshot = deepcopy(profile)
-    outputs = [(draft, USAGE), (editorial(draft), USAGE),
-               ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE), (VERIFIED, USAGE)]
-    with patch.object(service, '_gpt', side_effect=outputs) as provider:
+    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (editorial(draft), USAGE),
+                      ({**VERIFIED, 'quality_issues': [issue]}, USAGE)]) as provider:
         result = generate(client, session, 1)
     assert result.status_code == 200, result.text
     saved = result.json()
-    assert saved['preview']['cv_data']['experience'][0]['bullets'] == [AML_PARTS[0], 'Porządkowanie dokumentacji.', *AML_PARTS[1:]]
-    checked = json.loads(provider.call_args_list[-1].args[1])
-    assert checked['editorial_splits'][0]['paths'] == [AML_PATH, '/experience/0/bullets/2', '/experience/0/bullets/3']
-    refs = draft['fields'][0]['evidence_refs']
-    assert all(f['evidence_refs'] == refs for f in checked['draft'] if f['path'] in checked['editorial_splits'][0]['paths'])
-    assert saved['usage']['cost_pln_estimate'] == pytest.approx(.05)
+    assert provider.call_count == 3
+    assert saved['phase'] == 'preview'
+    assert saved['preview']['cv_data']['experience'][0]['bullets'][0] == AML_LONG
+    assert saved['preview']['review_notes'] == [{'path': AML_PATH, 'action': 'check_wording'}]
+    assert saved['pending_clarifications'] == []
+    assert saved['answers'] == session['answers']
+    assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == snapshot
     receipt = client.get(f"/ai/interviews/{session['id']}/credits").json()
-    assert len(receipt['requests']) == 1 and len(receipt['requests'][0]['stages']) == 5
-    assert [stage['operation'] for stage in receipt['requests'][0]['stages']][-2:] == ['editorial-repair', 'verify-repair']
-    assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 5
+    assert len(receipt['requests']) == 1
+    assert [stage['operation'] for stage in receipt['requests'][0]['stages']] == ['preview', 'editorial', 'verify']
+    assert receipt['credits_charged'] == 3
+    assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 3
+    # An ordinary session read cannot invoke AI or repeat any settled charge.
+    with patch.object(service, '_gpt') as provider:
+        restored = client.get(f"/ai/interviews/{session['id']}").json()
+    provider.assert_not_called()
+    assert restored['preview'] == saved['preview']
 
 
-def test_quality_gate_stops_after_one_failed_repair_and_keeps_answers(environment):
-    client, db, _, _ = environment
+def test_readability_advice_replays_after_render_failure_without_new_charges(environment):
+    client, db, user, _ = environment
     session, _, draft, _, issue = aml_fixture(client, db)
-    rejected = {**VERIFIED, 'quality_issues': [issue]}
     with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (editorial(draft), USAGE),
-                      (rejected, USAGE), (editorial(draft), USAGE), (rejected, USAGE)]) as provider:
-        result = generate(client, session, 1)
-    assert result.status_code == 422, result.text
-    assert provider.call_count == 5
-    current = client.get(f"/ai/interviews/{session['id']}").json()
-    assert current['preview'] is None and current['answers'] == session['answers']
-    assert 'generation_attempt' not in current
-
-
-def test_completed_quality_repair_replays_after_final_verification_failure(environment):
-    client, db, _, _ = environment
-    session, _, draft, repair, issue = aml_fixture(client, db)
-    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (editorial(draft), USAGE),
-                      ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE),
-                      service.AIServiceError('Unavailable', reservation_outcome='release')]):
-        assert generate(client, session, 1).status_code == 500
-    resumed = client.get(f"/ai/interviews/{session['id']}").json()
-    with patch.object(service, '_gpt', return_value=(VERIFIED, USAGE)) as provider:
-        result = generate(client, resumed, 1)
+                      ({**VERIFIED, 'quality_issues': [issue]}, USAGE)]), \
+         patch.object(interviews, 'generate_resume', side_effect=HTTPException(422, {'message': 'Retry layout'})):
+        failed = generate(client, session, 1)
+    assert failed.status_code == 200 and failed.json()['phase'] == 'review'
+    with patch.object(service, '_gpt') as provider:
+        result = generate(client, failed.json(), 1)
     assert result.status_code == 200, result.text
-    assert provider.call_count == 1
-    assert result.json()['usage']['cost_pln_estimate'] == pytest.approx(.05)
+    provider.assert_not_called()
+    assert result.json()['preview']['recovered_previous_attempt'] is True
+    assert result.json()['preview']['review_notes'][0]['action'] == 'check_wording'
+    assert db.query(AiCreditReservation).filter_by(user_id=user.id, status='settled').count() == 3
 
 
 def test_split_rejection_restores_whole_original_without_partial_claims():
@@ -517,38 +515,43 @@ def test_audit_and_generation_share_readability_without_blanket_length_rules():
     assert 'Do not impose a word count' in CV_READABILITY_POLICY
 
 
-def test_quality_finding_must_quote_its_actual_field():
-    with pytest.raises(ValueError):
-        editorial_service.validate_quality_issues(draft_for_answer(),
-            {'quality_issues': [{'path': '/summary', 'quote': 'Invented text', 'reason': 'Too long'}]}, {'facts': []})
+@pytest.mark.parametrize('path,quote', [('/name', 'Anna'), ('/summary', 'Invented text'),
+                                               ('/experience/99/bullets/0', AML_LONG), ('/summary', ' ')])
+def test_invalid_readability_advice_is_ignored(path, quote):
+    assert editorial_service.editorial_review_notes({'summary': RAW}, {
+        'quality_issues': [{'path': path, 'quote': quote, 'reason': 'Untrusted diagnostic'}],
+    }) == []
 
 
-def test_rejected_repair_cannot_publish_known_overloaded_source_fallback(environment):
+def test_rejected_split_retains_source_with_optional_wording_advice(environment):
     client, db, _, _ = environment
-    session, _, draft, repair, issue = aml_fixture(client, db)
-    rejected = {**VERIFIED, 'unsupported_paths': ['/experience/0/bullets/2']}
-    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (editorial(draft), USAGE),
-                      ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE), (rejected, USAGE)]):
+    session, _, draft, edit, issue = aml_fixture(client, db)
+    rejected = {**VERIFIED, 'unsupported_paths': ['/experience/0/bullets/2'], 'quality_issues': [issue]}
+    with patch.object(service, '_gpt', side_effect=[(draft, USAGE), (edit, USAGE), (rejected, USAGE)]) as provider:
         result = generate(client, session, 1)
-    assert result.status_code == 422, result.text
-    assert client.get(f"/ai/interviews/{session['id']}").json()['preview'] is None
+    assert result.status_code == 200, result.text
+    assert provider.call_count == 3
+    saved = result.json()
+    assert saved['phase'] == 'preview'
+    assert saved['preview']['cv_data']['experience'][0]['bullets'] == [AML_LONG, 'Porządkowanie dokumentacji.']
+    assert {'path': AML_PATH, 'action': 'check_wording'} in saved['preview']['review_notes']
+    assert saved['pending_clarifications'] == []
 
 
-def test_source_change_during_quality_repair_blocks_publication(environment):
+def test_source_change_during_verification_blocks_publication_with_advice(environment):
     client, db, user, _ = environment
-    session, profile, draft, repair, issue = aml_fixture(client, db)
-    outputs = iter([(draft, USAGE), (editorial(draft), USAGE),
-                    ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (repair, USAGE)])
+    session, profile, draft, _, issue = aml_fixture(client, db)
+    outputs = iter([(draft, USAGE), (editorial(draft), USAGE), ({**VERIFIED, 'quality_issues': [issue]}, USAGE)])
     calls = []
     def provider(_system, body, **kwargs):
         calls.append(json.loads(body))
-        if len(calls) == 4:
+        if len(calls) == 3:
             service.put_profile(db, user.id, profile['revision'], profile['facts'])
         return next(outputs)
     with patch.object(service, '_gpt', side_effect=provider):
         result = generate(client, session, 1)
     assert result.status_code == 409, result.text
-    assert len(calls) == 4
+    assert len(calls) == 3
     assert client.get(f"/ai/interviews/{session['id']}").json()['preview'] is None
 
 
@@ -566,8 +569,7 @@ SAR_GROUPS = [
 
 
 @pytest.mark.parametrize('mode', ['create', 'enrich', 'tailor'])
-@pytest.mark.parametrize('needs_repair', [False, True])
-def test_single_activity_checklist_policy_reaches_writing_and_verification(environment, mode, needs_repair):
+def test_single_activity_checklist_policy_reaches_writing_and_verification(environment, mode):
     """Exercise real assembly and prompt boundaries with a one-verb checklist.
 
     The mocked reviewer distinguishes two SAR review scopes despite their shared
@@ -592,12 +594,7 @@ def test_single_activity_checklist_policy_reaches_writing_and_verification(envir
     edit = editorial(draft)
     next(f for f in edit['fields'] if f['path'] == AML_PATH).update(
         value=SAR_GROUPS[0], additional_points=SAR_GROUPS[1:])
-    issue = {'path': AML_PATH, 'quote': SAR_CHECKLIST,
-             'reason': 'Długa lista miesza kontrolę treści raportu z oceną uzasadnienia i wymogów.'}
     outputs = [(draft, USAGE), (edit, USAGE), (VERIFIED, USAGE)]
-    if needs_repair:
-        outputs = [(draft, USAGE), (editorial(draft), USAGE),
-                   ({**VERIFIED, 'quality_issues': [issue]}, USAGE), (edit, USAGE), (VERIFIED, USAGE)]
     with patch.object(service, '_gpt', side_effect=outputs) as provider:
         response = generate(client, session, 1)
     assert response.status_code == 200, response.text
@@ -617,6 +614,6 @@ def test_single_activity_checklist_policy_reaches_writing_and_verification(envir
     saved = response.json()
     assert saved['preview']['cv_data']['experience'][0]['bullets'] == [SAR_GROUPS[0], concise, SAR_GROUPS[1]]
     assert saved['preview']['cv_data']['experience'][1]['bullets'] == [other_role]
-    assert saved['usage']['cost_pln_estimate'] == pytest.approx(.05 if needs_repair else .03)
+    assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == snapshot

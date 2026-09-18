@@ -66,6 +66,10 @@ def review_preview(db, user, row, request):
         state["profile_revision"] = profile["revision"]
     state["preview"] = {**preview, "cv_data": cv_data, "changes": changes, "elements": elements,
                         "pages": max((int(e.get("page", 1)) for e in elements), default=1),
+                        # Wording notices describe the previous generated text;
+                        # human review can reorder fields and is not AI-checked.
+                        "review_notes": [note for note in preview.get("review_notes", [])
+                                         if note["action"] != "check_wording"],
                         "profile_revision": profile["revision"], "recovered_previous_attempt": False}
     state["document_title"] = None
     # User corrections invalidate the old restore point. Refit their geometry

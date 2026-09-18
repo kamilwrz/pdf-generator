@@ -14,7 +14,7 @@ it('allows the shortening and verification pair without automatic retries', () =
 });
 
 it.each([
-  ['/ai/interviews/session/preview', 'POST', 2_760_000],
+  ['/ai/interviews/session/preview', 'POST', 1_680_000],
   ['/ai/interviews/session/answer-help', 'POST', 1_140_000],
   ['/ai/interviews/session/answers', 'POST', 180_000],
   ['/ai/interviews/session', 'GET', 180_000],

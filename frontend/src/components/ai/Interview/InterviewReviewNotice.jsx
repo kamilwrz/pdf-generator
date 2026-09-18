@@ -7,9 +7,11 @@ import classes from './Interview.module.css';
 export default function InterviewReviewNotice({ preview, legacy = false }) {
   useTranslation();
   const notes = preview?.review_notes || [];
+  const wordingNotes = notes.filter((note) => note.action === 'check_wording');
+  const factualNotes = notes.filter((note) => note.action !== 'check_wording');
   // Summarize repeated scalar corrections by section and outcome, retaining the count.
   const grouped = new Map();
-  notes.forEach((note) => {
+  factualNotes.forEach((note) => {
     const label = factLabel({ path: note.path });
     const key = `${label}:${note.action}`;
     const previous = grouped.get(key);
@@ -19,8 +21,9 @@ export default function InterviewReviewNotice({ preview, legacy = false }) {
   return <aside className={classes.reviewNotice} aria-label={uiText("interview:interviewReviewNotice.reviewAiSuggestion")}>
     {legacy ? <><h3>{uiText("interview:interviewReviewNotice.yourAnswersAreSaved")}</h3><p>{uiText("interview:interviewReviewNotice.thePreviousSuggestionNeededCorrectingPrepareYour")}</p></> : <>
       <h3>{uiText("interview:interviewReviewNotice.yourCvIsReadyToReview")}</h3>
-      {notes.length > 0 && <><p>{uiText("interview:interviewReviewNotice.someDetailsWereNotConfirmedInThose")}</p>
-        <details><summary>{uiText("interview:interviewReviewNotice.whatWeKeptOrOmitted")}{notes.length})</summary><ul>{[...grouped].map(([key, note]) => <li key={key}><strong>{note.label}</strong> — {note.action === 'kept_original' ? uiText("interview:interviewReviewNotice.confirmedContentRetained") : uiText("interview:interviewReviewNotice.unconfirmedAdditionOmitted")}{note.count > 1 ? ` (${note.count})` : ''}</li>)}</ul></details></>}
+      {factualNotes.length > 0 && <><p>{uiText("interview:interviewReviewNotice.someDetailsWereNotConfirmedInThose")}</p>
+        <details><summary>{uiText("interview:interviewReviewNotice.whatWeKeptOrOmitted")}{factualNotes.length})</summary><ul>{[...grouped].map(([key, note]) => <li key={key}><strong>{note.label}</strong> — {note.action === 'kept_original' ? uiText("interview:interviewReviewNotice.confirmedContentRetained") : uiText("interview:interviewReviewNotice.unconfirmedAdditionOmitted")}{note.count > 1 ? ` (${note.count})` : ''}</li>)}</ul></details></>}
+      {wordingNotes.length > 0 && <><p>{uiText('interview:interviewReviewNotice.optionalWordingReview')}</p><ul>{[...new Set(wordingNotes.map((note) => factLabel({ path: note.path })))].map((label) => <li key={label}>{label}</li>)}</ul></>}
       {preview?.recovered_previous_attempt && <p>{uiText("interview:interviewReviewNotice.thisPreviewReusesThePreviousResultRecovery")}</p>}
     </>}
   </aside>;

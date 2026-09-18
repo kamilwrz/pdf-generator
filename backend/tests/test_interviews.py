@@ -239,7 +239,8 @@ def test_free_can_edit_profile_but_cannot_start_interview(environment):
     assert result.status_code == 403, result.text
 
 
-def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environment):
+@pytest.mark.parametrize('wording_advice', [False, True])
+def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environment, wording_advice):
     from app.api.routes import interviews
     from app.schemas.pdf_schema import PDFCreateRequest
     from app.utils.build_pdf import build_pdf_to_buffer
@@ -255,12 +256,16 @@ def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environm
     ref = next(f['id'] for f in profile['facts'] if f['text'] == 'Tworzę raporty w Pythonie.')
     raw = {'fields': [{'path': '/summary', 'value': 'Tworzę raporty w Pythonie.', 'evidence_refs': [ref]}], 'remaining_gaps': []}
     edited = {'fields': [{'path': '/summary', 'value': 'Przygotowuję raporty w Pythonie.'}]}
-    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), (edited, {'cost_pln_estimate': .01}), ({'unsupported_paths': [], 'reasons': []}, {'cost_pln_estimate': .01})]):
+    verification = {'unsupported_paths': [], 'reasons': [], 'quality_issues': [
+        {'path': '/summary', 'quote': edited['fields'][0]['value'], 'reason': 'Optional wording advice'},
+    ] if wording_advice else []}
+    with patch.object(service, '_gpt', side_effect=[(raw, {'cost_pln_estimate': .01}), (edited, {'cost_pln_estimate': .01}), (verification, {'cost_pln_estimate': .01})]):
         response = client.post(f"/ai/interviews/{session['id']}/preview", json={**version(session, 1), 'template_id': 'linden'})
     assert response.status_code == 200, response.text
     preview_session = response.json()
     preview = preview_session['preview']
     assert preview['cv_data']['summary'] == 'Przygotowuję raporty w Pythonie.'
+    assert bool(preview['review_notes']) is wording_advice
     data = PDFCreateRequest(root=preview['elements'], pages=preview['pages'], pdf_title='Test wywiadu')
     pdf = build_pdf_to_buffer(data, data.root, image_src_to_local_path)
     with pymupdf.open(stream=pdf, filetype='pdf') as document:
@@ -269,6 +274,7 @@ def test_preview_creates_a_separate_document_and_pdf_excludes_interview(environm
         text = ''.join(page.get_text() for page in document)
         assert 'anna nowak' in text.casefold()
         assert 'evidence_refs' not in text and 'proposed_facts' not in text
+        assert 'check_wording' not in text and 'Optional wording advice' not in text
 
     def save(db, *, user, username, pdf_data, idempotency_key):
         row = Pdf(owner_id=user.id, title=pdf_data.pdf_title, create_idempotency_key=idempotency_key, cv_data=pdf_data.cv_data)

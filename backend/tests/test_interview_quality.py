@@ -202,10 +202,14 @@ def test_dates_cannot_be_composed_from_unrelated_numbers():
 def test_preview_correction_and_rejection_use_no_ai_and_preserve_source(environment, isolated):
     client, db, user, _ = environment
     session = setup_answer(client, db, include_profile=not isolated)
-    with patch.object(service, '_gpt', side_effect=[(draft_for_answer(), USAGE), (editorial(draft_for_answer()), USAGE), (VERIFIED, USAGE)]):
+    verification = {**VERIFIED, 'quality_issues': [
+        {'path': '/summary', 'quote': draft_for_answer()['fields'][0]['value'], 'reason': 'Optional wording advice'},
+    ]}
+    with patch.object(service, '_gpt', side_effect=[(draft_for_answer(), USAGE), (editorial(draft_for_answer()), USAGE), (verification, USAGE)]):
         response = generate(client, session)
     assert response.status_code == 200, response.text
     session = response.json()
+    assert session['preview']['review_notes'] == [{'path': '/summary', 'action': 'check_wording'}]
     source = deepcopy(session['source_cv_data'])
     count = db.query(AiCreditReservation).count()
     with patch.object(service, '_gpt') as provider:
@@ -214,6 +218,7 @@ def test_preview_correction_and_rejection_use_no_ai_and_preserve_source(environm
         assert response.status_code == 200, response.text
         changed = response.json()
         assert changed['preview']['cv_data']['summary'] == body['value']
+        assert changed['preview']['review_notes'] == []
         assert changed['source_cv_data'] == source
         assert changed['preview']['changes'][0]['evidence_refs'][0].startswith('review-')
         assert client.post(f"/ai/interviews/{session['id']}/preview-review", json=body).status_code == 409

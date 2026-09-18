@@ -12,10 +12,10 @@ from app.services import interview_service as service
 from app.services.cv_editorial_policy import STYLE_REVIEW_POLICY, CV_READABILITY_POLICY
 from app.services.scoped_ai import preserves_protected_tokens
 
-# Restart unfinished attempts under the checklist-aware readability contract.
+# Restart unfinished attempts under the advisory readability contract.
 # Reusing a pre-upgrade attempt could pair its reservation key with a changed
 # prompt hash after interruption. Existing saved previews remain readable.
-PIPELINE_VERSION = 8
+PIPELINE_VERSION = 9
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(
@@ -54,6 +54,9 @@ Independently check readability as well as factual fidelity. Return quality_issu
 with path, exact quote and a concrete reason for each actionable overloaded bullet,
 repetition or filler. Return [] when there is no such defect. Check the complete
 candidate and its confirmed fallback when rejecting a field; do not demand new facts.
+Readability findings are optional editing advice, never factual rejection. Do not
+put stylistic preferences in unsupported_paths or ask clarification questions about
+style. Reserve unsupported_paths and clarifications for factual problems only.
 Check long enumerations even within one activity. Name the clauses or review scopes
 that obscure the work; do not accept a checklist merely because it has one verb.
 Equivalent compression is not fact loss. Distinct checks on the same object are not
@@ -63,10 +66,6 @@ against the entire original bullet. Check each fragment's responsibility and cav
 If any fragment is unsupported or the group loses a fact, reject the original path:
 the server restores/omits the whole group atomically. Source answers never change.
 """
-
-
-class EditorialQualityError(ValueError):
-    """A known readability defect survived the bounded repair and assembly."""
 
 
 def prepare_editorial_draft(raw, profile):
@@ -153,32 +152,20 @@ def apply_editorial_review(draft, review, profile=None):
     return result
 
 
-def validate_quality_issues(draft, verification, profile):
-    """Reject unlocatable findings before settlement or an automatic repair.
+def editorial_review_notes(cv_data, verification):
+    """Return optional wording notices anchored to the final fact-checked CV.
 
-    A finding can quote confirmed fallback text when factual rejection restores it.
-    Quotes are exact apart from whitespace; reasons remain untrusted model data.
+    Unknown paths, invented quotes and text removed by factual fallback produce
+    no notice. Advisory metadata cannot reject a usable CV or start more paid
+    calls. Expose only section locators, never raw provider diagnostics or claims.
     """
-    candidates = {f['path']: f['value'] for f in draft['fields']}
+    notes, seen = [], set()
     for issue in verification.get('quality_issues', []):
         path = issue['path']
-        source = [candidates.get(path, '')] + [f['text'] for f in profile['facts'] if f.get('path') == path]
-        quote = ' '.join(issue['quote'].split())
-        if not PROSE_PATH.fullmatch(path) or not quote or not any(quote in ' '.join(text.split()) for text in source):
-            raise ValueError('Unanchored editorial quality finding')
-
-
-def known_quality_problem_survives(cv_data, draft, issues, profile=None):
-    """Catch an unchanged known-bad field restored by factual fallback.
-
-    The final verifier sees the proposed split; assembly may instead restore its
-    original. Do not publish that exact text if the independent check already
-    rejected its readability. Edited text still relies on semantic review.
-    """
-    fields = {f['path']: f['value'] for f in draft['fields']}
-    for issue in issues:
+        if not PROSE_PATH.fullmatch(path) or path in seen:
+            continue
         value = cv_data
-        for part in issue['path'].strip('/').split('/'):
+        for part in path.strip('/').split('/'):
             if isinstance(value, dict):
                 value = value.get(part)
             elif isinstance(value, list) and part.isdigit() and int(part) < len(value):
@@ -186,12 +173,11 @@ def known_quality_problem_survives(cv_data, draft, issues, profile=None):
             else:
                 value = None
                 break
-        originals = [fields.get(issue['path'])] + [f['text'] for f in (profile or {}).get('facts', [])
-                                                  if f.get('path') == issue['path']]
-        if isinstance(value, str) and any(original and ' '.join(issue['quote'].split()) in ' '.join(original.split())
-                and ' '.join(value.split()) == ' '.join(original.split()) for original in originals):
-            return True
-    return False
+        quote = ' '.join(issue['quote'].split())
+        if isinstance(value, str) and quote and quote in ' '.join(value.split()):
+            notes.append({'path': path, 'action': 'check_wording'})
+            seen.add(path)
+    return notes
 
 
 def begin_generation(db, row, request, profile):
