@@ -2,12 +2,16 @@ import { test, expect } from '@playwright/test';
 import { installMockApi } from './support/mockApi.js';
 
 for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920]) {
-  test(`three clear goals and mirrored tailoring example: ${language} ${width}`, async ({ page }) => {
+  test(`one assistant with two modes and mirrored tailoring example: ${language} ${width}`, async ({ page }) => {
     const api = await installMockApi(page);
     await page.addInitScript(lang => localStorage.setItem('cvstudio.uiLanguage', lang), language);
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
+    const assistant = page.getByRole('region', { name: language === 'pl' ? 'Asystent CV' : 'CV Assistant', exact: true });
+    await expect(assistant.locator('#wywiad')).toBeVisible();
+    await expect(assistant.locator('#dopasowanie')).toBeVisible();
+    await expect(assistant.locator('h3')).toHaveCount(2);
     const hero = page.locator('#top');
     await hero.screenshot({ path: `test-results/landing-hero-${language}-${width}.png` });
     const copy = await hero.locator('h1').boundingBox();

@@ -1203,7 +1203,9 @@
     "task.profileHistory": "Profile and history",
     "task.help": "Help",
     "task.answerHelp": "How to answer",
-    "task.summary": "Summary"
+    "task.summary": "Summary",
+    "task.assistantIntro": "Choose a conversation goal: improve content or tailor your CV to a job.",
+    "task.textCorrections": "Quick text corrections"
   },
   "interview": {
     "cvContent.previousItems": "Previous items",

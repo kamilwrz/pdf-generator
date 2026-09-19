@@ -1902,29 +1902,28 @@ export default function AiAssistant({ hideLauncher = false }) {
                         <div className={classes.taskBody}>
                         {activePanel && <nav className={classes.taskNav} aria-label={uiText('ai:task.navigation')}>
                             <button type="button" onClick={() => { setActivePanel(null); requestAnimationFrame(() => document.querySelector(`[data-ai-goal="${lastToolRef.current}"]`)?.focus()); }}>{uiText('ai:task.tools')}</button>
-                            <h2 ref={taskHeadingRef} tabIndex={-1}>{uiText(activePanel === 'history' ? 'ai:task.history' : activePanel === 'result' ? 'ai:task.result' : activePanel === 'translate' ? 'ai:aiAssistant.translateCv' : 'ai:aiAssistant.improveContent')}</h2>
+                            <h2 ref={taskHeadingRef} tabIndex={-1}>{uiText(activePanel === 'history' ? 'ai:task.history' : activePanel === 'result' ? 'ai:task.result' : activePanel === 'translate' ? 'ai:aiAssistant.translateCv' : 'ai:task.textCorrections')}</h2>
                         </nav>}
                         {!activePanel && <section className={classes.home} aria-label={uiText('ai:task.start')}>
                             <h2>{uiText('ai:task.start')}</h2>
                             {(messages.some(message => message.role !== 'user') || scopedAi?.reviews.length > 0 || isLoading) &&
                                 <button type="button" className={classes.resume} onClick={() => setActivePanel('result')}>{uiText('ai:task.resume')}</button>}
-                            <div className={classes.actions}>
-                                {['check_cv', 'improve_content', 'match_job'].map(id => {
-                                    const action = GOAL_ACTIONS.find(item => item.id === id);
-                                    return <button key={id} ref={id === 'match_job' ? matchJobTriggerRef : undefined}
-                                        type="button" className={classes.actionBtn} data-ai-goal={id} data-primary={id === 'check_cv'}
-                                        onClick={() => handleGoalAction(id)} disabled={isLoading}>
-                                        <action.icon aria-hidden="true" /><span>{action.label}</span><RiArrowRightLine aria-hidden="true" />
-                                    </button>;
-                                })}
-                            </div>
+                            <section aria-labelledby="editor-cv-assistant-title" className={classes.assistantGroup}>
+                                <h3 id="editor-cv-assistant-title">{uiText('ai:task.interview')}</h3>
+                                <p>{uiText('ai:task.assistantIntro')}</p>
+                                <div className={classes.actions}>
+                                    <button ref={interviewTriggerRef} type="button" className={classes.actionBtn} disabled={isLoading} onClick={() => { auditReturnFocusRef.current = null; openInterview('enrich'); }}>
+                                        <FaComments aria-hidden="true" /><span>{uiText('public:hero.openInterview')}</span><RiArrowRightLine aria-hidden="true" />
+                                    </button>
+                                    <button ref={matchJobTriggerRef} type="button" className={classes.actionBtn} data-ai-goal="match_job" disabled={isLoading} onClick={() => handleGoalAction('match_job')}>
+                                        <FaBriefcase aria-hidden="true" /><span>{uiText('ai:aiAssistant.tailorToAJob')}</span><RiArrowRightLine aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </section>
                             <div className={classes.shortcuts}>
-                                <button ref={interviewTriggerRef} type="button" disabled={isLoading} onClick={() => { auditReturnFocusRef.current = null; openInterview('enrich'); }}>
-                                    <FaComments aria-hidden="true" />{uiText('ai:task.interview')}
-                                </button>
-                                {['translate', 'ats_score'].map(id => {
+                                {['check_cv', 'improve_content', 'translate', 'ats_score'].map(id => {
                                     const action = GOAL_ACTIONS.find(item => item.id === id);
-                                    return <button key={id} data-ai-goal={id} type="button" disabled={isLoading} onClick={() => handleGoalAction(id)}><action.icon aria-hidden="true" />{action.label}</button>;
+                                    return <button key={id} data-ai-goal={id} type="button" disabled={isLoading} onClick={() => handleGoalAction(id)}><action.icon aria-hidden="true" />{id === 'improve_content' ? uiText('ai:task.textCorrections') : action.label}</button>;
                                 })}
                             </div>
                             <button className={classes.historyLink} type="button" onClick={() => setActivePanel('history')}><RiHistoryLine aria-hidden="true" />{uiText('ai:task.history')}</button>

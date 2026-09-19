@@ -9,6 +9,10 @@ test('task home and explicit correction review reflow without changing PDF conte
   await page.goto('/app/documents/41');
   await page.getByRole('button', { name: 'Otwórz asystenta AI' }).click();
   const panel = page.getByRole('complementary', { name: 'Asystent AI' });
+  const assistant = panel.getByRole('region', { name: 'Asystent CV', exact: true });
+  await expect(assistant.getByRole('button', { name: 'Popraw treść CV', exact: true })).toBeVisible();
+  await expect(assistant.getByRole('button', { name: 'Dopasuj do oferty', exact: true })).toBeVisible();
+  expect(api.calls.filter(call => call.path === '/ai/assistant')).toHaveLength(0);
   for (const width of [390, 834, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
@@ -17,7 +21,7 @@ test('task home and explicit correction review reflow without changing PDF conte
     }
     await panel.screenshot({ path: testInfo.outputPath(`assistant-home-${width}.png`) });
   }
-  await panel.getByRole('button', { name: 'Popraw treść', exact: true }).click();
+  await panel.getByRole('button', { name: 'Szybka korekta tekstu', exact: true }).click();
   await panel.getByRole('button', { name: 'Sprawdź błędy', exact: true }).click();
   const review = panel.locator('details[data-state]').first();
   await expect(review).toBeVisible();

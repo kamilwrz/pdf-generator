@@ -900,7 +900,7 @@
 
 .shortcuts {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-2);
     padding-block: var(--space-4);
     margin-top: var(--space-4);
@@ -1044,3 +1044,7 @@
 @media (prefers-reduced-motion: reduce) { .panel *, .fab { animation: none !important; transition: none !important; } }
 
 @media print { .panel, .fab { display: none !important; } }
+
+.assistantGroup { margin-block: var(--space-4); }
+.assistantGroup h3 { margin: 0; font-size: var(--text-panel-title); }
+.assistantGroup p { margin: var(--space-2) 0 var(--space-4); font-size: var(--text-ui); line-height: 1.55; }

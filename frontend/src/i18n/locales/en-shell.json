@@ -390,7 +390,7 @@
     "publicPages.forWorkingWithAi": "FOR WORKING WITH AI",
     "publicPages.yourFirstCvInStudio": "YOUR FIRST CV IN STUDIO?",
     "hero.interviewJump": "Help me describe my experience",
-    "hero.interviewLabel": "CV Assistant · Pro",
+    "hero.interviewLabel": "CV Assistant · Pro · Content improvement",
     "hero.interviewTitle": "Show more than a list of duties.",
     "hero.interviewBody": "Add your CV and describe your work in your own words. The assistant asks for details and drafts descriptions for you to review. You can return to your saved answers later.",
     "hero.openInterview": "Improve my CV content",
@@ -417,7 +417,7 @@
     "publicPages.fitIntro": "After drafting your content, the CV Assistant checks the page count automatically. It first adjusts the layout, then attempts fact-checked shortening where needed. You can restore the version from before fitting.",
     "publicPages.fitTemplates": "If the result still has several pages, you will see a comparison of available templates. Choose a template where the app has measured a single-page result using the same content. Comparison and template changes use no AI credits. If none fits, keep the longer document or edit it in Studio.",
     "hero.tailoringJump": "Help me tailor my CV to a job",
-    "hero.tailoringLabel": "Job tailoring · Pro",
+    "hero.tailoringLabel": "CV Assistant · Pro · Job tailoring",
     "hero.tailoringTitle": "Show how your experience fits the role.",
     "hero.tailoringBody": "Add your CV and the job advert. The assistant compares the requirements with your experience and asks for missing details. Review the suggestions and save a separate CV for this application.",
     "hero.tailoringAccess": "Add your CV and advert with a Free account. Analysis and tailoring require Pro: PLN 59 for 30 days, including 200 AI credits. No automatic renewal.",
@@ -438,7 +438,8 @@
     "hero.importHint": "Upload your PDF",
     "hero.improveContent": "Improve content",
     "hero.tailorToJob": "Tailor to a job",
-    "heroTemplateShowcase.previewUnavailable": "Preview unavailable."
+    "heroTemplateShowcase.previewUnavailable": "Preview unavailable.",
+    "hero.assistantIntro": "One assistant, two goals: improve your CV content or tailor it to a specific job."
   },
   "account": {
     "planSelectModal.pln": "PLN",

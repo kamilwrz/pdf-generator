@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 /**
  * Conversion-focused marketing landing page for CV Studio.
  *
- * Page order: hero → interview → job tailoring → Studio tools + templates → privacy → pricing → FAQ → final CTA → footer.
+ * Page order: hero → CV Assistant (content improvement + job tailoring) → Studio tools + templates → privacy → pricing → FAQ → final CTA → footer.
  *
  * Creation starts the shared onboarding; template choice belongs there. Guests
  * can edit locally; saving and exporting require an account. Import enters the
@@ -192,10 +192,15 @@ export default function Hero() {
                 <HeroTemplateShowcase templates={FREE_TEMPLATES} />
             </section>
 
+            <section aria-labelledby="cv-assistant-title">
+                <header className={classes.assistantIntro}>
+                    <h2 id="cv-assistant-title">{uiText('public:siteLayout.interview')}</h2>
+                    <p>{uiText('public:hero.assistantIntro')}</p>
+                </header>
             <section id="wywiad" className={classes.interviewSection} aria-labelledby="interview-title" tabIndex={-1}>
                 <div>
                     <p className={classes.kicker} data-section-index="02">{uiText("public:hero.interviewLabel")}</p>
-                    <h2 id="interview-title">{uiText("public:hero.interviewTitle")}</h2>
+                    <h3 id="interview-title">{uiText("public:hero.interviewTitle")}</h3>
                     <p className={classes.interviewLead}>{uiText("public:hero.interviewBody")}</p>
                     <CtaLink to="/app/interview">{uiText("public:hero.openInterview")}</CtaLink>
                     <p className={classes.accountNote}>{uiText("public:hero.interviewAccess")}</p>
@@ -207,13 +212,15 @@ export default function Hero() {
             <section id="dopasowanie" className={`${classes.interviewSection} ${classes.tailoringSection}`} aria-labelledby="tailoring-title" tabIndex={-1}>
                 <div className={classes.tailoringCopy}>
                     <p className={classes.kicker} data-section-index="03">{uiText('public:hero.tailoringLabel')}</p>
-                    <h2 id="tailoring-title">{uiText('public:hero.tailoringTitle')}</h2>
+                    <h3 id="tailoring-title">{uiText('public:hero.tailoringTitle')}</h3>
                     <p className={classes.interviewLead}>{uiText('public:hero.tailoringBody')}</p>
                     <CtaLink to="/app/tailor">{uiText('tailoring:title')}</CtaLink>
                     <p className={classes.accountNote}>{uiText('public:hero.tailoringAccess')}</p>
                     <CtaLink to="/help#kredyty-ai" variant="link">{uiText('public:hero.creditHelp')}</CtaLink>
                 </div>
                 <InterviewDemo tailoring />
+            </section>
+
             </section>
 
             <section id="szablony" className={classes.templatesSection}>

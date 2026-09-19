@@ -1326,7 +1326,9 @@
     "task.profileHistory": "Profil i historia",
     "task.help": "Pomoc",
     "task.answerHelp": "Jak odpowiedzieć?",
-    "task.summary": "Podsumowanie"
+    "task.summary": "Podsumowanie",
+    "task.assistantIntro": "Wybierz cel rozmowy: poprawa treści lub dopasowanie do oferty.",
+    "task.textCorrections": "Szybka korekta tekstu"
   },
   "interview": {
     "cvContent.previousItems": "Wcześniejsze punkty",
@@ -2364,7 +2366,7 @@
     "careerProfilePage.noteConflict": "Notatki zmieniły się w innym oknie. Twój tekst pozostał tutaj. Skopiuj go przed wczytaniem zapisanych notatek.",
     "careerProfilePage.loadSavedNotes": "Wczytaj zapisane notatki i odrzuć lokalne zmiany",
     "hero.interviewJump": "Chcę lepiej opisać swoje doświadczenie",
-    "hero.interviewLabel": "Asystent CV · Pro",
+    "hero.interviewLabel": "Asystent CV · Pro · Poprawa treści",
     "hero.interviewTitle": "Pokaż więcej niż listę obowiązków.",
     "hero.interviewBody": "Dodaj CV i opowiedz własnymi słowami o pracy. Asystent dopyta o szczegóły i przygotuje opisy do sprawdzenia. Do zapisanych odpowiedzi możesz wrócić później.",
     "hero.openInterview": "Popraw treść CV",
@@ -2392,7 +2394,7 @@
     "publicPages.fitTemplates": "Jeśli wynik nadal ma kilka stron, zobaczysz porównanie dostępnych szablonów. Wybierzesz tylko taki, w którym aplikacja rzeczywiście zmierzyła jedną stronę dla tej samej treści. Samo porównanie i zmiana szablonu są bez kredytów AI. Gdy żaden nie pasuje, możesz zachować dłuższy dokument lub poprawić go w edytorze.",
     "careerProfilePage.manageProfile": "Opcje profilu",
     "hero.tailoringJump": "Chcę dopasować CV do ogłoszenia",
-    "hero.tailoringLabel": "Dopasowanie do ogłoszenia · Pro",
+    "hero.tailoringLabel": "Asystent CV · Pro · Dopasowanie do oferty",
     "hero.tailoringTitle": "Pokaż, jak pasujesz do tej roli.",
     "hero.tailoringBody": "Dodaj CV i ogłoszenie. Asystent porówna wymagania z Twoim doświadczeniem i dopyta o brakujące szczegóły. Sprawdzisz propozycje i zapiszesz osobne CV do tej rekrutacji.",
     "hero.tailoringAccess": "Dodaj CV i ogłoszenie na koncie Free. Analiza i dopasowanie wymagają Pro: 59 zł za 30 dni, z pakietem 200 kredytów AI. Bez automatycznego odnowienia.",
@@ -2432,7 +2434,8 @@
     "hero.importHint": "Wczytaj swój PDF",
     "hero.improveContent": "Popraw treść",
     "hero.tailorToJob": "Dopasuj do oferty",
-    "heroTemplateShowcase.previewUnavailable": "Podgląd niedostępny."
+    "heroTemplateShowcase.previewUnavailable": "Podgląd niedostępny.",
+    "hero.assistantIntro": "Jeden asystent, dwa cele: popraw treść CV lub dopasuj je do konkretnej oferty."
   },
   "documents": {
     "modalPdfs.couldNotLoadTheSelectedPdf": "Nie udało się wczytać wybranego PDF!",

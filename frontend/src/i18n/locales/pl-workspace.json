@@ -1217,7 +1217,9 @@
     "task.profileHistory": "Profil i historia",
     "task.help": "Pomoc",
     "task.answerHelp": "Jak odpowiedzieć?",
-    "task.summary": "Podsumowanie"
+    "task.summary": "Podsumowanie",
+    "task.assistantIntro": "Wybierz cel rozmowy: poprawa treści lub dopasowanie do oferty.",
+    "task.textCorrections": "Szybka korekta tekstu"
   },
   "interview": {
     "cvContent.previousItems": "Wcześniejsze punkty",

@@ -64,7 +64,7 @@ it.each([
   await userEvent.click(screen.getByRole('button', { name: t('ai:aiAssistant.checkCv'), exact: true }));
   await screen.findByText('Audit complete.');
   await userEvent.click(screen.getByRole('button', { name: t('ai:task.tools') }));
-  await userEvent.click(screen.getByRole('button', { name: t('ai:aiAssistant.improveContent'), exact: true }));
+  await userEvent.click(screen.getByRole('button', { name: t('ai:task.textCorrections'), exact: true }));
   const detectedLanguage = screen.getByRole('combobox', { name: t('ai:aiAssistant.cvLanguage') });
   expect(detectedLanguage).toHaveValue('pl');
   if (manual) await userEvent.selectOptions(detectedLanguage, 'de');
@@ -77,7 +77,7 @@ it.each([
     rerender(<MemoryRouter><AiAssistant /></MemoryRouter>);
   }
   const expectedLanguage = manual && change !== 'document' ? 'de' : 'en';
-  await userEvent.click(screen.getByRole('button', { name: t('ai:task.interview'), exact: true }));
+  await userEvent.click(screen.getByRole('button', { name: t('public:hero.openInterview'), exact: true }));
   await userEvent.click(await screen.findByText(/^(Język CV:|CV language:)/));
   expect(await screen.findByRole('combobox', { name: t('interview:interviewFlow.newCvLanguage') })).toHaveValue(expectedLanguage);
   await userEvent.click(screen.getByRole('button', { name: t('interview:interviewFlow.startInterview') }));

@@ -188,3 +188,8 @@
     .buttonPrimary:hover svg, .buttonSecondary:hover svg, .textCta:hover svg { transform: none; }
     .templateGallery { scroll-behavior: auto; }
 }
+
+/* Both examples belong to one assistant region and retain their fragment links. */
+.assistantIntro { padding-block: var(--space-12); padding-inline: max(var(--landing-gutter), calc((100% - 1440px) / 2 + var(--landing-gutter))); background: var(--color-canvas); }
+.assistantIntro p { max-width: 72ch; margin: var(--space-4) 0 0; line-height: 1.55; }
+.interviewSection h3 { margin: 0; font-size: clamp(1.5rem, 2.5vw, 2.25rem); line-height: 1.1; letter-spacing: -.035em; text-wrap: balance; }
