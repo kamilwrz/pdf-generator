@@ -11,7 +11,6 @@ import { useEntitlements } from '../../hooks/useEntitlements';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import InterviewFlow from '../../components/ai/Interview/InterviewFlow';
 import CvContent from '../../components/ai/Interview/CvContent';
-import SavedConversationDetails from './SavedConversationDetails';
 import ui from '../../components/common/SiteLayout/SiteLayout.module.css';
 import styles from './TailoringPage.module.css';
 
@@ -30,52 +29,34 @@ export default function TailoringPage() {
     {!getAccessToken() ? <section className={styles.panel}>
       <h2>{t('tailoring:guestTitle')}</h2><p>{t('tailoring:price')}</p><p>{t('tailoring:accountNeeded')}</p>
       <div className={ui.actions}><Link className={ui.primary} to="/register?returnTo=%2Fapp%2Ftailor">{t('tailoring:createAccount')}</Link><Link className={ui.secondary} to="/login?returnTo=%2Fapp%2Ftailor">{t('public:siteLayout.signIn')}</Link></div>
-    </section> : flowId ? <Workspace key={flowId} id={flowId} /> : <FlowList />}
+    </section> : flowId ? <Workspace key={flowId} id={flowId} /> : <AutoCreateFlow />}
   </SiteLayout>;
 }
 
-/** Saved starts are explicit; simply opening this page never creates a draft or calls AI. */
-function FlowList() {
+/**
+ * Every visit without a saved flow id starts a fresh intake immediately, the
+ * same way the ordinary CV Assistant conversation never shows an intermediate
+ * "begin" screen before its first step. A resumed draft is instead reached
+ * through its own saved link (the document library or an earlier session),
+ * never through a list re-shown on this route.
+ */
+function AutoCreateFlow() {
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const lock = useRef(false);
+  const [attempt, setAttempt] = useState(0);
   const createId = useRef(crypto.randomUUID());
-  const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try { setItems((await interviewRequest('/tailoring')).items); }
-    catch (err) { setError(err); }
-    finally { setLoading(false); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  async function create() {
-    if (lock.current) return;
-    lock.current = true; setBusy(true); setError(null);
-    try {
-      const flow = await interviewRequest(path(createId.current), 'PUT', { ...empty(), revision: 0 });
-      navigate(`/app/tailor/${flow.id}`);
-    } catch (err) { setError(err); }
-    finally { lock.current = false; setBusy(false); }
-  }
+  useEffect(() => {
+    let active = true;
+    interviewRequest(path(createId.current), 'PUT', { ...empty(), revision: 0 }).then(flow => {
+      if (active) navigate(`/app/tailor/${flow.id}`, { replace: true });
+    }).catch(err => { if (active) setError(err); });
+    return () => { active = false; };
+  }, [navigate, attempt]);
   return <section className={styles.panel}>
-    <h2>{t('tailoring:beginTitle')}</h2><p>{t('tailoring:price')}</p>
-    <p>{t('tailoring:sourceHint')}</p>
-    <button className={ui.primary} disabled={busy} onClick={create}>{busy ? t('tailoring:working') : t('tailoring:begin')}</button>
-    {error && <div role="alert" className={ui.error}><p>{error.message}</p><button className={ui.secondary} onClick={load}>{t('tailoring:reload')}</button></div>}
-    {loading && <p role="status">{t('tailoring:loading')}</p>}
-    {items.length > 0 && <section aria-labelledby="tailoring-history-title">
-      <h2 id="tailoring-history-title" className={styles.listTitle}>{t('tailoring:resume')}</h2>
-      <ul className={styles.list}>{items.map(item => <li key={item.id} aria-labelledby={`tailoring-title-${item.id}`}>
-        <SavedConversationDetails session={{ ...item, mode: 'tailor' }} titleId={`tailoring-title-${item.id}`} />
-        <div className={`${ui.actions} ${styles.listActions}`}>
-          <Link className={ui.secondary} to={`/app/tailor/${item.id}`} aria-describedby={`tailoring-title-${item.id}`}>{t('tailoring:history.continue')}</Link>
-          {item.document_id && <Link className={ui.secondary} to={`/app/documents/${item.document_id}`} aria-describedby={`tailoring-title-${item.id}`}>{t('tailoring:edit')}</Link>}
-        </div>
-      </li>)}</ul>
-    </section>}
-    {!loading && !error && items.length === 0 && <p className={styles.hint}>{t('tailoring:history.empty')}</p>}
+    {!error && <p className={styles.status} role="status">{t('tailoring:loading')}</p>}
+    {error && <div role="alert" className={ui.error}><p>{error.message}</p>
+      <button className={ui.secondary} onClick={() => { createId.current = crypto.randomUUID(); setError(null); setAttempt(value => value + 1); }}>{t('tailoring:reload')}</button>
+    </div>}
   </section>;
 }
 
@@ -217,7 +198,7 @@ function Workspace({ id }) {
     {flow && draft && !flow.session_id && <section className={styles.panel} aria-busy={busy}>
       <header className={styles.panelHeader}>
         <h2 ref={heading} tabIndex={-1}>{t(`tailoring:step.${step}`)}</h2>
-        <p>{t(step === 'source' ? 'tailoring:sourceHint' : 'tailoring:offerHint')}</p>
+        {step === 'offer' && <p>{t('tailoring:offerHint')}</p>}
       </header>
       <fieldset disabled={busy || Boolean(flow.locked)} className={styles.fields}>
       {step === 'source' && <>
@@ -230,8 +211,8 @@ function Workspace({ id }) {
             {file && (file.size > 10 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.pdf')) && <p role="alert">{t('tailoring:fileLimit')}</p>}
           </div>
         </div>
-        <div className={styles.supportingRow}><p className={styles.hint}>{t('tailoring:importHint')}</p><button type="button" className={`${ui.secondary} ${styles.quietButton}`} onClick={() => run(async () => { setSources(await interviewRequest('/tailoring/sources')); })}>{t('tailoring:recoverImport')}</button></div>
-        {selectedData && <details open className={styles.review}><summary>{t('tailoring:reviewSource')}</summary><CvContent data={selectedData} /></details>}
+        <div className={styles.supportingRow}><button type="button" className={`${ui.secondary} ${styles.quietButton}`} onClick={() => run(async () => { setSources(await interviewRequest('/tailoring/sources')); })}>{t('tailoring:recoverImport')}</button></div>
+        {selectedData && <div className={styles.review}><CvContent data={selectedData} /></div>}
         <div className={styles.stageActions}><button className={ui.primary} disabled={!selectedData || saving || dirty} onClick={() => run(() => move('offer'))}>{t('tailoring:toOffer')}</button><Link to="/app/new">{t('tailoring:noCv')}</Link></div>
       </>}
       {step === 'offer' && <>

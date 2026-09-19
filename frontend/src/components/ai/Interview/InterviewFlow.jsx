@@ -10,7 +10,7 @@ import { getUiLanguage } from '../../../i18n';
  * Server state survives unmount/logout. Answers are saved before asking again;
  * failed requests retain input and can be recovered by loading the session.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { interviewRequest, reviewFacts, interviewEvidence } from '../../../services/interviews';
 import { useEntitlements } from '../../../hooks/useEntitlements';
@@ -77,6 +77,9 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   const answerField = useRef(null);
   const correctionTrigger = useRef(null);
   const focusContext = useRef('');
+  // Guards the guided auto-advance below so a resumed or reloaded session
+  // does not repeat the paid first-question request while one is in flight.
+  const autoAdvancedSession = useRef(null);
   const canAi = entitlements?.ai_assistant === true;
   // Standalone resumes use the server's saved-document revision check; embedded
   // interviews also include unsaved editor changes. Neither refreshes silently.
@@ -419,6 +422,24 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     && session?.phase !== 'clarification' && session?.answers.length < session?.question_limit;
   const canExtend = !session?.discovery_complete && session?.question_limit < 50
     && (session?.phase === 'review' || session?.phase === 'preview');
+  // Guided (tailoring) conversations start exactly like an ordinary interview:
+  // the very first question is requested as soon as the confirmed source is
+  // ready, with no separate manual click. Later questions keep the explicit
+  // "next question" action shared with the ordinary flow. A layout effect
+  // (not a plain effect) sets `busy` before paint so the idle "begin
+  // conversation" choice never flashes on screen first.
+  useLayoutEffect(() => {
+    if (!guided || waiting || !session || discoveryAnswers > 0 || !canAskNext) return;
+    if (autoAdvancedSession.current === session.id) return;
+    autoAdvancedSession.current = session.id;
+    run(async () => {
+      try { if (needsFactSave) await operation('confirm', { facts }); if (alive.current) await operation('next'); }
+      catch (err) { autoAdvancedSession.current = null; throw err; }
+    }, 'next');
+    // `run`/`operation` close over refs and are recreated every render; the
+    // guard above (keyed by session id) is what actually prevents re-firing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guided, waiting, session, discoveryAnswers, canAskNext, needsFactSave, facts]);
   const languageControl = <label>{uiText(initialSource ? 'interview:interviewFlow.newCvLanguage' : 'common:documentLanguage')}<select value={language} onChange={event => setLanguage(event.target.value)}>{Object.entries(languageLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>;
   return <section className={`${classes.flow} ${classes.interview}`} aria-label={uiText("interview:interviewFlow.careerInterview")}>
     {!guided && <InterviewStages active={stage} />}

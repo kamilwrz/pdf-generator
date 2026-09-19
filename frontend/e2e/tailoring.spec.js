@@ -84,11 +84,12 @@ for (const width of [390, 834, 1280, 1920]) {
     const progress = page.getByRole('list', { name: 'CV tailoring steps' });
     await expect(progress).toBeVisible();
     await expect(progress.locator('li[aria-current="step"]')).toContainText('03');
-    await expect(page.getByRole('button', { name: 'Next question', exact: true })).toBeVisible();
+    // The guided conversation requests its first question immediately, the
+    // same way an ordinary CV Assistant conversation never waits for a
+    // separate manual "next question" click on the very first question.
+    await expect(page.getByText('Which reports do you prepare?')).toBeVisible();
+    expect(api.calls.filter(call => call.path.endsWith('/next'))).toHaveLength(1);
     await page.screenshot({ path: `test-results/tailoring-conversation-${width}.png`, fullPage: true });
-    // Starting/resuming creates no paid request until Next question is explicit.
-    expect(api.calls.filter(call => call.path.endsWith('/next'))).toHaveLength(0);
-    await page.getByRole('button', { name: 'Next question', exact: true }).click();
     await page.locator('textarea').fill('Weekly SQL reports for the operations team.');
     await page.getByRole('button', { name: 'Send answer', exact: true }).click();
     await page.getByRole('button', { name: /Create CV · Linden/i }).click();
@@ -105,6 +106,19 @@ for (const width of [390, 834, 1280, 1920]) {
     await expect(page.getByRole('button', { name: 'Download PDF', exact: true })).toBeVisible();
   });
 }
+
+test('opening tailoring without a saved flow id skips straight to the first step', async ({ page }) => {
+  const api = await setup(page);
+  await page.goto('/app/tailor');
+  await expect(page).toHaveURL(new RegExp(`/app/tailor/${ID}$`));
+  await expect(page.getByRole('heading', { name: 'Your CV', exact: true })).toBeVisible();
+  // The removed intro screen ("Start with your CV", its price paragraph and the
+  // saved-history list) and the removed source-step hints must never appear.
+  await expect(page.getByRole('heading', { name: 'Start with your CV' })).toHaveCount(0);
+  await expect(page.getByText('Check the extracted content before continuing', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('Free includes one successful import per month', { exact: false })).toHaveCount(0);
+  expect(api.calls.some(call => call.method === 'PUT' && call.body.revision === 0)).toBe(true);
+});
 
 test('Free intake retains advert after checkout cancellation and never calls interview', async ({ page }) => {
   const api = await setup(page, { pro: false });
