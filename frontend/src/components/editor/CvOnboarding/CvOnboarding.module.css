@@ -7,9 +7,8 @@
 .progress li[aria-current='step'] { color: var(--chrome-ink); font-weight: 700; }
 .progress li[aria-current='step'] > span:first-child, .progress li[data-complete='true'] > span:first-child { background: var(--chrome-ink); color: var(--color-paper); border-color: var(--chrome-ink); }
 .intro { display: grid; grid-template-columns: var(--space-24) minmax(0, 1fr); align-items: center; gap: var(--space-4); max-width: 800px; margin: 0 auto var(--space-4); text-align: left; }
-.guide { display: grid; place-items: center; }
-.guide img { width: var(--space-24); height: var(--space-24); object-fit: contain; }
-.guide > svg { width: var(--space-16); height: var(--space-16); }
+.guide { display: grid; place-items: center; color: var(--color-editor-ink); }
+.robot { width: var(--space-24); height: var(--space-24); padding: var(--space-2); transform-origin: 50% 80%; }
 .intro h1 { margin: 0; font: 700 clamp(1.5rem, 2.5vw, 2.25rem)/1.1 var(--font-display); text-wrap: balance; }
 .intro p { max-width: 60ch; margin: var(--space-2) 0 0; color: var(--chrome-muted); font: 400 var(--text-body)/1.4 var(--font-body); }
 .startChoices, .actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: var(--space-3); }
@@ -67,12 +66,21 @@
 .error { border-left: 2px solid var(--color-danger); padding: var(--space-3) var(--space-4); color: var(--color-danger); }
 .error button { min-height: var(--control-height); font: inherit; color: var(--chrome-ink); background: var(--color-paper); border: 1px solid var(--chrome-border); padding-inline: var(--space-4); }
 .srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); }
-@media (prefers-reduced-motion: no-preference) { .intro { animation: reveal var(--motion-standard) var(--motion-ease); } @keyframes reveal { from { opacity: 0; transform: translateY(var(--space-3)); } to { opacity: 1; transform: none; } } }
+/* A finite greeting acknowledges each new step without moving text or implying AI work.
+   Static is the default, including reduced-motion and unsupported media queries. */
+@media (prefers-reduced-motion: no-preference) {
+  .robot { animation: robotGreeting calc(var(--motion-slow) * 3) var(--motion-ease) 1; }
+  @keyframes robotGreeting {
+    0%, 100% { transform: rotate(0); }
+    30% { transform: rotate(-8deg); }
+    65% { transform: rotate(6deg); }
+  }
+}
 @media (max-width: 767px) {
   .content { padding: var(--space-3) var(--space-4); }
   .progress { gap: var(--space-3); justify-content: space-between; margin-bottom: var(--space-3); }
   .progress li { flex-direction: column; gap: var(--space-1); text-align: center; font-size: var(--text-label); }
-  .guide img { width: var(--space-16); height: var(--space-16); }
+  .robot { width: var(--space-16); height: var(--space-16); }
   .intro { grid-template-columns: var(--space-16) minmax(0, 1fr); gap: var(--space-3); margin-bottom: var(--space-3); }
   .footer { align-items: stretch; }
   .footer .actions { justify-content: flex-end; }
@@ -83,7 +91,7 @@
 }
 @media (max-height: 800px) {
   .intro { grid-template-columns: var(--space-16) minmax(0, 1fr); }
-  .guide img { width: var(--space-16); height: var(--space-16); }
+  .robot { width: var(--space-16); height: var(--space-16); }
 }
 /* Keep actions at full target size. Reflow is a safety valve for zoom and
    exceptionally short viewports, never a hidden or clipped task body. */

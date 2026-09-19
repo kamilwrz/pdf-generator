@@ -1,19 +1,17 @@
-# CV Studio onboarding illustration
+# CV Studio onboarding robot
 
 ## English
 
-`frontend/public/cv-onboarding-guide.png` is an original static illustration generated for this project with the OpenAI image-generation tool on 2026-09-19. It represents a fictional adult assistant, not an identified person or a credentialed expert. It is displayed only in the application onboarding, with the caption “CV Assistant”. It is decorative (`alt=""`), is not sent to the CV renderer, and is absent from PDF exports.
+`CvOnboarding.jsx` renders `FaRobot` from the existing `react-icons/fa` package beside each step heading. The icon inherits the shared `--color-editor-ink` brown on white paper. Its box is 96px, reduced to 64px below 768px width or at most 800px height, with token-based internal padding.
 
-`CvOnboarding.module.css` uses the shared white/brown palette. The illustration measures 176 px on desktop and 112 px on compact screens; template selection uses 96 px and 64 px respectively so the task stays prominent. There is no voice, autoplay or waiting screen. A document icon replaces a failed image request.
+`CvOnboarding.module.css` animates a gentle greeting tilt once per step for three slow motion intervals (960ms). The SVG is keyed by the step, so editing form values does not restart it. Only transforms animate; the heading and form stay still and usable. Reduced motion renders the resting pose without animation. The gesture is decorative, never a progress indicator or a claim that AI is running.
+
+The wrapper has `aria-hidden="true"` and the SVG has `focusable="false"`; adjacent screen-reader text retains the CV Assistant label. The robot never enters document data or PDF output. No additional dependency, image request, loading state or image-error fallback is needed. The previous generated portrait asset has been removed. Tests live in `frontend/e2e/cv-onboarding.spec.js`.
 
 ## Polski
 
-`frontend/public/cv-onboarding-guide.png` to autorska statyczna ilustracja wygenerowana dla tego projektu narzędziem OpenAI do generowania obrazów 2026-09-19. Przedstawia fikcyjną dorosłą asystentkę, bez wskazywania konkretnej osoby i deklarowania kwalifikacji. Pojawia się wyłącznie w onboardingu aplikacji, z podpisem „Asystent CV”. Jest dekoracyjna (`alt=""`), nie trafia do renderera CV ani eksportu PDF.
+`CvOnboarding.jsx` wyświetla `FaRobot` z obecnego pakietu `react-icons/fa` obok nagłówka każdego etapu. Ikona korzysta ze wspólnego brązu `--color-editor-ink` na białym tle. Jej pole ma 96 px, zmniejszane do 64 px poniżej szerokości 768 px lub przy wysokości do 800 px, z wewnętrznym odstępem opartym na tokenie.
 
-`CvOnboarding.module.css` korzysta ze wspólnej biało-brązowej palety. Ilustracja ma 176 px na komputerze i 112 px na małym ekranie; podczas wyboru szablonu odpowiednio 96 px i 64 px, aby pozostawić miejsce na zadanie. Nie ma głosu, automatycznego odtwarzania ani ekranu oczekiwania. Przy błędzie odczytu obrazu zastępuje go ikona dokumentu.
+`CvOnboarding.module.css` animuje delikatny powitalny przechył raz na etap przez trzy długie interwały ruchu (960 ms). SVG ma klucz zależny od etapu, więc edycja formularza nie uruchamia animacji ponownie. Zmienia się tylko transformacja; nagłówek i formularz pozostają nieruchome i dostępne. Ograniczenie animacji pozostawia statyczną pozę. Gest jest dekoracyjny i nie oznacza postępu ani działania AI.
 
-## Generation prompt / Prompt generowania
-
-```text
-Use case: illustration-story. Asset type: small static onboarding guide portrait for CV Studio, a calm professional CV editor with a Swiss editorial design system. Create one original illustrated adult female virtual assistant, chest-up, centered, facing the viewer, friendly subtle natural smile, dark brown shoulder-length hair, warm beige plain blouse, holding a simple blank white document at lower chest. Elegant flat editorial illustration with delicate confident brown outlines, restrained simple geometry, warm human character, not cartoon mascot, not photorealistic, not 3D. Color palette exclusively warm neutrals: dark brown #674E3E, accent #8A664F, warm beige #F5F1E8, paper white, naturally warm muted skin. Plain pure white background, generous clear margin around the entire bust, no frame, no circles, no blobs, no gradients, no shadow, no decorations. Square composition. No words, no letters, no logo, no interface. Optimise recognisability at 120px and 176px display sizes. Return a clean production illustration.
-```
+Kontener ma `aria-hidden="true"`, a SVG `focusable="false"`; sąsiadujący tekst dla czytników ekranu zachowuje etykietę Asystent CV. Robot nie trafia do danych dokumentu ani PDF. Nie wymaga dodatkowej zależności, pobrania obrazu, stanu ładowania ani zastępczego obrazu po błędzie. Poprzedni wygenerowany portret został usunięty. Testy znajdują się w `frontend/e2e/cv-onboarding.spec.js`.

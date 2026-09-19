@@ -30,6 +30,10 @@ for (const language of ['pl', 'en']) {
       const setup = dialog(page);
       await expect(setup).toBeVisible({ timeout: 25_000 });
       await expect(setup.locator('h1')).toBeFocused();
+      const robot = setup.locator('svg[class*="robot"]');
+      await expect(robot).toBeVisible();
+      await expect(robot).toHaveAttribute('focusable', 'false');
+      expect(await robot.evaluate(node => getComputedStyle(node).animationName)).toBe('none');
       await expect(page.locator('.right-pane')).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Nowe CV', exact: true })).toHaveCount(0);
       expect(api.calls.filter(call => /fill_template/.test(call.path))).toHaveLength(0);
@@ -231,5 +235,23 @@ test('account return resumes the selected source after Pro activation without st
   await expect(page.getByRole('radio', { name: /Poprawić treść/ })).toBeChecked();
   await expect(page.getByText('CV Smoke.pdf', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Otwórz Asystenta CV' })).toBeEnabled();
+  noAi(api); api.assertHermetic();
+});
+
+// The greeting is decorative, finite and independent of provider operations.
+test('robot greets each onboarding step once and respects reduced motion', async ({ page }) => {
+  const api = await installMockApi(page);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/app/new');
+  const robot = dialog(page).locator('svg[class*="robot"]');
+  await expect(robot).toBeVisible();
+  expect(await robot.evaluate(node => getComputedStyle(node).animationIterationCount)).toBe('1');
+  expect(await robot.evaluate(node => getComputedStyle(node).animationDuration)).toBe('0.96s');
+  await expect.poll(() => robot.evaluate(node => node.getAnimations().length)).toBe(0);
+  await blank(page);
+  await expect(robot).toBeVisible();
+  await expect(dialog(page).locator('h1')).toBeFocused();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await robot.evaluate(node => getComputedStyle(node).animationName)).toBe('none');
   noAi(api); api.assertHermetic();
 });

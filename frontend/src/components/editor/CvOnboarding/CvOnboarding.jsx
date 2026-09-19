@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FaRobot } from 'react-icons/fa';
 import { FiArrowLeft, FiArrowRight, FiCheck, FiFileText, FiUpload } from 'react-icons/fi';
 import { t } from '../../../i18n';
 import { getAccessToken, getSessionUsername } from '../../../utils/authSession';
@@ -48,7 +49,6 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
   const [storageFailed, setStorageFailed] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [guideFailed, setGuideFailed] = useState(false);
   const heading = useRef(null);
   const completed = useRef(false);
   const departing = useRef(false);
@@ -276,7 +276,8 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
         </li>)}
       </ol>
       <header className={styles.intro}>
-        <div className={styles.guide}>{!guideFailed ? <img src="/cv-onboarding-guide.png" alt="" width="96" height="96" onError={() => setGuideFailed(true)} /> : <FiFileText aria-hidden="true" />}</div>
+        {/* Remount only the decorative robot per step; form updates never replay the greeting. */}
+        <div className={styles.guide} aria-hidden="true"><FaRobot key={draft.step} className={styles.robot} focusable="false" /></div>
         <div><h1 id="onboarding-heading" ref={heading} tabIndex={-1}>{t(`onboarding:${titleKey}`)}</h1>
           <p>{t(draft.step === 'start' ? 'onboarding:sourceQuestion' : draft.step === 'template' ? 'onboarding:templateHint' : draft.step === 'source' ? 'onboarding:sourceHint' : 'onboarding:goalHint')}</p></div>
         <span className={styles.srOnly}>{t('onboarding:guide')}</span>
