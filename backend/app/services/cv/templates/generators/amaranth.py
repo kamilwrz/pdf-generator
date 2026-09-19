@@ -105,6 +105,17 @@ _CHIP_LABEL_TRACKING = 2.0
 _CHIP_CAP_RATIO = 0.71
 _CHIP_LABEL_BASELINE = round(_CHIP_H / 2 + _CHIP_CAP_RATIO * _CHIP_LABEL_FS / 2, 2)
 
+# Masthead divider hairline and its short rounded claret accent bar. The accent
+# is vertically centred on the hairline (the rule runs through its middle in
+# both the canvas and the PDF) and confined to the left of the portrait, so a
+# contact-driven reflow that raises the divider cannot draw it under the photo.
+# Both elements are pinned to the reflowed divider through the flow descriptor's
+# `accentBarId` / `accentBarDeltaTop`, so they never separate when contacts change.
+_DIVIDER_H = 0.8
+_ACCENT_W = 40.0
+_ACCENT_H = 3.2
+_ACCENT_DELTA_TOP = round((_DIVIDER_H - _ACCENT_H) / 2.0, 2)  # -1.2: centre on the rule
+
 # Summary rounded field padding (points). The reflow contract keeps the top
 # inset constant and grows the bottom with the summary text, so both paddings
 # stay symmetric as the user edits.
@@ -219,21 +230,29 @@ def _gen_amaranth(cv: dict) -> list[dict]:
     divider_y = max(contact_zone_bottom + 22.0, _PHOTO_TOP + _PHOTO_H + 18.0)
     contact_descriptor["flow"] = {
         "dividerId": "amaranth-masthead-divider", "dividerGap": 22.0,
+        # The accent bar rides the divider: the contact-band reflow re-pins it to
+        # the divider's new top plus this fixed offset, keeping the rule centred
+        # through the bar after any contact edit.
+        "accentBarId": "amaranth-masthead-accent", "accentBarDeltaTop": _ACCENT_DELTA_TOP,
         "bodyGap": 14.0, "minimumRows": 2,
         "minimumBodyTop": _PHOTO_TOP + _PHOTO_H + 18.0,
         "bodyTop": max(divider_y + 14.0, _PHOTO_TOP + _PHOTO_H + 32.0),
         "spacing": get_spacing().as_spacing_px(),
     }
 
-    # Masthead divider: a thin full-width rule with a short rounded claret bar
-    # riding its left end — the rounded motif introduced in the header itself.
+    # Masthead divider: a thin hairline confined to the text column (its right
+    # edge stops short of the portrait) with a short rounded claret accent bar
+    # centred on it at the left end — the rounded motif carried into the header.
+    divider_right = _PHOTO_LEFT - 16.0
     header.append(
-        {**_line(L + 46.0, divider_y, W - 46.0, 0.8, C["rule"], zIndex=2, page=1),
+        {**_line(L + 46.0, divider_y, divider_right - (L + 46.0), _DIVIDER_H,
+                 C["rule"], zIndex=2, page=1),
          "id": "amaranth-masthead-divider"}
     )
     header.append(
-        _rect(L, divider_y - 1.6, 40.0, 3.2, C["accent"],
-              filled=True, borderRadius=1.6, zIndex=3, page=1)
+        {**_rect(L, divider_y + _ACCENT_DELTA_TOP, _ACCENT_W, _ACCENT_H, C["accent"],
+                 filled=True, borderRadius=_ACCENT_H / 2.0, zIndex=3, page=1),
+         "id": "amaranth-masthead-accent"}
     )
 
     # --- Rounded-rectangle photo slot (top-right). Every member is tagged so

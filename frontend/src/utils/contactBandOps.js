@@ -166,13 +166,23 @@ function relayoutAndReconcile(elements, bandId, descriptor, nextItems, measure, 
     reposition(el, bandId, placementByChannel),
   );
   if (descriptor.flow) {
-    const { dividerId, dividerGap, bodyGap, minimumRows, minimumBodyTop } = descriptor.flow;
+    const {
+      dividerId, dividerGap, bodyGap, minimumRows, minimumBodyTop,
+      accentBarId, accentBarDeltaTop,
+    } = descriptor.flow;
     const reservedTop = descriptor.anchor.startY + (minimumRows - 1) * descriptor.metrics.lineStep;
     const dividerTop = Math.max(reservedTop, newBand.bottomY) + dividerGap;
     const flowStart = Math.max(minimumBodyTop, dividerTop + bodyGap);
     const anchor = elements.find((el) => el.contactBand?.id === bandId);
     next = next.map((el) => {
       if (el.id === dividerId) return { ...el, top: dividerTop };
+      // Optional divider accent (e.g. Amaranth's rounded claret bar): keep it
+      // pinned to the divider at its authored vertical offset so the rule stays
+      // centred through it after the divider moves. Templates without an
+      // accentBarId are unaffected.
+      if (accentBarId && el.id === accentBarId) {
+        return { ...el, top: dividerTop + (accentBarDeltaTop || 0) };
+      }
       if (el === anchor) return {
         ...el, contactBand: { ...descriptor, flow: { ...descriptor.flow, bodyTop: flowStart } },
       };

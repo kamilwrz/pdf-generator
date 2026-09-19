@@ -272,7 +272,7 @@ const AMARANTH_ELEMENTS = [
     "category": "line",
     "left": 104.0,
     "top": 178.0,
-    "width": 433.0,
+    "width": 313.0,
     "height": 0.8,
     "backgroundColor": "#E4D8DC",
     "zIndex": 2,
@@ -283,7 +283,7 @@ const AMARANTH_ELEMENTS = [
   {
     "category": "rectangle",
     "left": 58.0,
-    "top": 176.4,
+    "top": 176.8,
     "width": 40.0,
     "height": 3.2,
     "backgroundColor": "#78304A",
@@ -292,6 +292,7 @@ const AMARANTH_ELEMENTS = [
     "borderRadius": 1.6,
     "zIndex": 3,
     "page": 1,
+    "id": "amaranth-masthead-accent",
     "flowRole": "masthead"
   },
   {
@@ -412,6 +413,8 @@ const AMARANTH_ELEMENTS = [
       "flow": {
         "dividerId": "amaranth-masthead-divider",
         "dividerGap": 22.0,
+        "accentBarId": "amaranth-masthead-accent",
+        "accentBarDeltaTop": -1.2,
         "bodyGap": 14.0,
         "minimumRows": 2,
         "minimumBodyTop": 178.0,
@@ -520,7 +523,7 @@ const AMARANTH_ELEMENTS = [
     "id": "amaranth-summary-field",
     "flowRole": "section-background",
     "appearanceColorRole": "field",
-    "flowGroup": "record-7eaff6bf44fd"
+    "flowGroup": "record-f48117a0e51e"
   },
   {
     "category": "textarea",
@@ -542,7 +545,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7eaff6bf44fd",
+    "flowGroup": "record-f48117a0e51e",
     "flowRole": "content"
   },
   {
@@ -596,7 +599,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-b52101589c1e",
+    "flowGroup": "record-24336acc087b",
     "flowRole": "content"
   },
   {
@@ -650,7 +653,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f5f07cfb2f86",
+    "flowGroup": "record-69aa2d9a432d",
     "flowRole": "content"
   },
   {
@@ -673,7 +676,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f5f07cfb2f86",
+    "flowGroup": "record-69aa2d9a432d",
     "flowRole": "content"
   },
   {
@@ -696,7 +699,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f5f07cfb2f86",
+    "flowGroup": "record-69aa2d9a432d",
     "flowRole": "content"
   },
   {
@@ -720,7 +723,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-f5f07cfb2f86"
+    "flowGroup": "record-69aa2d9a432d"
   },
   {
     "category": "textarea",
@@ -742,7 +745,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7159fa667bfd",
+    "flowGroup": "record-43914030791f",
     "flowRole": "content"
   },
   {
@@ -765,7 +768,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7159fa667bfd",
+    "flowGroup": "record-43914030791f",
     "flowRole": "content"
   },
   {
@@ -788,7 +791,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-7159fa667bfd",
+    "flowGroup": "record-43914030791f",
     "flowRole": "content"
   },
   {
@@ -812,7 +815,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-7159fa667bfd"
+    "flowGroup": "record-43914030791f"
   },
   {
     "category": "textarea",
@@ -834,7 +837,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-22de9a57f326",
+    "flowGroup": "record-144e02853570",
     "flowRole": "content"
   },
   {
@@ -857,7 +860,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-22de9a57f326",
+    "flowGroup": "record-144e02853570",
     "flowRole": "content"
   },
   {
@@ -880,7 +883,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-22de9a57f326",
+    "flowGroup": "record-144e02853570",
     "flowRole": "content"
   },
   {
@@ -904,7 +907,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-22de9a57f326"
+    "flowGroup": "record-144e02853570"
   },
   {
     "category": "rectangle",
@@ -957,7 +960,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-58e020cb162d",
+    "flowGroup": "record-a01e31486162",
     "flowRole": "content"
   },
   {
@@ -980,7 +983,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-58e020cb162d",
+    "flowGroup": "record-a01e31486162",
     "flowRole": "content"
   },
   {
@@ -1003,7 +1006,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-58e020cb162d",
+    "flowGroup": "record-a01e31486162",
     "flowRole": "content"
   },
   {
@@ -1027,7 +1030,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-58e020cb162d"
+    "flowGroup": "record-a01e31486162"
   },
   {
     "category": "textarea",
@@ -1049,7 +1052,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f74dfed4375",
+    "flowGroup": "record-1ab0babd7de9",
     "flowRole": "content"
   },
   {
@@ -1072,7 +1075,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-6f74dfed4375",
+    "flowGroup": "record-1ab0babd7de9",
     "flowRole": "content"
   },
   {
@@ -1096,7 +1099,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-6f74dfed4375"
+    "flowGroup": "record-1ab0babd7de9"
   },
   {
     "category": "rectangle",
@@ -1160,7 +1163,7 @@ const AMARANTH_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-5b76c08cc045",
+    "flowGroup": "record-c9f38b20509f",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,
@@ -1189,7 +1192,7 @@ const AMARANTH_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-5b76c08cc045",
+    "flowGroup": "record-c9f38b20509f",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,
@@ -1218,7 +1221,7 @@ const AMARANTH_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-5b76c08cc045",
+    "flowGroup": "record-c9f38b20509f",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,

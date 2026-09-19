@@ -7,6 +7,9 @@ import {
   listDocumentSections,
 } from "../utils/sectionStructure.js";
 import { reflowTextareaHeight } from "../utils/textareaReflow.js";
+import { applyChannelRemoval } from "../utils/contactBandOps.js";
+
+const centreY = (element) => Number(element.top) + Number(element.height) / 2;
 
 const PAGE_HEIGHT = 842;
 const SUMMARY_PREFIX = "Managerka strategii i operacji";
@@ -125,7 +128,39 @@ test("Amaranth renders its rounded claret chrome and exact date rail", () => {
   assert.equal(period.align, "right");
   assert.equal(period.autoHeight, false);
 
+  // Masthead divider accent: a rounded claret bar whose centre is exactly on the
+  // hairline (so the rule runs through its middle in canvas and PDF), confined to
+  // the left of the portrait (x 433) so a raised divider never crosses the photo.
+  const divider = amaranthTemplate.find((element) => element.id === "amaranth-masthead-divider");
+  const accent = amaranthTemplate.find((element) => element.id === "amaranth-masthead-accent");
+  assert.ok(divider, "masthead divider present");
+  assert.ok(accent, "masthead accent present");
+  assert.equal(accent.filled, true);
+  assert.ok(
+    Math.abs(centreY(divider) - centreY(accent)) < 0.01,
+    "the divider rule is vertically centred through the accent bar",
+  );
+  assert.ok(
+    Number(divider.left) + Number(divider.width) <= 433,
+    "the divider stops short of the photo slot",
+  );
+
   assertSummaryFieldCovers(amaranthTemplate);
+});
+
+test("Amaranth keeps the divider accent centred on the rule after a contact edit", () => {
+  const source = amaranthTemplate.map((element, index) => ({ ...element, element_id: `amaranth-${index}` }));
+  // A trivial glyph-width stub is enough: the reflow only needs a measurer to
+  // re-lay the contact band; the divider/accent geometry is what we assert.
+  const measure = () => 6.5;
+  const { elements } = applyChannelRemoval(source, "amaranth-contact", "location", measure, (id) => `${id}-x`);
+  const divider = elements.find((element) => element.id === "amaranth-masthead-divider");
+  const accent = elements.find((element) => element.id === "amaranth-masthead-accent");
+  assert.ok(divider && accent);
+  assert.ok(
+    Math.abs(centreY(divider) - centreY(accent)) < 0.01,
+    "the accent bar tracks the divider and stays centred on the rule after reflow",
+  );
 });
 
 test("Amaranth keeps the summary field framing the copy through spacing and reflow", () => {
