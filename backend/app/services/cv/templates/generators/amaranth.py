@@ -97,6 +97,13 @@ _CHIP_PAD_X = 11.0
 _CHIP_RADIUS = 6.0
 _CHIP_LABEL_FS = 7.6
 _CHIP_LABEL_TRACKING = 2.0
+# Baseline offset (from the chip top) that vertically centres the uppercase
+# label. The canvas and PDF both treat a point-text element's `top` as its
+# glyph baseline, so centring means placing the baseline half a cap height below
+# the chip's vertical centre. Roboto's cap height is ~0.71 em; uppercase labels
+# have no descenders, so the visible cap band is centred by this offset.
+_CHIP_CAP_RATIO = 0.71
+_CHIP_LABEL_BASELINE = round(_CHIP_H / 2 + _CHIP_CAP_RATIO * _CHIP_LABEL_FS / 2, 2)
 
 # Summary rounded field padding (points). The reflow contract keeps the top
 # inset constant and grows the bottom with the summary text, so both paddings
@@ -243,14 +250,18 @@ def _gen_amaranth(cv: dict) -> list[dict]:
         "fixedToPage": True,
         "repeatOnContinuation": False,
     }
-    photo_frame = {
+    # The empty-slot fill is a *separate* well, not the frame itself. The frame
+    # below is an outline only. This matters for photo application: the shared
+    # `applyProfilePhoto` layers a user image at `frame.zIndex - 1` (the "outline
+    # frame lets its border show" contract used by Slate/Linden). A filled frame
+    # at that z would paint an opaque plate on top of the image and hide it, so
+    # the fill lives one layer under the applied photo instead.
+    photo_well = {
         **_rect(
             _PHOTO_LEFT, _PHOTO_TOP, _PHOTO_W, _PHOTO_H, C["photo_bg"],
             filled=True, borderRadius=_PHOTO_FRAME_RADIUS, zIndex=3, page=1,
         ),
-        "id": "amaranth-photo-frame",
-        "photoSlot": "frame",
-        "photoShape": "rect",
+        "photoSlot": "ornament",
         "appearanceColorRole": "photo",
         "fixedToPage": True,
         "repeatOnContinuation": False,
@@ -271,7 +282,24 @@ def _gen_amaranth(cv: dict) -> list[dict]:
         "repeatOnContinuation": False,
     }
     photo_glyph["height"] = portrait_size
-    header.extend([photo_outer, photo_frame, photo_glyph])
+    # Outline-only anchor frame. Its stroke uses the well colour so it stays
+    # invisible while empty (the claret ornament plate is the visible border),
+    # but it still carries the rounded radius that the applied photo inherits and
+    # the `photoSlot: "frame"` tag the gallery detects. Its zIndex sits above the
+    # well and glyph so the user image (placed at zIndex - 1) covers the well.
+    photo_frame = {
+        **_rect(
+            _PHOTO_LEFT, _PHOTO_TOP, _PHOTO_W, _PHOTO_H, C["photo_bg"],
+            borderWidth=1.0, filled=False, borderRadius=_PHOTO_FRAME_RADIUS,
+            zIndex=5, page=1,
+        ),
+        "id": "amaranth-photo-frame",
+        "photoSlot": "frame",
+        "photoShape": "rect",
+        "fixedToPage": True,
+        "repeatOnContinuation": False,
+    }
+    header.extend([photo_outer, photo_well, photo_glyph, photo_frame])
 
     header = [{**element, "flowRole": "masthead"} for element in header]
     body_start = contact_descriptor["flow"]["bodyTop"]
@@ -312,7 +340,7 @@ def _gen_amaranth(cv: dict) -> list[dict]:
         chip["appearanceColorRole"] = "accent"
         heading = _text(
             label, _CHIP_LABEL_FS, sans, C["chip_text"],
-            L + _CHIP_PAD_X, y + (_CHIP_H - _CHIP_LABEL_FS) / 2 - 0.4,
+            L + _CHIP_PAD_X, y + _CHIP_LABEL_BASELINE,
             zIndex=3, page=page, bold=True,
         )
         heading["letterSpacing"] = _CHIP_LABEL_TRACKING

@@ -324,9 +324,7 @@ const AMARANTH_ELEMENTS = [
     "borderRadius": 14.0,
     "zIndex": 3,
     "page": 1,
-    "id": "amaranth-photo-frame",
-    "photoSlot": "frame",
-    "photoShape": "rect",
+    "photoSlot": "ornament",
     "appearanceColorRole": "photo",
     "fixedToPage": true,
     "repeatOnContinuation": false,
@@ -348,6 +346,25 @@ const AMARANTH_ELEMENTS = [
     "photoShape": "rect",
     "fixedToPage": true,
     "repeatOnContinuation": false
+  },
+  {
+    "category": "rectangle",
+    "left": 433.0,
+    "top": 38.0,
+    "width": 104.0,
+    "height": 122.0,
+    "backgroundColor": "#EFE4E8",
+    "borderWidth": 1.0,
+    "filled": false,
+    "borderRadius": 14.0,
+    "zIndex": 5,
+    "page": 1,
+    "id": "amaranth-photo-frame",
+    "photoSlot": "frame",
+    "photoShape": "rect",
+    "fixedToPage": true,
+    "repeatOnContinuation": false,
+    "flowRole": "masthead"
   },
   {
     "category": "text",
@@ -479,7 +496,7 @@ const AMARANTH_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#FFFFFF",
     "left": 69.0,
-    "top": 196.29999999999998,
+    "top": 203.2,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -503,7 +520,7 @@ const AMARANTH_ELEMENTS = [
     "id": "amaranth-summary-field",
     "flowRole": "section-background",
     "appearanceColorRole": "field",
-    "flowGroup": "record-0e1514fe9f62"
+    "flowGroup": "record-7eaff6bf44fd"
   },
   {
     "category": "textarea",
@@ -525,7 +542,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-0e1514fe9f62",
+    "flowGroup": "record-7eaff6bf44fd",
     "flowRole": "content"
   },
   {
@@ -550,7 +567,7 @@ const AMARANTH_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#FFFFFF",
     "left": 69.0,
-    "top": 276.3,
+    "top": 283.2,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -579,7 +596,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8d47b06b4dda",
+    "flowGroup": "record-b52101589c1e",
     "flowRole": "content"
   },
   {
@@ -604,7 +621,7 @@ const AMARANTH_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#FFFFFF",
     "left": 69.0,
-    "top": 345.3,
+    "top": 352.2,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -633,7 +650,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f48acc97b53d",
+    "flowGroup": "record-f5f07cfb2f86",
     "flowRole": "content"
   },
   {
@@ -656,7 +673,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f48acc97b53d",
+    "flowGroup": "record-f5f07cfb2f86",
     "flowRole": "content"
   },
   {
@@ -679,7 +696,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-f48acc97b53d",
+    "flowGroup": "record-f5f07cfb2f86",
     "flowRole": "content"
   },
   {
@@ -703,7 +720,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-f48acc97b53d"
+    "flowGroup": "record-f5f07cfb2f86"
   },
   {
     "category": "textarea",
@@ -725,7 +742,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9e94732848f2",
+    "flowGroup": "record-7159fa667bfd",
     "flowRole": "content"
   },
   {
@@ -748,7 +765,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9e94732848f2",
+    "flowGroup": "record-7159fa667bfd",
     "flowRole": "content"
   },
   {
@@ -771,7 +788,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-9e94732848f2",
+    "flowGroup": "record-7159fa667bfd",
     "flowRole": "content"
   },
   {
@@ -795,7 +812,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-9e94732848f2"
+    "flowGroup": "record-7159fa667bfd"
   },
   {
     "category": "textarea",
@@ -817,7 +834,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-209127101049",
+    "flowGroup": "record-22de9a57f326",
     "flowRole": "content"
   },
   {
@@ -840,7 +857,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-209127101049",
+    "flowGroup": "record-22de9a57f326",
     "flowRole": "content"
   },
   {
@@ -863,7 +880,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-209127101049",
+    "flowGroup": "record-22de9a57f326",
     "flowRole": "content"
   },
   {
@@ -887,7 +904,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-209127101049"
+    "flowGroup": "record-22de9a57f326"
   },
   {
     "category": "rectangle",
@@ -911,7 +928,7 @@ const AMARANTH_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#FFFFFF",
     "left": 69.0,
-    "top": 587.3000000000001,
+    "top": 594.2,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -940,7 +957,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8d315b346390",
+    "flowGroup": "record-58e020cb162d",
     "flowRole": "content"
   },
   {
@@ -963,7 +980,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8d315b346390",
+    "flowGroup": "record-58e020cb162d",
     "flowRole": "content"
   },
   {
@@ -986,7 +1003,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": true,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-8d315b346390",
+    "flowGroup": "record-58e020cb162d",
     "flowRole": "content"
   },
   {
@@ -1010,7 +1027,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-8d315b346390"
+    "flowGroup": "record-58e020cb162d"
   },
   {
     "category": "textarea",
@@ -1032,7 +1049,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1f48397f0698",
+    "flowGroup": "record-6f74dfed4375",
     "flowRole": "content"
   },
   {
@@ -1055,7 +1072,7 @@ const AMARANTH_ELEMENTS = [
     "bulletList": false,
     "autoHeight": true,
     "preserveInitialLayout": true,
-    "flowGroup": "record-1f48397f0698",
+    "flowGroup": "record-6f74dfed4375",
     "flowRole": "content"
   },
   {
@@ -1079,7 +1096,7 @@ const AMARANTH_ELEMENTS = [
     "autoHeight": false,
     "preserveInitialLayout": true,
     "flowRole": "record-overlay",
-    "flowGroup": "record-1f48397f0698"
+    "flowGroup": "record-6f74dfed4375"
   },
   {
     "category": "rectangle",
@@ -1103,7 +1120,7 @@ const AMARANTH_ELEMENTS = [
     "fontFamily": "Roboto",
     "color": "#FFFFFF",
     "left": 69.0,
-    "top": 715.3000000000001,
+    "top": 722.2,
     "zIndex": 3,
     "page": 1,
     "bold": true,
@@ -1143,7 +1160,7 @@ const AMARANTH_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-c9fe32807a38",
+    "flowGroup": "record-5b76c08cc045",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,
@@ -1172,7 +1189,7 @@ const AMARANTH_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-c9fe32807a38",
+    "flowGroup": "record-5b76c08cc045",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,
@@ -1201,7 +1218,7 @@ const AMARANTH_ELEMENTS = [
     "preserveInitialLayout": true,
     "flowRole": "grid-member",
     "gridKind": "languages",
-    "flowGroup": "record-c9fe32807a38",
+    "flowGroup": "record-5b76c08cc045",
     "editorGridEntry": true,
     "gridColumns": 4,
     "gridGutter": 8.0,

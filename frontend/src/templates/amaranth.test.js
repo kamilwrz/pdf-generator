@@ -54,19 +54,31 @@ test("Amaranth renders its rounded claret chrome and exact date rail", () => {
   assert.equal(name?.align, "left");
   assert.notEqual(name?.textTransform, "uppercase");
 
-  // Rounded-rectangle photo slot: a rect frame with a real corner radius, its
-  // portrait glyph drawn from the reused burgundy icon set, and every member
-  // tagged as fixed, non-repeating photo chrome.
+  // Rounded-rectangle photo slot: an outline-only rect frame with a real corner
+  // radius (so an applied raster is not hidden behind an opaque plate), a
+  // separate filled well carrying the photo colour role, a portrait glyph from
+  // the reused burgundy icon set, and every member tagged as fixed,
+  // non-repeating photo chrome.
   const frame = amaranthTemplate.find((element) => element.id === "amaranth-photo-frame");
   const glyph = amaranthTemplate.find((element) => element.id === "amaranth-photo-glyph");
   assert.equal(frame?.category, "rectangle");
   assert.equal(frame?.photoShape, "rect");
   assert.equal(frame?.borderRadius, 14);
-  assert.equal(frame?.appearanceColorRole, "photo");
+  // The frame is an outline anchor, never a fill; the shared photo applier layers
+  // the user image at frame.zIndex - 1, so a filled frame would occlude it.
+  assert.equal(frame?.filled, false);
+  const photoCluster = amaranthTemplate.filter((element) => element.photoSlot);
+  const filledWell = photoCluster.find(
+    (element) => element.filled === true && element.appearanceColorRole === "photo",
+  );
+  assert.ok(filledWell, "a filled well carries the photo colour role beneath the frame");
+  assert.ok(
+    Number(filledWell.zIndex) < Number(frame.zIndex),
+    "the well sits below the outline frame so the applied photo covers it",
+  );
   assert.equal(glyph?.photoSlot, "glyph");
   assert.match(glyph?.src, /\/vellum-burgundy\/portrait\.png$/);
-  const photoCluster = amaranthTemplate.filter((element) => element.photoSlot);
-  assert.equal(photoCluster.length, 3);
+  assert.equal(photoCluster.length, 4);
   assert.ok(photoCluster.every((element) => (
     element.fixedToPage === true && element.repeatOnContinuation === false
   )));
