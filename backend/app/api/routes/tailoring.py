@@ -1,4 +1,9 @@
-"""Persist Free intake before Pro, then reuse the existing interview pipeline."""
+"""Persist Free intake before Pro, then reuse the existing interview pipeline.
+
+Intake is the user's selected CV, job advert and language. A TailoringFlow
+saves those choices before an InterviewSession is started. Keeping these
+records separate lets the user resume setup without starting paid model work.
+"""
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
@@ -34,6 +39,7 @@ class Intake(Contract):
 
 
 class Start(Contract):
+    """Identify the saved intake version the user explicitly chose to start."""
     revision: int = Field(ge=1)
 
 
@@ -42,6 +48,11 @@ def fail(code, status=409):
 
 
 def owned(db, user, flow_id):
+    """Return the caller's draft or the same 404 for absent/foreign IDs.
+
+    Filtering by owner in the query prevents a guessed UUID from granting
+    access to another account's CV and job-offer choices.
+    """
     row = db.query(TailoringFlow).filter_by(id=str(flow_id), owner_id=user.id).first()
     if row is None:
         fail("tailoring_not_found", 404)
@@ -63,6 +74,7 @@ def source_data(db, user, state):
 
 
 def session_for(db, user, row):
+    """Read this intake's deterministically named interview, or None."""
     # The deterministic key also recovers a crash after interview creation but
     # before its response. No second session or paid request is needed.
     session_id = flow_session_id(user.id, row.id)
@@ -70,6 +82,11 @@ def session_for(db, user, row):
 
 
 def payload(db, user, row):
+    """Build the public resume state from the owned intake and live source.
+
+    The source digest is an internal change-detection value and is excluded.
+    This performs database reads only; it does not start or charge AI work.
+    """
     session = session_for(db, user, row) if row.state.get("locked") else None
     state = {key: value for key, value in row.state.items() if key not in {"source_digest"}}
     return {"id": row.id, "revision": row.revision, **state,

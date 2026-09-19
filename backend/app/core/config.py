@@ -4,6 +4,11 @@ Runtime configuration for CV Studio backend.
 Values come from environment variables with local-development defaults.
 This module is imported early by `main.py` and many services, so it must stay
 side-effect light (no DB/network) aside from reading `os.environ`.
+
+Environment values start as strings, even for booleans and numbers. The
+helpers below convert them and apply defaults. Most module constants are read
+once at import time, so changing the environment normally requires restarting
+the server. Configuration validators perform the stricter startup checks.
 """
 
 from pathlib import Path

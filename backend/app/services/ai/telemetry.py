@@ -99,6 +99,9 @@ def measure_operation(workflow, *, operation=None):
     handlers receive independent spans; the outer operation sums provider time
     while replayed operations correctly contain zero provider calls.
     """
+    # A decorator wraps a callable with timing without changing its result.
+    # wraps preserves function metadata, including the signature FastAPI uses
+    # to discover request fields and dependencies. finally also logs failures.
     def decorate(function):
         signature = inspect.signature(function)
 

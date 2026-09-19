@@ -256,6 +256,9 @@ def delete_account_data(db: Session, *, user_id: int) -> None:
     ]
     document_ids = [int(document.id) for document in documents]
 
+    # Delete dependent rows before their parents: elements reference PDFs,
+    # PDFs can reference imports, and all of them belong to the user. Foreign
+    # keys enforce those links, so reversing this order could reject deletion.
     if document_ids:
         db.query(PdfElements).filter(PdfElements.pdf_id.in_(document_ids)).delete(
             synchronize_session=False

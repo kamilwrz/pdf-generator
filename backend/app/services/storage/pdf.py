@@ -3,6 +3,11 @@
 Storage V2 deliberately separates a document's display title from its physical
 locator. Local files and S3 objects use the same logical key shape; ``file_path``
 is dual-read only for rows created before the V2 migration.
+
+A storage key is an internal object address, not a public download link.
+Ownership is checked by the document service/routes before bytes are returned.
+The cleanup outbox is a database list of files still to delete: saving that
+list in the document transaction lets a later worker retry failed deletions.
 """
 from __future__ import annotations
 
@@ -398,6 +403,9 @@ def process_cleanup_jobs(
                 job.next_attempt_at = None
                 job.terminal_at = now
             else:
+                # Exponential backoff spaces retries at 30, 60, 120, ...
+                # seconds, capped at one hour, instead of repeatedly hitting
+                # unavailable storage on every worker run.
                 delay = min(3600, 30 * (2 ** min(job.attempts - 1, 7)))
                 job.next_attempt_at = now + timedelta(seconds=delay)
             db.add(job)

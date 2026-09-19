@@ -1,4 +1,10 @@
-"""Authenticated career profile CRUD and resumable interview operations."""
+"""Authenticated career profile CRUD and resumable interview operations.
+
+Routes receive validated request models and delegate evidence/state rules to
+services/interviews/. Saving an answer and requesting the next AI question are
+separate operations: a provider failure must not erase an already saved answer.
+Reading history or a saved session does not itself request another AI response.
+"""
 from copy import deepcopy
 from datetime import datetime
 import json

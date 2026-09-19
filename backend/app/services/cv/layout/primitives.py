@@ -240,7 +240,13 @@ def _path(left, top, width, height, curves, color, *, borderWidth=1.4,
 
 
 class Builder:
-    """Tracks vertical position and page across element-generating calls."""
+    """Collect canvas elements while tracking the current page and vertical Y.
+
+    This is a layout cursor, not a PDF writer. text()/block() append element
+    dictionaries and advance y; need() starts another page when space runs
+    out. Templates receive the list from build() and render it separately.
+    Coordinates use the editor's top-left origin and its PDF-point scale.
+    """
 
     def __init__(self, start_y: float):
         self.els: list[dict] = []
@@ -311,6 +317,11 @@ class Builder:
                 element.setdefault("flowGroup", group_id)
 
     def text(self, content, fs, fam, col, left, *, bold=False, italic=False) -> float:
+        """Append a single-line label and return the updated vertical cursor.
+
+        fs, fam and col are font size, font family and text colour. left fixes
+        the horizontal position; page and top come from the builder state.
+        """
         if not content:
             return self.y
         self.need(fs * 1.5)
@@ -322,6 +333,12 @@ class Builder:
     def block(self, content, left, width, fs, lh, col, fam, *,
               bold=False, italic=False, align="left", min_h=0.0, bulletList=False,
               runs=None) -> float:
+        """Measure and append a wrapping text block, returning its bottom Y.
+
+        width constrains wrapping; fs is font size and lh is line height.
+        The measured height determines whether a page break is needed before
+        placement. The returned cursor lets the template place the next item.
+        """
         if not content:
             return self.y
         h = self.measure_block(
@@ -338,6 +355,11 @@ class Builder:
     @staticmethod
     def measure_block(content, width, fs, lh, fam, *,
                       bold=False, italic=False, min_h=0.0, bulletList=False) -> float:
+        """Estimate a block's height using the PDF renderer's font metrics.
+
+        Measurement leaves the builder unchanged, allowing templates to plan
+        a whole record before placing it. Empty content has zero height.
+        """
         if not content:
             return 0.0
         rendered_height = PDF_Generator.measure_textarea_height(

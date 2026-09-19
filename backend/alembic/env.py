@@ -17,10 +17,18 @@ if config.config_file_name is not None:
 # Prefer the runtime DATABASE_URL (env / config) over the alembic.ini placeholder.
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
+# Metadata is SQLAlchemy's collection of table definitions. Alembic can compare
+# it with an existing database when generating a migration. Existing revisions
+# still define the actual sequence of upgrade/downgrade operations.
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Configure SQL-script generation without opening a database connection.
+
+    Individual revisions that inspect live tables may still require online
+    mode; this configuration alone cannot make such revisions work offline.
+    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -33,6 +41,11 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Apply the requested revisions through a real database connection.
+
+    Alembic tracks completed revisions so later upgrades continue from the
+    stored revision. Migration errors propagate to the deployment command.
+    """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

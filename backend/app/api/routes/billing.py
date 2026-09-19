@@ -1,4 +1,9 @@
-"""Plan catalog, Stripe Checkout creation, and webhook fulfillment."""
+"""Plan catalog, Stripe Checkout creation, and webhook fulfillment.
+
+Checkout sends the customer to Stripe. Returning to the application does not
+prove payment: the signed webhook is checked against our pending Payment row
+before granting Pro. Status reads let the browser wait for that confirmation.
+"""
 
 from app.core.localisation import message as localised_message
 

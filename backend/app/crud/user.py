@@ -4,6 +4,9 @@ User lookup, registration, and password authentication.
 New accounts receive a subscription plan immediately. When unpaid paid-plan
 selection is disabled, registration silently falls back to Free so Stripe can
 own paid upgrades later without blocking signup.
+
+CRUD means create, read, update and delete: this layer turns application
+operations into database work. HTTP parsing and response codes stay in routes.
 """
 
 from sqlalchemy.orm import Session
@@ -111,6 +114,9 @@ def create_user(
             requested = "free"
         now = datetime.now(timezone.utc)
         db.add(db_user)
+        # flush sends the INSERT so the database can allocate the user ID.
+        # It does not commit: the user and subscription must succeed together
+        # or rollback removes both, avoiding an account without a plan.
         db.flush()
         db.add(UserSubscription(
             user_id=db_user.id,

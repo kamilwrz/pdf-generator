@@ -1,8 +1,10 @@
 """Bounded interview shortening and atomic browser-layout publication.
 
 The browser owns the existing template typography/reflow engine. This module
-owns immutable evidence, paid attempt identity, iteration limits and the saved
-preview. Layout writes cannot change its verified text. Reads never invoke AI.
+owns immutable evidence, paid attempt IDs, iteration limits and the preview.
+Local layout work repositions unchanged text. AI shortening needs paid model
+work and another factual check. Layout writes cannot change verified text.
+Reads never invoke AI.
 """
 from copy import deepcopy
 from datetime import datetime, timezone

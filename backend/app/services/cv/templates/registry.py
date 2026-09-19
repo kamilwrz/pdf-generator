@@ -117,6 +117,9 @@ def generate_resume(template_id: str, cv_data: dict) -> list[dict]:
     block is emitted per record; page overflow is handled by each template's Builder.
     Raises ValueError for unknown template ids.
     """
+    # This dictionary is a dispatch table: a public template ID selects an
+    # already imported Python function. It never imports a file supplied by
+    # the caller. All generators receive the same normalized content shape.
     fn = _GENERATORS.get(template_id)
     if fn is None:
         raise ValueError(

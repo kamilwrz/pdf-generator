@@ -1,4 +1,10 @@
-"""Request body for user registration."""
+"""Validate registration, email-verification and Google-login request bodies.
+
+FastAPI constructs these Pydantic models from incoming JSON before calling a
+route. Type checks and field validators reject invalid input with HTTP 422.
+These classes describe messages sent to the API, not database tables; passing
+validation does not prove that a password or Google credential is authentic.
+"""
 
 import re
 import unicodedata

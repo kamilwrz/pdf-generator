@@ -12,6 +12,10 @@ and a per-user count guards against storage abuse. Publication is a saga: a DB
 failure compensation-deletes the new object, while failed cleanup is retained
 in the durable private-storage outbox.
 
+The image database row stores metadata and its private locator, while actual
+image bytes live on disk or in object storage. img_id joins a canvas element
+to that row. Knowing img_id alone never grants access to another user's image.
+
 Deletion is ownership-checked (IDOR guard) and blocked while any PDF element
 still references the image, so exports cannot lose their bitmap mid-document.
 """

@@ -4,6 +4,11 @@ Structured Outputs guarantees JSON shape, not factual truth. This module is
 the second boundary: it computes the score, rejects unsupported rewrites, and
 applies only allowlisted profile paths so identity and employment history
 cannot be silently changed by the model.
+
+Grounding means checking a claim against the supplied source evidence. A job
+advert states what the employer wants, not what the candidate has done.
+Evidence references connect proposed assessments/rewrites to actual CV text;
+an allowlist limits which profile paths may receive a validated replacement.
 """
 
 from __future__ import annotations

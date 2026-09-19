@@ -1,4 +1,10 @@
-"""Argon2id passwords, legacy bcrypt migration, and versioned JWT identity."""
+"""Argon2id passwords, legacy bcrypt migration, and versioned JWT identity.
+
+Passwords are checked against one-way hashes, not decrypted. After login, the
+client sends a signed JSON Web Token (JWT) in its Authorization header. The
+signature detects changed claims; it does not hide their contents. A valid
+token identifies an account, while document routes still check ownership.
+"""
 from __future__ import annotations
 
 from app.core.localisation import message as localised_message
@@ -87,7 +93,12 @@ def get_access_token_expire_minutes() -> int:
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    """Encode a versioned JWT; new callers use immutable ``user.id`` as sub."""
+    """Return a signed token without changing the supplied claim dictionary.
+
+    Callers put the stable user ID in ``sub`` (subject). ``exp`` is the expiry
+    time, and ``ver`` lets the server reject tokens from an older login epoch.
+    No database write occurs here; callers must authenticate the user first.
+    """
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
         expires_delta
@@ -176,7 +187,12 @@ def get_current_user(
     payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ) -> User:
-    """Central auth dependency: validate token, activity, and immutable owner."""
+    """Resolve the authenticated account or stop the request with HTTP 401.
+
+    FastAPI evaluates the Depends parameters first: verify_token checks the
+    signed credentials and get_db supplies the database session. Checking the
+    row as well means a token cannot keep a deleted or inactive account alive.
+    """
     user = resolve_user_from_payload(db, payload)
     if user is None:
         raise _token_error()
@@ -211,7 +227,12 @@ def hash_legacy_password(password: str) -> str:
 
 
 def verify_password_and_rehash(plain: str, hashed: str) -> tuple[bool, str | None]:
-    """Verify Argon2id or legacy bcrypt and return an optional upgraded hash."""
+    """Return (password_matches, replacement_hash) without writing to storage.
+
+    A replacement is returned only after successful verification when an old
+    algorithm or cost setting needs upgrading. authenticate_user saves it;
+    None means no replacement is needed, not that the password was invalid.
+    """
     if not hashed:
         return False, None
     if hashed.startswith("$argon2"):

@@ -2,7 +2,9 @@
 PDF document lifecycle: create, list, open canvas, autosave, update, delete, download.
 
 Ownership is enforced via `_require_owned_pdf` on every by-id route to prevent
-IDOR across users. Creating and exporting are entitlement-gated.
+insecure direct object references (IDOR): knowing a document ID does not grant
+access to its contents. Entitlements are the actions allowed by the account's
+plan; they are checked separately from ownership.
 
 There are two persistence paths:
 - Full create/update also regenerates a ReportLab PDF file (local or S3)
@@ -160,6 +162,9 @@ def create_user_pdf(
                 "message": localised_message('the_idempotency_key_header_is_required'),
             },
         )
+    # The browser can retry after losing a response. The same idempotency key
+    # and payload must return the original result instead of creating another
+    # document or consuming another project slot.
     replay = resolve_create_replay(
         db,
         owner_id=db_user.id,

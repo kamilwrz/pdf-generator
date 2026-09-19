@@ -6,6 +6,12 @@ Element style fields that are not first-class columns are packed into
 toggle. Upserts treat the incoming live element list as authoritative: rows
 missing from the payload (including client `deleted` flags) are removed so
 saves cannot accumulate stale template leftovers.
+
+The database row ID and element_id serve different purposes: the row ID is
+allocated by the database, while element_id identifies the same editable item
+across browser saves. An upsert updates an existing item when its element_id
+matches, and inserts it otherwise. A save supplies the complete live canvas,
+not just the fields changed since the previous save.
 """
 
 from sqlalchemy.orm import Session

@@ -5,7 +5,7 @@ Responsibilities:
 - Configure process logging so service loggers reach stdout (Render aggregation).
 - Keep liveness available while readiness protects database-backed routes.
 - Mount static asset directories, API routers, and optional SPA fallback from frontend/dist.
-- Translate AI assistant failures into a stable Polish 500 response for the UI.
+- Translate AI assistant failures into a stable, localised 500 response for the UI.
 """
 
 from app.core.localisation import message as localised_message
@@ -106,12 +106,18 @@ async def lifespan(app: FastAPI):
             asyncio.to_thread(_recover_render_database_bootstrap)
         )
     try:
+        # In a context manager, the code before yield is startup work. FastAPI
+        # serves requests while execution is paused here, then runs finally
+        # during shutdown so the pending bootstrap task can finish.
         yield
     finally:
         if bootstrap_task is not None:
             await bootstrap_task
 
 
+# This object is loaded by the web server (uvicorn app.main:app). Middleware
+# wraps requests with shared checks; routers below connect URL paths to the
+# Python functions that handle individual operations.
 app = FastAPI(lifespan=lifespan)
 
 # CORS must wrap the app early so cross-origin login/health always get ACAO
@@ -394,6 +400,8 @@ async def block_generated_pdf_static_access(requested_path: str = ""):
     """
     raise HTTPException(status_code=404, detail=localised_message('not_found'))
 
+# Register API routes before the frontend catch-all. Otherwise an API URL
+# could receive the frontend HTML page instead of its intended JSON response.
 app.include_router(auth.router)
 app.include_router(pdf.router)
 app.include_router(images.router)

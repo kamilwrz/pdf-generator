@@ -37,6 +37,11 @@ def _utcnow() -> datetime:
 
 
 def _window(moment: datetime, seconds: int) -> tuple[datetime, datetime]:
+    """Return the fixed UTC interval containing moment, in seconds since epoch.
+
+    Subtracting the remainder rounds the timestamp down to a shared boundary:
+    every request within that interval increments the same counter row.
+    """
     epoch = int(moment.timestamp())
     start = datetime.fromtimestamp(epoch - (epoch % seconds), tz=timezone.utc)
     return start, start + timedelta(seconds=seconds)
@@ -173,6 +178,9 @@ def claim_rate_limit(
             db.commit()
             return int(row.attempts)
 
+        # The unique window key makes concurrent requests target one row.
+        # Incrementing and checking the ceiling in a single SQL statement
+        # prevents two requests from both seeing the last available attempt.
         statement = statement.on_conflict_do_update(
             index_elements=["scope", "key_hash", "window_start"],
             set_={"attempts": AuthRateLimit.attempts + 1},

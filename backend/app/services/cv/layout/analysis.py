@@ -4,6 +4,11 @@ The assistant may describe findings, but this module is the sole authority for
 layout coordinates used by chat ``position_operation`` / structure / clone /
 delete resolvers. That prevents an LLM from inventing positions that cause
 overlaps or break a template's decorative elements.
+
+A canvas element is a dictionary of content, page and rectangular bounds.
+Layout helpers turn a bounded operation, such as aligning selected elements,
+into explicit proposed changes. Deterministic means these calculations follow
+Python rules rather than asking the model to guess numeric coordinates.
 """
 from __future__ import annotations
 

@@ -5,6 +5,9 @@ from contextvars import ContextVar
 import json
 from pathlib import Path
 
+# A ContextVar is a value local to the current execution context. Unlike a
+# normal global variable, it lets simultaneous English and Polish requests
+# select different messages without overwriting one another's language.
 ui_language: ContextVar[str] = ContextVar("ui_language", default="pl")
 _MESSAGES = json.loads((Path(__file__).with_name("locales") / "messages.json").read_text(encoding="utf-8"))
 
@@ -23,6 +26,9 @@ def resolve_language(header: str = "") -> str:
                 except ValueError:
                     quality = 0.0
         if language in {"pl", "en"} and 0 < quality <= 1:
+            # HTTP q values express preference strength. Negating the value
+            # makes min() select the strongest preference; order breaks ties
+            # in favour of the language listed first by the browser.
             preferences.append((-quality, order, language))
     return min(preferences)[2] if preferences else "pl"
 
@@ -78,4 +84,6 @@ class UiLanguageMiddleware:
         try:
             await self.app(scope, receive, send_localised)
         finally:
+            # Restore the previous context even after an exception, so a
+            # later operation cannot inherit this request's language.
             ui_language.reset(token)

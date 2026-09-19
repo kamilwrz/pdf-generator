@@ -3,6 +3,13 @@
 Adapted from Vignesh Pai's Resume Agent Skills (MIT; docs/licenses).
 The database owns state and identity. The provider proposes content, never
 database operations or layout. Every mutation uses an optimistic revision.
+
+Read this workflow as separate stores of information: evidence contains
+confirmed source/user facts; session state records questions, answers and
+progress; a preview contains proposed CV wording and layout. Model suggestions
+must pass validation and the relevant confirmation step before becoming facts.
+An optimistic revision is a version number checked on each write, so a slow
+model response cannot overwrite a newer answer or another browser tab's work.
 """
 
 from app.core.localisation import message as localised_message
@@ -348,6 +355,8 @@ def owned_session(db, owner_id, session_id):
 
 def update_session(db, row, revision, state, *, commit=True):
     """Atomic revision update also rejects late AI results and duplicate turns."""
+    # Checking the version inside UPDATE is essential: checking it only in
+    # Python would leave a gap in which a second request could save first.
     changed = db.query(InterviewSession).filter_by(id=row.id, owner_id=row.owner_id, revision=revision).update(
         {"state": state, "revision": revision + 1, "updated_at": datetime.utcnow()}, synchronize_session=False,
     )
@@ -385,6 +394,9 @@ def source_facts(cv_data, source):
     leaves remain unbound notes so imported information is not silently lost.
     """
     facts = []
+    # Recursion walks nested dictionaries/lists down to individual text values.
+    # A path such as /experience/0/company identifies the exact source field;
+    # its stable fact ID lets later model output cite that field explicitly.
     def walk(value, path):
         if isinstance(value, dict):
             for key, child in value.items():

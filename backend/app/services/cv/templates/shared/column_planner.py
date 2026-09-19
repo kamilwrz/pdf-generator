@@ -15,6 +15,11 @@ The planner is pure: callers measure sections with the existing per-column
 helpers and pass the heights in. This keeps the algorithm unit-testable with
 synthetic heights and independent of the generation stack.
 
+Here, a "budget" is available vertical space, not money or AI credits.
+A bucket represents the sidebar area on one page. Measuring before placement
+lets the planner move complete sections rather than discover overflow after
+individual lines have already been positioned.
+
 A second function, ``plan_columns_multi_page`` (added alongside this
 partitioner separately), composes it with real main-column measurement to
 derive one sidebar bucket per page the main column's *skeleton* (Experience

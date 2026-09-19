@@ -4,6 +4,12 @@ The resolver treats every remote byte as untrusted. It accepts HTTPS only,
 rejects non-public DNS results before every request and redirect, limits the
 response size, and extracts only text or JobPosting JSON-LD. Provider-specific
 adapters use the public Greenhouse and Lever JSON endpoints when possible.
+
+The server fetches the address, not the user's browser. Rejecting internal IP
+addresses prevents server-side request forgery (SSRF), where a supplied URL
+would make the application contact private services. Every redirect is a new
+address to validate. JSON-LD is structured metadata embedded in a web page;
+it is parsed as data and never executed as JavaScript.
 """
 
 from __future__ import annotations

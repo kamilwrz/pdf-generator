@@ -33,6 +33,9 @@ def issue_email_verification_token(db: Session, user_id: int) -> str:
         EmailVerificationToken.user_id == user_id,
         EmailVerificationToken.consumed_at.is_(None),
     ).update({EmailVerificationToken.consumed_at: now}, synchronize_session=False)
+    # The email carries the random secret; the database stores only its hash.
+    # On return, hashing the supplied secret lets us find the proof without
+    # retaining a usable verification link in the database.
     raw_token = secrets.token_urlsafe(32)
     db.add(EmailVerificationToken(
         user_id=user_id,

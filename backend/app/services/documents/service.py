@@ -1,4 +1,10 @@
-"""Secure PDF rendering and Storage V2 document lifecycle orchestration."""
+"""Coordinate document validation, PDF rendering, database writes and files.
+
+A saved document has two representations: editable rows in the database and
+rendered PDF bytes in private storage. A database rollback cannot undo a file
+upload, so this service also performs compensating cleanup when a later step
+fails. Routes call this layer to keep those related operations consistent.
+"""
 from __future__ import annotations
 
 from app.core.localisation import message as localised_message
@@ -610,7 +616,12 @@ def _commit_title_only_update(
     title: str,
     title_key: str,
 ) -> dict:
-    """Atomically rename a document without publishing or rotating PDF bytes."""
+    """Atomically rename a document without publishing or rotating PDF bytes.
+
+    Compare-and-swap means "write only if the stored version is still the
+    version I read". Two tabs editing revision 3 cannot both replace it: the
+    winner creates revision 4 and the stale writer receives a conflict.
+    """
 
     next_revision = expected_revision + 1
     try:
@@ -657,7 +668,14 @@ def create_pdf_document(
     pdf_data,
     idempotency_key: str | None = None,
 ) -> dict:
-    """Render and persist one idempotent Storage V2 create saga."""
+    """Create a saved canvas and its private PDF, returning its ID and revision.
+
+    pdf_data is validated request data and user is the authenticated owner.
+    Rendering happens before database publication. The rows and storage pointer
+    commit together; a failure rolls back rows and removes the uploaded object
+    or records cleanup for retry. Reusing a matching idempotency key returns the
+    prior result. Invalid content and conflicting titles raise HTTP errors.
+    """
     elements = pdf_data.root
     title = pdf_data.pdf_title
     if not elements:

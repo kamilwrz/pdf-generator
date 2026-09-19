@@ -36,6 +36,9 @@ def fulfill_pro_payment(
         .with_for_update()
         .one()
     )
+    # A webhook is a server-to-server event notification. Stripe may deliver
+    # the same event repeatedly, so an already completed payment must not add
+    # another 30 days or reset credits again.
     if locked_payment.status == "succeeded":
         return False
     sub = (

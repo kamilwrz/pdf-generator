@@ -4,6 +4,9 @@ ReportLab PDF renderer for CV Studio canvas documents.
 Coordinate system: the editor uses a top-left origin (CSS-like). ReportLab
 uses a bottom-left origin, so every draw call converts `top` into
 `page_height - top - glyph_offset` before stroking text or shapes.
+For example, a 20-point-high box starting 50 points from the top of an
+842-point page has its lower edge at 842 - 50 - 20 = 772 in PDF coordinates.
+A PDF point is 1/72 inch; the editor's logical canvas uses this same scale.
 
 Fonts: bundled TTFs are registered at import time. Internal PostScript name
 collisions in bold/italic files are rewritten via fontTools so each variant
@@ -1477,6 +1480,9 @@ class PDF_Generator:
         from app.services.cv.layout.name_fit import fit_legacy_masthead_names
 
         elements = fit_legacy_masthead_names(elements, page_width=getattr(self, "page_w", 595.0))
+        # Group once so each page draws only its own items. The separate ID
+        # index lets connector arrows find their endpoints without repeatedly
+        # searching the entire document. Original order is retained per page.
         by_page = {}
         by_id = {}
         for element in elements:
@@ -1591,6 +1597,8 @@ class PDF_Generator:
                 self._draw_watermark()
             self.c.showPage()
 
+        # save() finalizes the PDF structure in the canvas destination. Until
+        # this happens, a memory buffer/file is not a complete PDF document.
         self.c.save()
 
 

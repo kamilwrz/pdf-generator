@@ -1,5 +1,9 @@
 """Content-only interview redaction and resumable, version-bound generation.
 
+Editing wording and changing evidence are separate operations. A draft may
+rephrase a supported fact, but it must not replace the saved answer that proves
+it. A stage cache stores a completed paid result so a later retry can reuse it.
+
 Raw answers never pass through a write here. A durable attempt ID joins paid
 stage caches across recoverable failures; only the final verified CV is applied.
 """

@@ -5,9 +5,14 @@ Tables cover authenticated users, canvas documents (Pdf + PdfElements),
 uploaded images, resumable bio/CV drafts, and the billing entitlement catalog
 (plans, subscriptions, monthly usage, and Stripe payment fulfillment).
 
-`init_db` must only run from the app lifespan (not at import time): Render
-Postgres often fails the first SSL handshake during cold start, and import-
-time create_all used to crash uvicorn before it could listen for /health.
+An ORM (object-relational mapper) represents database rows as Python objects.
+Here, a class describes a table and each Column describes a stored field.
+A primary key identifies a row; a foreign key links it to another table.
+These definitions describe storage, while schemas/ describes API input/output.
+
+`init_db` runs through the deployment bootstrap, with a startup recovery path
+for legacy Render services. It must not run merely because this module is
+imported: a failed database connection would prevent /health from starting.
 """
 
 import logging

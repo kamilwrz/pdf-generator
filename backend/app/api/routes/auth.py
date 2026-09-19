@@ -63,6 +63,10 @@ router = APIRouter(
     tags=["auth"]
 )
 
+# A route decorator combines this router's prefix with its local path:
+# @router.post("/register") handles POST /auth/register. Depends supplies
+# shared objects such as the database session before the function runs.
+
 
 def _token_response(user: User) -> dict:
     """Issue the single application session shape used by every auth method."""
@@ -93,7 +97,7 @@ def register_user(
 
     Side effects: inserts the user and Free subscription, stores a hashed
     single-use proof, and asks Resend to deliver its raw counterpart. Duplicate
-    usernames or emails return HTTP 409 with a Polish message for the form.
+    usernames or emails return HTTP 409 with a localised message for the form.
     The email pre-check turns what would otherwise be a database uniqueness
     IntegrityError (surfacing as a 500) into an actionable validation message.
     """

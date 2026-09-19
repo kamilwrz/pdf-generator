@@ -429,6 +429,9 @@ def extract_cv_data(pdf_bytes: bytes) -> tuple[dict, dict]:
     @raises CvExtractionError - For configuration, provider, malformed-model,
         or unreadable-CV failures with a safe code for the API route.
     """
+    # A digital PDF can contain selectable text; a scanned PDF may contain
+    # only pictures. Inspect each page first so readable text stays text and
+    # only pages needing visual recognition become model image inputs.
     pages = _pdf_text_pages(pdf_bytes)
     if not pages:
         raise CvExtractionError(

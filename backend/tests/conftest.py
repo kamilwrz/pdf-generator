@@ -16,6 +16,9 @@ def _assume_predeploy_completed(monkeypatch):
     tests to the checkout's local Alembic state.
     """
 
+    # autouse applies this fixture to each test without an explicit argument.
+    # monkeypatch restores the original checker afterwards. The yield below
+    # separates setup from teardown, just like a request's get_db dependency.
     monkeypatch.setattr(
         readiness_gate,
         "_checker",

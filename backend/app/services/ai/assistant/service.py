@@ -107,8 +107,8 @@ def assistant_reservation_cost_pln(action: str, request_bytes: int) -> float:
 class AIServiceError(Exception):
     """Raised when the AI Assistant's OpenAI call fails in an expected way
     (timeout, rate limit, connection error, malformed/empty response).
-    Caught by the app-level exception_handler in main.py, which logs full
-    context server-side and returns a safe Polish message."""
+    Caught by the app-level exception_handler in main.py, which logs only
+    safe metadata server-side and returns a localised public message."""
 
     def __init__(
         self,
@@ -712,6 +712,11 @@ def _compact_inline_runs(content: str, runs) -> list[dict]:
 
 
 def _extract_structured(elements: list[dict]) -> list[dict]:
+    """Return compact text/style records for prompts without editing the canvas.
+
+    Each record retains its element_id so a proposed correction can refer to
+    the original item. Geometry is added separately for positioning actions.
+    """
     tense_by_id = _annotate_employment_tense(elements)
     items = []
     for el in elements:
@@ -865,6 +870,12 @@ def _protected_typography_ids(elements: list[dict]) -> set[str]:
 
 
 def _strip_protected_corrections(result: dict, protected_ids: set[str]) -> dict:
+    """Filter proposed patches that target protected template elements.
+
+    Prompt instructions alone cannot enforce editing permissions. This local
+    filter returns a new result when patches are removed, leaving the supplied
+    dictionary intact. It never applies any correction to the document.
+    """
     if not protected_ids:
         return result
     corrections = [
@@ -911,6 +922,9 @@ def _gpt(
     }
     if effort is not None:
         create_kwargs["reasoning_effort"] = effort
+    # The model receives only the assembled request, not direct database
+    # access. Shape constraints help parse its reply; action-specific checks
+    # must still decide whether the proposed text or edit is acceptable.
     apply_assistant_credit_budget(create_kwargs)
     with provider_span(model, task or task_name(action), effort,
                        create_kwargs["response_format"]["type"]) as timing:
@@ -1312,7 +1326,7 @@ def _fix_grammar(elements: list[dict], language_code: str = "pl") -> dict:
 
     ``language_code`` fixes the language of the corrected `content` so an
     English or German CV is not silently rewritten into Polish. Advice fields
-    remain Polish (see `_content_language_directive`).
+    follow the UI language (see `_content_language_directive`).
     """
     structured = _extract_content(elements)
 
@@ -1420,7 +1434,7 @@ Zwróć JSON:
 def _improve_content(elements: list[dict], language_code: str = "pl") -> dict:
     """Suggest stronger CV wording without changing layout geometry.
 
-    ``language_code`` keeps rewrites in the CV language; advice stays Polish.
+    Rewrites follow ``language_code``; advice follows the UI language.
     """
     structured = _extract_content(elements)
     language_mix = _detect_language_mix(elements)
@@ -2263,7 +2277,7 @@ def analyze_action(
     ``cv_language`` optionally overrides auto-detection for the content-editing
     actions (grammar/language/improve/shorten). When empty, the CV language is
     detected from the canvas so corrections come back in the CV's language while
-    advice stays Polish. The resolved code is echoed back as ``cv_language`` so
+    advice follows the UI language. The code is echoed as ``cv_language`` so
     the UI selector can reflect what was actually used.
 
     Unknown actions return an empty Polish error payload without calling GPT.

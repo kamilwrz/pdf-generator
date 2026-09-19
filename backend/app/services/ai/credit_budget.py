@@ -79,6 +79,9 @@ def apply_assistant_credit_budget(provider_request: dict) -> None:
     # Find the largest completion budget that fits the atomically granted
     # credits. A low balance reduces the provider cap instead of rejecting a
     # request merely because it cannot fund the default 16,000-token ceiling.
+    # This is binary search over token counts. Each step keeps the half that
+    # can contain the largest affordable output. The upward-rounded midpoint
+    # ensures progress even when only two candidate counts remain.
     low, high = minimum, maximum
     while low < high:
         middle = (low + high + 1) // 2

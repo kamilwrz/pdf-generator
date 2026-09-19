@@ -6,8 +6,15 @@ Product catalog is two tiers:
 - Pro — multiple CV versions, all templates, and AI, activated as a 30-day pass (not an
   auto-renewing subscription). Fair-use AI budget is 200 credits / period.
 
-Stripe checkout/webhooks come later — they will flip `UserSubscription.plan_slug`
-and fill `Payment` / stripe_* columns. All gates already read subscription state.
+Stripe Checkout and verified webhooks are implemented in billing routes and
+billing/service.py. This module reads the resulting subscription state.
+
+A plan describes limits, a subscription assigns a plan to one account, and a
+usage counter records consumption for a UTC calendar month. Pending AI credit
+reservations also reduce the available balance, preventing simultaneous calls
+from each spending the same remaining credits. None means an unlimited limit;
+zero means no allowance. Frontend buttons only display these rules: the server
+checks them again when an operation is requested.
 """
 from __future__ import annotations
 
@@ -356,6 +363,11 @@ def _expire_pro_if_needed(db: Session, sub: UserSubscription) -> UserSubscriptio
 
 
 def get_plan(db: Session, plan_slug: str) -> Plan:
+    """Read an active plan, falling back to Free for an unknown/retired slug.
+
+    Raises RuntimeError if even the Free catalog row is missing. This function
+    performs lookups only; deployment bootstrap is responsible for seeding.
+    """
     plan_slug = normalize_plan_slug(plan_slug)
     plan = db.query(Plan).filter(Plan.slug == plan_slug, Plan.is_active.is_(True)).first()
     if plan is None:
@@ -427,6 +439,12 @@ def allowed_template_ids(plan: Plan) -> list[str]:
 
 
 def get_entitlements(db: Session, user: User) -> dict[str, Any]:
+    """Return plan capabilities, usage and remaining allowances for one user.
+
+    This read can also create missing subscription/usage rows or expire a Pro
+    pass. Its snapshot helps the UI explain limits, but atomic write-time quota
+    checks remain necessary because another request may consume the balance.
+    """
     sub = get_or_create_subscription(db, user.id)
     sub = _expire_pro_if_needed(db, sub)
     plan = get_plan(db, sub.plan_slug)

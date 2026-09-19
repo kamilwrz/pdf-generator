@@ -1,4 +1,10 @@
-"""Normalization and validation for CV data consumed by template generators."""
+"""Normalization and validation for CV data consumed by template generators.
+
+Different input flows can describe the same CV field differently. Normalizing
+means converting those shapes to a common dictionary so templates can read
+one format. It does not mean inventing missing career facts. The normalized
+profile holds content; generated canvas elements add positions and styles.
+"""
 
 from __future__ import annotations
 
@@ -1235,6 +1241,9 @@ def normalize_cv_data(value: Mapping[str, Any] | None, *, require_name: bool = F
     if not isinstance(value, Mapping):
         raise CvDataValidationError("Dane CV muszą być obiektem JSON.")
 
+    # A deep copy also copies nested lists/dictionaries. Normalization can
+    # rebuild sections without modifying the caller's original profile or a
+    # snapshot still needed for comparison and error recovery.
     raw = deepcopy(dict(value))
     address = _text(raw.get("address") or raw.get("location"))
     language_section_title = _language_section_title(raw.get("extra_sections"), raw.get("language", "Polish"))

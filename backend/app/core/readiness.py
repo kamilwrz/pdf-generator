@@ -40,8 +40,8 @@ class ReadinessProbe:
     """Verify connectivity, schema revision, and required catalog seed data.
 
     The probe is intentionally read-only. Schema migration and seed mutation
-    belong to the controlled pre-deploy command, so a web worker never changes
-    shared database state while it is beginning to accept traffic.
+    belong to the separate deployment bootstrap; main.py can invoke that
+    bootstrap during startup recovery, but this check never repairs the DB.
     """
 
     def __init__(
@@ -64,6 +64,9 @@ class ReadinessProbe:
                 connection.execute(text("SELECT 1")).scalar_one()
 
                 failed_check = "migrations"
+                # Alembic records which schema revisions have been applied.
+                # A working connection alone is insufficient: the running
+                # code may expect columns that have not been created yet.
                 migration_context = MigrationContext.configure(connection)
                 current_heads = set(migration_context.get_current_heads())
                 expected_heads = set(self._script_directory().get_heads())
@@ -140,6 +143,8 @@ class ReadinessGate:
     def probe(self) -> ReadinessResult:
         """Run the configured check once and atomically publish its result."""
 
+        # Only one thread checks and publishes at a time. Other callers see
+        # a complete result instead of racing to overwrite each other's state.
         with self._lock:
             self._last_result = self._checker()
             return self._last_result

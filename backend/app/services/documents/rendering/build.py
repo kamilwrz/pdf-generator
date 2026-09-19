@@ -13,6 +13,8 @@ def build_pdf_to_buffer(pdf_data, elements, image_src_resolver, watermark: bool 
     `watermark=True` is retained only for compatibility tests of the retired
     overlay. Product export paths always pass `False` for every plan.
     """
+    # BytesIO behaves like a file in memory. Returning its bytes lets the same
+    # renderer serve downloads and storage uploads without a temporary PDF.
     buffer = io.BytesIO()
     page_w = float(getattr(pdf_data, "page_width", 595) or 595)
     page_h = float(getattr(pdf_data, "page_height", 842) or 842)

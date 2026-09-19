@@ -1,4 +1,10 @@
-"""Bounded public interview contracts and strict provider output schemas."""
+"""Bounded public interview contracts and strict provider output schemas.
+
+These Pydantic models validate messages from both the browser and AI provider.
+Literal restricts a value to named choices, Field adds bounds, and Contract
+forbids unexpected keys. Valid JSON structure alone does not prove a career
+claim: the service layer separately checks ownership, versions and evidence.
+"""
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,6 +31,7 @@ class CareerFact(Contract):
 
 
 class ProfileWrite(Contract):
+    """Replace confirmed facts only at the profile version the client read."""
     revision: int = Field(ge=0)
     facts: list[CareerFact] = Field(max_length=500)
 
@@ -37,6 +44,7 @@ class ProfileSourceWrite(Contract):
 
 
 class InterviewCreate(Contract):
+    """Describe the chosen source, goal and language for a new conversation."""
     mode: Literal["create", "enrich", "tailor"]
     # Account ownership does not establish that a CV describes the account holder.
     include_profile: bool = False
@@ -55,12 +63,22 @@ class InterviewCreate(Contract):
 
 
 class SessionWrite(Contract):
+    """Bind a write to both the conversation version and its evidence version.
+
+    A matching session revision alone is insufficient if the underlying CV
+    facts have changed since the user saw the question or preview.
+    """
     evidence_scope: Literal["profile", "session"] | None = None
     revision: int = Field(ge=1)
     profile_revision: int = Field(ge=0)
 
 
 class AnswerWrite(SessionWrite):
+    """Submit text or an explicit answer state for one known question.
+
+    Unknown/skipped answers are history, not confirmed lack of experience;
+    services use status to decide whether evidence should be updated.
+    """
     question_id: str = Field(max_length=100)
     answer: str = Field(default="", max_length=4000)
     status: Literal["answered", "no_experience", "unknown", "skipped"]

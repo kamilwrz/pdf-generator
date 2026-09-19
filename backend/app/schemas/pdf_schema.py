@@ -9,6 +9,11 @@ geometry and typography are CSS pixels that map 1:1 to PDF points on A4.
 Schema via ``python -m app.schemas.export_pdf_element_schema`` (written to
 ``shared/pdf-element.schema.json``) so the frontend can mirror the same
 category / identity rules without TypeScript.
+
+Field(..., ge=0) means a required value that cannot be negative; Field(None)
+means the value may be absent. Field validators check individual values, while
+model validators check relationships between fields after parsing. These
+checks reject malformed canvas data before expensive rendering or storage.
 """
 
 import unicodedata

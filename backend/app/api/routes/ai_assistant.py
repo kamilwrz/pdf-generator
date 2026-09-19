@@ -4,7 +4,13 @@ Canvas AI assistant HTTP surface.
 Validates the requested action, enforces the AI-assistant entitlement, logs a
 product metric, dispatches to `analyze_action`, then charges AI credits from
 the model's estimated PLN cost. Provider failures bubble as `AIServiceError`
-and are mapped to a stable Polish 500 by the app-level handler in `main.py`.
+and are mapped to a stable, localised 500 by the app-level handler in `main.py`.
+
+The operation has three stages: validate/authorise, reserve credits and call
+the provider, then settle the cost and save the response for retries. A
+reservation holds budget while work is running; settlement turns that hold
+into recorded usage. A timeout does not prove that the provider did no work,
+so it cannot be handled like an input error detected before the call.
 """
 
 from app.core.localisation import message as localised_message

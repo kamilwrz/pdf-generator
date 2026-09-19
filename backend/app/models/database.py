@@ -98,9 +98,15 @@ else:
         connect_args=connect_args,
     )
 
+# The engine manages physical connections. SessionLocal is a factory: calling
+# it creates a separate unit of database work, usually for one HTTP request.
+# With autoflush disabled, callers use flush() when a pending INSERT must reach
+# the database before a later query; commit() makes the transaction permanent.
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
 )
+# Models inherit Base so SQLAlchemy can collect their table definitions in
+# Base.metadata. Defining a model does not itself create or migrate a table.
 Base = declarative_base()
