@@ -94,7 +94,6 @@ function Workspace({ id }) {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState('');
-  const [interviewStep, setInterviewStep] = useState('questions');
   const [file, setFile] = useState(null);
   const remote = useRef(null);
   const current = useRef(null);
@@ -107,7 +106,7 @@ function Workspace({ id }) {
   const heading = useRef(null);
   const blocker = useBlocker(dirty);
   const documentId = flow?.document_id;
-  const step = documentId ? 'download' : flow?.session_id ? interviewStep : draft?.step || 'source';
+  const step = documentId ? 'download' : flow?.session_id ? 'questions' : draft?.step || 'source';
   const canAi = entitlements?.ai_assistant === true;
 
   const load = useCallback(async () => {
@@ -204,7 +203,7 @@ function Workspace({ id }) {
   const hasOffer = draft && (draft.offer_kind === 'text' ? draft.job_description.trim() : draft.job_offer_url.trim());
 
   return <div className={styles.workspace}>
-    {flow && draft && !flow.session_id && !documentId && <div className={styles.progressHeader}>
+    {flow && draft && !documentId && <div className={styles.progressHeader}>
       <ol className={styles.steps} aria-label={t('tailoring:steps')}>{setupSteps.map((item, index) => <li key={item} aria-current={item === step ? 'step' : undefined}><span>{String(index + 1).padStart(2, '0')}</span>{t(`tailoring:step.${item}`)}</li>)}</ol>
       <div className={styles.status} role="status">{saving ? t('tailoring:saving') : dirty ? t('tailoring:unsaved') : t('tailoring:saved')}{busy && ` · ${t('tailoring:working')}`}{notice && ` · ${t(notice)}`}</div>
     </div>}
@@ -251,7 +250,7 @@ function Workspace({ id }) {
       </fieldset>
       {flow.locked && !flow.session_id && <div className={ui.notice}><p>{t('tailoring:recoverStart')}</p><button className={ui.primary} disabled={busy} onClick={() => run(start)}>{t('tailoring:retryStart')}</button></div>}
     </section>}
-    {flow?.session_id && !documentId && <InterviewFlow sessionId={flow.session_id} mode="tailor" guided onGuidedStage={setInterviewStep} onDocumentSaved={savedDocument} />}
+    {flow?.session_id && !documentId && <InterviewFlow sessionId={flow.session_id} mode="tailor" guided onDocumentSaved={savedDocument} />}
     {documentId && <section className={styles.panel}>
       <h2 ref={heading} tabIndex={-1}>{t('tailoring:ready')}</h2><p>{t('tailoring:readyHint')}</p>
       <div className={ui.actions}><button className={ui.primary} disabled={busy} onClick={() => run(async () => {

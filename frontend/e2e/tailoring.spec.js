@@ -81,7 +81,11 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.reload();
     await expect(page.getByLabel('Job description (required)')).toHaveValue('Reporting analyst: SQL and dashboards.');
     await page.getByRole('button', { name: 'Continue to questions', exact: true }).click();
+    const progress = page.getByRole('list', { name: 'CV tailoring steps' });
+    await expect(progress).toBeVisible();
+    await expect(progress.locator('li[aria-current="step"]')).toContainText('03');
     await expect(page.getByRole('button', { name: 'Next question', exact: true })).toBeVisible();
+    await page.screenshot({ path: `test-results/tailoring-conversation-${width}.png`, fullPage: true });
     // Starting/resuming creates no paid request until Next question is explicit.
     expect(api.calls.filter(call => call.path.endsWith('/next'))).toHaveLength(0);
     await page.getByRole('button', { name: 'Next question', exact: true }).click();
