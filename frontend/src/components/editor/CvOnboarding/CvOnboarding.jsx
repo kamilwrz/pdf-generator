@@ -249,6 +249,7 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
       <button type="button" data-keep-cv className={styles.primary} onClick={() => setConfirming(false)}>{t('onboarding:keepCurrent')}</button>
     </div> : <div className={styles.footer}>
       <button type="button" className={styles.back} disabled={busy} onClick={draft.step === 'start' ? cancel : back}><FiArrowLeft aria-hidden="true" />{t(draft.step === 'start' ? 'onboarding:close' : 'onboarding:back')}</button>
+      <a className={styles.privacy} href="/privacy" target="_blank" rel="noreferrer">{t('onboarding:privacyLink')}</a>
       <div className={styles.actions}>
         {draft.step === 'source' && <button type="button" className={styles.secondary} disabled={busy} onClick={blank}>{t('onboarding:fromScratch')}</button>}
         {draft.step === 'goal' && draft.goal === 'manual' && <button type="button" className={styles.primary} disabled={busy || !sourceData} onClick={() => go('template')}>{t('onboarding:chooseTemplate')}<FiArrowRight aria-hidden="true" /></button>}
@@ -263,13 +264,14 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
           <span aria-hidden="true">{index < activeIndex ? <FiCheck /> : index + 1}</span><span>{t(`onboarding:step.${step}`)}</span>
         </li>)}
       </ol>
-      <header className={styles.intro} data-compact={draft.step === 'template'}>
-        <div className={styles.guide}>{!guideFailed ? <img src="/cv-onboarding-guide.png" alt="" width="176" height="176" onError={() => setGuideFailed(true)} /> : <FiFileText aria-hidden="true" />}<span>{t('onboarding:guide')}</span></div>
+      <header className={styles.intro}>
+        <div className={styles.guide}>{!guideFailed ? <img src="/cv-onboarding-guide.png" alt="" width="96" height="96" onError={() => setGuideFailed(true)} /> : <FiFileText aria-hidden="true" />}</div>
         <div><h1 id="onboarding-heading" ref={heading} tabIndex={-1}>{t(`onboarding:${titleKey}`)}</h1>
           <p>{t(draft.step === 'start' ? 'onboarding:sourceQuestion' : draft.step === 'template' ? 'onboarding:templateHint' : draft.step === 'source' ? 'onboarding:sourceHint' : 'onboarding:goalHint')}</p></div>
+        <span className={styles.srOnly}>{t('onboarding:guide')}</span>
       </header>
       {storageFailed && <p role="status" className={styles.notice}>{t('onboarding:storageUnavailable')}</p>}
-      {error && <div role="alert" className={styles.error}><p>{error}</p>{draft.source && !sourceData && <button type="button" disabled={busy} onClick={restoreSource}>{t('onboarding:retrySource')}</button>}</div>}
+      {error && <div id="onboarding-error" role="alert" className={styles.error}><p>{error}</p>{draft.source && !sourceData && <button type="button" disabled={busy} onClick={restoreSource}>{t('onboarding:retrySource')}</button>}</div>}
       {busy && <p className={styles.notice} role="status">{t('onboarding:working')}</p>}
       {draft.step === 'start' && <div className={styles.startChoices}>
         <button type="button" className={styles.primary} disabled={busy} onClick={() => patch({ mode: 'existing', step: 'source' })}><FiUpload aria-hidden="true" />{t('onboarding:haveCv')}</button>
@@ -280,15 +282,16 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
         <h2>{t('onboarding:accountTitle')}</h2><p>{t('onboarding:accountHint')}</p>
         <div className={styles.actions}><button className={styles.primary} onClick={() => leave('/register?start=onboarding')}>{t('onboarding:register')}</button><button className={styles.secondary} onClick={() => leave('/login?start=onboarding')}>{t('public:siteLayout.signIn')}</button></div>
       </section> : <section className={styles.source}>
-        {!knownImportAccess ? <p role="status">{t('onboarding:checkingAccess')} <button className={styles.back} disabled={busy} onClick={refreshEntitlements}>{t('onboarding:retry')}</button></p> : <p className={styles.allowance}>{remaining == null ? t('onboarding:importAvailable') : t('onboarding:importsRemaining', { count: remaining })}</p>}
         <div className={styles.dropzone} data-dragging={dragging} onDragOver={event => { event.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={event => { event.preventDefault(); setDragging(false); if (importAllowed) selectFile(event.dataTransfer.files?.[0]); }}>
-          <FiUpload aria-hidden="true" /><label htmlFor="onboarding-pdf">{t('onboarding:uploadLabel')}</label><p id="onboarding-file-help">{t('onboarding:pdfHelp')}</p>
-          <input ref={fileInput} id="onboarding-pdf" type="file" accept="application/pdf,.pdf" disabled={busy || !importAllowed} aria-describedby="onboarding-file-help" onChange={event => selectFile(event.target.files?.[0])} />
+          <div className={styles.uploadHeading}><FiUpload aria-hidden="true" /><div><label htmlFor="onboarding-pdf">{t('onboarding:uploadLabel')}</label><p id="onboarding-file-help">{t('onboarding:pdfHelp')}</p></div></div>
+          <div className={styles.uploadControls}>
+            <input ref={fileInput} id="onboarding-pdf" type="file" accept="application/pdf,.pdf" disabled={busy || !importAllowed} aria-describedby={`onboarding-file-help${error ? ' onboarding-error' : ''}`} aria-invalid={Boolean(error)} onChange={event => selectFile(event.target.files?.[0])} />
+            <button type="button" className={styles.primary} disabled={busy || !file || !importAllowed} onClick={upload}>{t('onboarding:readPdf')}</button>
+          </div>
           {file && <p className={styles.fileName}>{file.name}</p>}
-          <button type="button" className={styles.primary} disabled={busy || !file || !importAllowed} onClick={upload}>{t('onboarding:readPdf')}</button>
+          {!knownImportAccess ? <p className={styles.allowance} role="status">{t('onboarding:checkingAccess')} <button className={styles.back} disabled={busy} onClick={refreshEntitlements}>{t('onboarding:retry')}</button></p> : remaining != null && <p className={styles.allowance}>{t('onboarding:importsRemaining', { count: remaining })}</p>}
         </div>
         {knownImportAccess && !importAllowed && <div className={styles.notice}><p>{t('onboarding:importLimit')}</p>{planLink}</div>}
-        <p className={styles.privacy}>{t('onboarding:privacyHint')} <a href="/privacy" target="_blank" rel="noreferrer">{t('onboarding:privacyLink')}</a></p>
         <details className={styles.savedSources}>
           <summary>{t('onboarding:savedSources')}</summary>
           {loadingSources && <p role="status">{t('onboarding:loadingSources')}</p>}

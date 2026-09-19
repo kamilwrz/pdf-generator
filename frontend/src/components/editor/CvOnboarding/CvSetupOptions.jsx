@@ -45,7 +45,6 @@ function moveItem(items, index, direction) {
 
 export default function CvSetupOptions({ config, setConfig, entitlements, submitting = false, imported = false, sectionError = '' }) {
   useTranslation();
-  const [templatesOpen, setTemplatesOpen] = useState(true);
   const [moreTemplates, setMoreTemplates] = useState(false);
   const [customizationVisible, setCustomizationOpen] = useState(false);
   const [chosenSettingsView, setSettingsView] = useState("contact");
@@ -62,16 +61,16 @@ export default function CvSetupOptions({ config, setConfig, entitlements, submit
   const sectionHeadingRef = useRef(null);
   const customInputRef = useRef(null);
   const templateGridRef = useRef(null);
-  const previousTemplatesOpenRef = useRef(templatesOpen);
+  const previousTemplatesOpenRef = useRef(true);
   // Only an explicit gallery expansion moves focus. Changing the selection or
   // receiving account entitlements must not steal focus from the active control.
   useEffect(() => {
-    const galleryVisible = templatesOpen && !customizationOpen;
+    const galleryVisible = !customizationOpen;
     if (galleryVisible && !previousTemplatesOpenRef.current) {
       templateGridRef.current?.querySelector("input:checked")?.focus();
     }
     previousTemplatesOpenRef.current = galleryVisible;
-  }, [templatesOpen, customizationOpen]);
+  }, [customizationOpen]);
 
   // Validation can originate from the persistent action while settings are
   // collapsed. Reveal the section choices before moving focus to their error.
@@ -174,7 +173,7 @@ export default function CvSetupOptions({ config, setConfig, entitlements, submit
           <legend className={classes.liveStatus}>{uiText("editor:newCvSetupModal.cvSetupOptions")}</legend>
           <div className={classes.setupToolbar}>
           <div className={classes.viewNavigation} aria-label={uiText("editor:newCvSetupModal.setupView")}>
-            <button type="button" aria-pressed={!customizationOpen} onClick={() => { setTemplatesOpen(true); setCustomizationOpen(false); setPreviewOpen(false); }}><FiLayout aria-hidden="true" />{uiText("public:siteLayout.templates")}</button>
+            <button type="button" aria-pressed={!customizationOpen} onClick={() => { setCustomizationOpen(false); setPreviewOpen(false); }}><FiLayout aria-hidden="true" />{uiText("public:siteLayout.templates")}</button>
             {!imported && <button type="button" aria-label={uiText("editor:newCvSetupModal.customiseContent")} aria-expanded={customizationOpen} aria-controls={`${customInputId}-customization`} onClick={() => { setCustomizationOpen((current) => !current); setPreviewOpen(false); }}><FiSliders aria-hidden="true" />{uiText("editor:newCvSetupModal.customiseContent")}</button>}
           </div>
           {!imported && <label className={classes.documentLanguage}>{uiText('common:documentLanguage')}
@@ -188,13 +187,8 @@ export default function CvSetupOptions({ config, setConfig, entitlements, submit
             </select>
           </label>}
           </div>
-          <section className={classes.templates} aria-labelledby="new-cv-template-heading" hidden={customizationOpen}>
-            <div className={`${classes.sectionHeading} ${classes.templateHeading}`}>
-              <div><span className={classes.eyebrow}>{uiText("editor:newCvSetupModal.yourTemplate")}</span><h3 tabIndex={-1} id="new-cv-template-heading" aria-label={uiText("editor:newCvSetupModal.selectedTemplate2", { value0: (selectedTemplate.name) })}>{selectedTemplate.name}</h3></div>
-              {!templatesOpen && <button type="button" className={classes.textButton} aria-expanded={false} aria-controls={`${customInputId}-templates`} onClick={() => setTemplatesOpen(true)}>{uiText("editor:newCvSetupModal.changeTemplate")}</button>}
-            </div>
-            {!customizationOpen && !templatesOpen && <p className={classes.templateDescription}>{selectedTemplate.description}</p>}
-            {!customizationOpen && templatesOpen && <div id={`${customInputId}-templates`}>
+          <section className={classes.templates} aria-label={uiText("editor:newCvSetupModal.cvTemplate")} hidden={customizationOpen}>
+            {!customizationOpen && <div id={`${customInputId}-templates`}>
             <div ref={templateGridRef} className={classes.templateGrid} data-expanded={moreTemplates || selectedTemplate.tier !== "free"} role="radiogroup" aria-label={uiText("editor:newCvSetupModal.cvTemplate")}>
               {SETUP_TEMPLATES.filter((template) => moreTemplates || template.tier === "free" || template.id === config.templateId).map((template) => {
                 const selected = template.id === config.templateId;
@@ -217,7 +211,6 @@ export default function CvSetupOptions({ config, setConfig, entitlements, submit
             </div>
             <button type="button" className={classes.textButton} aria-expanded={moreTemplates} onClick={() => setMoreTemplates((current) => !current)}>{moreTemplates ? uiText("editor:newCvSetupModal.showFewerTemplates") : uiText("editor:newCvSetupModal.moreTemplates")}</button>
             </div>}
-            {!imported && !customizationOpen && !moreTemplates && <p className={classes.startHint}>{uiText("editor:newCvSetupModal.chooseAnAppearanceEnterYourDetailsIn")}<br />{uiText("editor:newCvSetupModal.youCanAlsoChangeTheTemplateAnd")}</p>}
           </section>
 
             {customizationOpen && <div id={`${customInputId}-customization`}>

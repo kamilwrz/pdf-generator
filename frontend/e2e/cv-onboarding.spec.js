@@ -9,10 +9,20 @@ const blank = page => page.getByRole('button', { name: /^(Zaczynam od zera|Start
 const create = page => page.getByRole('button', { name: /^(Otwórz CV w edytorze|Open CV in the editor)$/ }).click();
 const noAi = api => expect(api.calls.filter(call => /extract_cv|interviews.*(confirm|next)|generate/.test(call.path))).toEqual([]);
 
+// Inspect real scroll ranges, not scrollbar visibility: hiding overflow must
+// never make a viewport-fit regression pass while clipping the user's task.
+async function expectViewportFit(setup) {
+  await expect.poll(() => setup.evaluate(node => [node, ...node.querySelectorAll('*')].filter(element => {
+    const { overflowY } = getComputedStyle(element);
+    return ['auto', 'scroll'].includes(overflowY) && element.scrollHeight > element.clientHeight + 1;
+  }).map(element => ({ className: element.className, content: element.scrollHeight, viewport: element.clientHeight })))).toEqual([]);
+  expect(await setup.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+}
+
 for (const language of ['pl', 'en']) {
   for (const width of [390, 834, 1280, 1920]) {
     test(`onboarding ${language} at ${width}px, keyboard, reflow and print isolation`, async ({ page }, info) => {
-      await page.setViewportSize({ width, height: 950 });
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 720 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.addInitScript(lang => localStorage.setItem('cvstudio.uiLanguage', lang), language);
       const api = await installMockApi(page);
@@ -23,10 +33,12 @@ for (const language of ['pl', 'en']) {
       await expect(page.locator('.right-pane')).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Nowe CV', exact: true })).toHaveCount(0);
       expect(api.calls.filter(call => /fill_template/.test(call.path))).toHaveLength(0);
+      await expectViewportFit(setup);
       await page.screenshot({ path: info.outputPath(`welcome-${language}-${width}.png`) });
       await blank(page);
       await expect(setup.getByRole('radio', { name: /Linden/ })).toBeChecked();
       await expect(setup.locator('h1')).toBeFocused();
+      await expectViewportFit(setup);
       await page.screenshot({ path: info.outputPath(`templates-${language}-${width}.png`) });
       expect(await setup.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
       if (width === 834) {
@@ -45,6 +57,34 @@ for (const language of ['pl', 'en']) {
       expect(api.calls.filter(call => call.path === '/ai/fill_template')).toHaveLength(1);
       await page.reload();
       await expect(setup).toHaveCount(0);
+      noAi(api); api.assertHermetic();
+    });
+  }
+}
+
+for (const language of ['pl', 'en']) {
+  for (const width of [390, 834, 1280, 1920]) {
+    test(`compact source and goal ${language} at ${width}px`, async ({ page }, info) => {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 720 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.addInitScript(lang => localStorage.setItem('cvstudio.uiLanguage', lang), language);
+      const api = await installMockApi(page);
+      await login(page);
+      await page.goto('/app/import');
+      const setup = dialog(page);
+      await expect(setup.locator('input[type="file"]')).toBeEnabled();
+      await expectViewportFit(setup);
+      const privacy = setup.getByRole('link', { name: /^(Polityka prywatności|Privacy policy)$/ });
+      await expect(privacy).toHaveAttribute('href', '/privacy');
+      expect(await privacy.evaluate(node => node.closest('[class*="footer"]') !== null)).toBe(true);
+      await page.screenshot({ path: info.outputPath(`source-${language}-${width}.png`) });
+      await setup.locator('summary').click();
+      await setup.getByRole('button', { name: 'CV Smoke.pdf', exact: true }).click();
+      await expect(setup.locator('h1')).toBeFocused();
+      await expectViewportFit(setup);
+      await setup.getByRole('radio').nth(1).check();
+      await expectViewportFit(setup);
+      await page.screenshot({ path: info.outputPath(`goal-${language}-${width}.png`) });
       noAi(api); api.assertHermetic();
     });
   }

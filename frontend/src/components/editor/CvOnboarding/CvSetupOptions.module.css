@@ -1,7 +1,7 @@
 /* One task view at a time keeps ordinary setup inside the viewport. The shared
    DialogShell body remains the sole scroll fallback for zoom, short screens,
    and arbitrarily many custom sections; nothing enters the authored CV tree. */
-.workspace { max-width: 1440px; margin: 0 auto; padding: var(--space-6) var(--space-8); color: var(--chrome-ink); }
+.workspace { max-width: 1440px; margin: 0 auto; padding: 0; color: var(--chrome-ink); }
 .layout { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: var(--space-16); align-items: start; }
 .content { min-width: 0; margin: 0; padding: 0; border: 0; }
 .templates, .optionSection { min-width: 0; }
@@ -15,9 +15,7 @@
 .settingsNavigation span { font: 600 .75rem/1.25 var(--font-mono); }
 .sectionHeading { margin-bottom: var(--space-4); }
 .sectionHeading h3 { margin: 0; color: var(--chrome-ink); font: 700 1.125rem/1.25 var(--font-display); }
-.sectionHeading p, .templateDescription { max-width: 64ch; margin: var(--space-2) 0 0; color: var(--chrome-muted); font: 400 .875rem/1.4 var(--font-body); }
-.templateHeading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
-.templateHeading h3 { margin-top: var(--space-1); font-size: 1.5rem; }
+.sectionHeading p { max-width: 64ch; margin: var(--space-2) 0 0; color: var(--chrome-muted); font: 400 .875rem/1.4 var(--font-body); }
 .eyebrow { display: block; color: var(--chrome-muted); font: 600 .75rem/1.25 var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 .templateGrid { display: grid; gap: var(--space-3); }
 .templateGrid[data-expanded='true'] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
@@ -43,12 +41,11 @@
 .templateGrid[data-expanded='true'] .templateCard { grid-template-columns: var(--space-8) minmax(0, 1fr) var(--space-4); gap: var(--space-2); padding: var(--space-2); }
 .templateGrid[data-expanded='true'] .templateCopy { gap: var(--space-1); }
 .templateGrid[data-expanded='true'] .selectionMark { width: var(--space-4); height: var(--space-4); }
-.startHint { margin: var(--space-4) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--chrome-border); color: var(--chrome-muted); font: 400 .875rem/1.55 var(--font-body); }
-.preview { min-width: 0; padding: var(--space-4) 0 0 var(--space-12); border-left: 1px solid var(--chrome-border); }
+.preview { min-width: 0; padding-left: var(--space-8); border-left: 1px solid var(--chrome-border); }
 .previewHeading { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); color: var(--chrome-muted); font: 400 .75rem/1.4 var(--font-mono); }
 /* Fit the entire sample, including its caption, in a laptop-height viewport.
    Its A4 ratio never changes and is unrelated to PDF rendering dimensions. */
-.preview figure { width: min(100%, 440px, calc((100dvh - 360px) * 210 / 297)); margin: 0 auto; }
+.preview figure { width: min(100%, 280px, max(128px, calc((100dvh - 460px) * 210 / 297))); margin: 0 auto; }
 .preview figure > .imageFrame { border: 1px solid var(--chrome-border); }
 .preview figcaption { margin-top: var(--space-4); color: var(--chrome-muted); text-align: center; font: 400 .75rem/1.55 var(--font-body); }
 .checkGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-4); }
@@ -77,7 +74,7 @@
 .customSection input[aria-invalid='true'] { border-color: var(--color-danger); }
 .customSection button, .primaryButton, .secondaryButton { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-4); min-height: var(--control-height); padding: var(--space-3) var(--space-6); border: 1px solid var(--chrome-ink); border-radius: var(--radius-control); background: var(--chrome-ink); color: var(--color-paper); font: 600 .875rem/1.4 var(--font-body); cursor: pointer; }
 .secondaryButton { border-color: var(--chrome-border); background: var(--color-paper); color: var(--chrome-ink); }
-.liveStatus { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.liveStatus { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); }
 .error, .fieldError { margin: var(--space-2) 0 0; color: var(--color-danger); font: 600 .875rem/1.4 var(--font-body); }
 .workspace :is(button, input, h3):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .templateCard:has(input:focus-visible) { outline: 2px solid var(--color-focus); outline-offset: 2px; }
@@ -90,8 +87,8 @@
   .sectionList { column-gap: var(--space-2); }
 }
 @media (max-width: 900px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
-  .workspace { padding: var(--space-4) var(--space-6); }
+  .layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .templateCard { grid-template-columns: var(--space-8) minmax(0, 1fr) var(--space-6); padding-block: var(--space-2); }
   .preview { padding: 0; border-left: 0; border-top: 1px solid var(--chrome-border); }
   .previewToggle { display: flex; }
   .previewBody { display: none; padding: var(--space-4) 0; }
@@ -103,23 +100,18 @@
   .previewHeading { margin-bottom: var(--space-4); }
 }
 @media (max-width: 640px) {
-  .workspace { padding: var(--space-4); }
   .layout { gap: var(--space-4); }
   .viewNavigation { gap: var(--space-1); margin-bottom: var(--space-4); }
   .viewNavigation button { flex: 1; padding-inline: var(--space-2); }
-  .templateCard { grid-template-columns: var(--space-12) minmax(0, 1fr) var(--space-6); gap: var(--space-3); padding: var(--space-2) var(--space-3); }
+  .templateCard { grid-template-columns: var(--space-8) minmax(0, 1fr) var(--space-6); gap: var(--space-3); padding: var(--space-2) var(--space-3); }
   .templateGrid[data-expanded='true'] .templateCard { grid-template-columns: minmax(0, 1fr) var(--space-4); }
   .templateGrid[data-expanded='true'] .templateImage { display: none; }
   .sectionList { grid-template-columns: minmax(0, 1fr); }
-  .startHint { margin-top: var(--space-2); padding-top: var(--space-3); }
 }
 @media (min-width: 901px) and (max-height: 800px) {
-  .workspace { padding-block: var(--space-4); }
   .viewNavigation { margin-bottom: var(--space-4); }
   .templateCard { grid-template-columns: var(--space-12) minmax(0, 1fr) var(--space-6); padding-block: var(--space-2); }
-  .templateHeading { margin-bottom: var(--space-3); }
   .sectionHeading p { font-size: .75rem; }
-  .startHint { margin-top: var(--space-2); padding-top: var(--space-2); }
   .settingsNavigation { margin-bottom: var(--space-2); }
   .sectionList { row-gap: 0; }
   .customSection { margin-top: var(--space-2); gap: var(--space-1); }
@@ -132,8 +124,6 @@
 .setupToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
 .setupToolbar .viewNavigation { flex: 1; margin-bottom: 0; }
 .documentLanguage { display: inline-flex; align-items: center; gap: var(--space-2); font: 400 .75rem/1.4 var(--font-body); }
-.documentLanguage select { min-height: var(--control-height); max-width: 100%; padding: var(--space-2); border: 1px solid var(--chrome-border); border-radius: var(--radius-control); background: var(--color-paper); color: var(--chrome-ink); font: 400 .875rem/1.4 var(--font-body); }
+.documentLanguage select { min-height: var(--control-height); max-width: 100%; padding: var(--space-2); border: 1px solid var(--chrome-border); border-radius: var(--radius-control); background: var(--color-paper); color: var(--chrome-ink); font: 400 var(--text-body)/1.4 var(--font-body); }
 .documentLanguage select:focus-visible { outline: 2px solid var(--color-focus); outline-offset: var(--space-1); }
 @media (max-width: 640px) { .setupToolbar .viewNavigation { flex-basis: 100%; } }
-.preview figure { width: min(100%, 280px); }
-.workspace { padding: var(--space-4) 0; }
