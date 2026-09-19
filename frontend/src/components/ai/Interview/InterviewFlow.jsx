@@ -399,7 +399,8 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     {error && <div className={classes.error} role="alert"><p>{error}</p><button disabled={busy} type="button" onClick={() => run(load)}>{uiText("interview:interviewFlow.loadSavedState")}</button></div>}
     <p role="status" aria-live="polite">{!waiting ? notice : ''}</p>
     {session && <InterviewCredits showBalance={!onClose} sessionId={session.id} revision={session.revision} busy={waiting} entitlements={entitlements} balanceLoading={balanceLoading} balanceError={balanceError} onRefreshBalance={() => { refresh(); onCreditsChanged?.(); }} />}
-    {waiting && <InterviewLoading compact={inlineWaiting} operation={initialLoading ? 'load' : pendingOperation} facts={session || !isolated ? profile?.facts.length : undefined} answers={session?.answers.length} language={languageLabels[session?.language || language]} template={TEMPLATES.find((item) => item.id === template)?.name} />}
+    {/* Keep answer saves inline; an empty stage gets an explanatory wait surface. */}
+    {waiting && <InterviewLoading compact={inlineWaiting && Boolean(session?.question)} operation={initialLoading ? 'load' : pendingOperation} facts={session || !isolated ? profile?.facts.length : undefined} answers={session?.answers.length} language={languageLabels[session?.language || language]} template={TEMPLATES.find((item) => item.id === template)?.name} />}
     <div key={stage} className={classes.stageBody} data-stage={stage} hidden={waiting && !inlineWaiting} aria-busy={waiting}>
     {!canAi && entitlements && <p>{uiText("interview:interviewFlow.aiInterviewsRequireProYouCanStill")} <Link to="/app/account">{uiText("interview:interviewFlow.accountAndPlan")}</Link></p>}
     {sourceChanged && <p className={classes.error} role="status">{uiText(editorSourceChanged ? "interview:interviewFlow.theCvInTheEditorHasChanged" : "interview:interviewFlow.savedSourceChanged")}</p>}
@@ -486,18 +487,18 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
           <p className={classes.hint} id={`answer-help-${session.question.id}`}>{uiText("interview:interviewFlow.answerInYourOwnWordsWhenPreparing")}</p>
           {session.question.follow_up_to && <p className={classes.hint}>{uiText("interview:interviewFlow.aFollowUpToAnEarlierAnswer")}</p>}
           <label>{uiText("interview:factEditor.yourAnswer")}<textarea ref={answerField} rows={4} maxLength={4000} value={answer} onChange={(event) => changeAnswer(event.target.value)} disabled={busy} aria-describedby={`answer-help-${session.question.id}${assistedAnswer?.questionId === session.question.id ? ` answer-confirm-${session.question.id}` : ''}`} /></label>
+          {assistedAnswer?.questionId === session.question.id && <p className={classes.hint} id={`answer-confirm-${session.question.id}`}>{uiText('interview:answerHelp.confirmHint')}</p>}
+          <div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText(assistedAnswer?.questionId === session.question.id ? 'interview:answerHelp.confirmSave' : 'interview:simple.send')}</button><button type="button" disabled={busy || sourceChanged} onClick={() => saveAnswer(hasAnswerDraft ? 'answered' : 'skipped', answer, true)}>{uiText(hasAnswerDraft ? assistedAnswer ? 'interview:simple.confirmAndFinish' : 'interview:simple.answerAndFinish' : 'interview:simple.finish')}</button></div>
           <InterviewAnswerHelp key={`${session.id}-${session.question.id}`} session={session} answer={answer}
             disabled={busy || factEditing || sourceChanged || hasLocalFactChanges} canAi={canAi}
             usedSuggestionId={assistedAnswer?.questionId === session.question.id ? assistedAnswer.suggestionId : null}
             onGenerate={generateAnswerHelp} onUse={useAnswerHelp} />
-          {assistedAnswer?.questionId === session.question.id && <p className={classes.hint} id={`answer-confirm-${session.question.id}`}>{uiText('interview:answerHelp.confirmHint')}</p>}
-          <div className={classes.actions}><button className={classes.primary} disabled={busy || !answer.trim()} onClick={() => saveAnswer('answered')}>{uiText(assistedAnswer?.questionId === session.question.id ? 'interview:answerHelp.confirmSave' : 'interview:simple.send')}</button><button type="button" disabled={busy || sourceChanged} onClick={() => saveAnswer(hasAnswerDraft ? 'answered' : 'skipped', answer, true)}>{uiText(hasAnswerDraft ? assistedAnswer ? 'interview:simple.confirmAndFinish' : 'interview:simple.answerAndFinish' : 'interview:simple.finish')}</button></div>
           <details><summary>{uiText('ai:task.otherAnswers')}</summary><div className={classes.actions}>
             <button disabled={busy} onClick={() => saveAnswer('no_experience', '')}>{uiText("interview:interviewFlow.iDoNotHaveThatExperience")}</button>
             <button disabled={busy} onClick={() => saveAnswer('unknown', '')}>{uiText("interview:interviewFlow.iCannotRemember")}</button>
             <button disabled={busy} onClick={() => saveAnswer('skipped', '')}>{uiText("ai:aiAssistant.skip")}</button>
           </div></details></div></div>}
-        {hasPending && session.phase !== 'completed' && !session.question && session.phase !== 'clarification' && <div className={classes.actions}>
+        {!waiting && hasPending && session.phase !== 'completed' && !session.question && session.phase !== 'clarification' && <div className={classes.actions}>
           <button disabled={busy || Boolean(assistedAnswer && assistedAnswer.questionId === session.question?.id)} onClick={() => setReviewOpen(true)}>{uiText("interview:interviewFlow.reviewInformation")}{hasPending ? uiText("interview:interviewFlow.toSave", { value0: (session.proposed_facts.length) }) : ''}</button>
         </div>}
         {!waiting && !session.question && session.phase !== 'clarification' && session.phase !== 'completed' && <div className={classes.nextStep}>

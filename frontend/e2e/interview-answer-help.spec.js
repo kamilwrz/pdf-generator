@@ -152,6 +152,14 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     const suggest = page.getByRole('button', { name: labels.suggest, exact: true });
     const credits = page.getByRole('region', { name: labels.credits, exact: true });
     await expect(suggest).toBeEnabled();
+    const send = page.getByRole('button', { name: language === 'pl' ? 'Wyślij odpowiedź' : 'Send answer', exact: true });
+    // The direct task action precedes optional paid help in visual and keyboard order.
+    expect(await send.evaluate((node, label) => {
+      const helper = [...document.querySelectorAll('button')].find(button => button.textContent === label);
+      return Boolean(node.compareDocumentPosition(helper) & Node.DOCUMENT_POSITION_FOLLOWING);
+    }, labels.suggest)).toBe(true);
+    expect((await send.boundingBox()).y).toBeLessThan((await suggest.boundingBox()).y);
+    await page.screenshot({ path: `../tmp/interview-answer-start-${language}-${width}.png`, fullPage: true });
     expect(flow.posts).toEqual([]);
     await suggest.focus();
     await expect(suggest).toBeFocused();

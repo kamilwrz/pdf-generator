@@ -1,9 +1,10 @@
 /* The receipt wraps as one compact row before the working panel in either host. */
 .credits {
   min-width: 0;
-  border-bottom: 1px solid var(--color-border);
-  padding-block: 0;
-  margin-bottom: var(--space-3);
+  border-bottom: 0;
+  padding: 0 var(--space-3);
+  background: var(--color-canvas);
+  margin-bottom: var(--space-4);
   font: .875rem/1.4 var(--font-ui);
   overflow-wrap: anywhere;
 }
@@ -40,3 +41,5 @@
 .metric { color: var(--color-muted); }
 .metric strong { color: var(--chrome-ink, var(--color-ink)); font-variant-numeric: tabular-nums; margin-left: var(--space-1); }
 .history[open] { padding-bottom: var(--space-3); }
+
+@media (min-width: 1000px) and (max-height: 800px) { .credits { margin-bottom: var(--space-2); } }

@@ -7,7 +7,7 @@ const copy = {
 };
 
 /** Synthetic API observes the complete source → answer → template path without paid requests. */
-async function fixture(page, language) {
+async function fixture(page, language, heldOperation) {
   await installMockApi(page);
   await page.addInitScript(lang => {
     localStorage.setItem('token', 'local-playwright-token');
@@ -20,6 +20,9 @@ async function fixture(page, language) {
     mode: 'create', phase: 'intake', language: 'pl', confirmed: false,
     question: null, answers: [], requirements: [], proposed_facts: [], question_limit: 10 };
   const writes = [];
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  writes.release = release;
   await page.route('**/api/career-profile**', route => route.fulfill({ json: {
     revision: 0, facts: [], sources: { documents: [{ id: 41, title: 'Anna — CV' }], imports: [{ id: 9, filename: 'Anna.pdf' }] },
   } }));
@@ -27,6 +30,7 @@ async function fixture(page, language) {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/credits')) return route.fulfill({ json: { credits_charged: 1, requests: [] } });
     if (route.request().method() === 'POST') {
+      if (heldOperation && path.endsWith(`/${heldOperation}`)) await held;
       const body = route.request().postDataJSON();
       writes.push({ path, body });
       if (!path.endsWith('/interviews')) {
@@ -89,5 +93,30 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     await template.focus(); await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/\/app\/documents\/41$/);
     expect(writes.slice(-2).map(item => item.path.split('/').at(-1))).toEqual(['preview', 'document']);
+  });
+}
+
+for (const language of ['pl', 'en']) for (const operation of ['confirm', 'next']) {
+  test(`empty waiting stage describes the operation ${language} ${operation}`, async ({ page }) => {
+    await page.setViewportSize({ width: language === 'pl' ? 1280 : 390, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const writes = await fixture(page, language, operation);
+    await page.goto('/app/interview');
+    await page.getByRole('button', { name: 'Anna — CV', exact: true }).click();
+    const title = operation === 'confirm'
+      ? (language === 'pl' ? 'Zapisujemy potwierdzone informacje' : 'Saving confirmed information')
+      : (language === 'pl' ? 'Przygotowujemy pytanie' : 'Preparing a question');
+    const loading = page.getByRole('progressbar');
+    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+    await expect(loading).not.toHaveAttribute('aria-valuenow');
+    await expect(loading).toHaveCSS('animation-name', 'none');
+    const bounds = await loading.boundingBox();
+    expect(bounds.width).toBe(bounds.height);
+    await expect(page.getByRole('button', { name: /Sprawdź informacje|Review information/ })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `../tmp/interview-wait-${language}-${operation}.png`, fullPage: true });
+    writes.release();
+    await expect(page.getByRole('textbox', { name: copy[language].answer, exact: true })).toBeVisible();
+    await expect(loading).toHaveCount(0);
   });
 }

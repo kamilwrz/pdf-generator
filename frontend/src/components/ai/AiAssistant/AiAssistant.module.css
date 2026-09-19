@@ -859,6 +859,7 @@
     /* The embedded workflow inherits editor density; its standalone route
        retains the roomier defaults in the shared interview components. */
     --interview-title-size: var(--text-panel-title);
+    --interview-question-size: var(--text-panel-title);
     --interview-control-size: var(--text-ui);
     --interview-padding: var(--space-4);
     --interview-border: 0;

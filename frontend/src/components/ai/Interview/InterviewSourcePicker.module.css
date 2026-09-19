@@ -1,12 +1,12 @@
 .sourcePicker { min-width: 0; }
-.toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .5fr); align-items: end; gap: var(--space-4); margin-bottom: var(--space-4); }
-.sourcePicker .sourceTabs { margin: 0; }
+.toolbar { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: end; gap: var(--space-4); margin-bottom: var(--space-4); }
+.sourcePicker .sourceTabs { grid-column: 1 / -1; margin: 0; justify-content: flex-start; }
 .sourcePicker .sourceTabs [role='tab'] { gap: var(--space-2); padding-inline: var(--space-3); border: 0; border-bottom: 2px solid transparent; border-radius: 0; font-size: var(--text-ui); }
 .sourcePicker .sourceTabs [aria-selected='true'] { border-bottom-color: var(--color-accent); }
 .count { color: var(--color-muted); font: var(--text-label)/1.25 var(--font-mono); }
 .sourcePicker .toolbar label { margin: 0; font-size: var(--text-ui); }
-.list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--color-border); }
-.list li { min-width: 0; border-bottom: 1px solid var(--color-border); }
+.list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--color-border-soft); }
+.list li { min-width: 0; border-bottom: 1px solid var(--color-border-soft); }
 .sourcePicker .list button { display: flex; width: 100%; gap: var(--space-3); justify-content: flex-start; border: 0; border-radius: 0; padding: var(--space-3); text-align: left; }
 .list button span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .list svg { flex-shrink: 0; width: var(--space-4); height: var(--space-4); color: var(--color-accent); }

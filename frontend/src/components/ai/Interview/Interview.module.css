@@ -33,22 +33,22 @@
 .interviewWorkspace { max-width: 1120px; margin-inline: auto; }
 
 /* The interview exposes one working stage; profile management keeps its own layout. */
-.interview { container: interview / inline-size; border: var(--interview-border, 1px solid var(--color-border)); padding: var(--interview-padding, var(--space-4)); --interview-title-size: 1.125rem; --fact-workspace-padding: var(--space-4); }
+.interview { container: interview / inline-size; border: var(--interview-border, 1px solid var(--color-border)); padding: var(--interview-padding, var(--space-6)); --interview-title-size: 1.125rem; --fact-workspace-padding: var(--space-4); }
 .utility { display: flex; flex-wrap: wrap; gap: var(--space-3); padding: 0; margin: 0; }
 .utility .link { border: 0; padding-inline: 0; font-weight: 400; text-decoration: underline; text-underline-offset: var(--space-1); }
 .utility [aria-disabled='true'] { opacity: .55; cursor: wait; }
 .interview .taskTitle { font-size: var(--interview-title-size, 1.125rem); line-height: 1.1; letter-spacing: -.02em; margin-bottom: var(--space-4); }
-.stages { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--space-4); list-style: none; padding: 0; margin: 0 0 var(--space-3); }
-.stages li { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); padding-block: var(--space-2); border-bottom: 2px solid var(--color-border); color: var(--color-muted); font-size: var(--text-ui); }
-.stages li > span { flex-shrink: 0; font: 1.5rem/1 var(--font-mono); }
-.stages li[aria-current] { border-color: var(--color-accent); color: var(--interview-ink); font-weight: 700; }
+.stages { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--space-4); list-style: none; padding: 0; margin: 0 0 var(--space-6); }
+.stages li { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); padding-block: var(--space-2); border-bottom: 1px solid var(--color-border-soft); color: var(--color-muted); font-size: var(--text-ui); }
+.stages li > span { flex-shrink: 0; font: var(--text-label)/1 var(--font-mono); }
+.stages li[aria-current] { border-bottom-width: 2px; border-color: var(--color-accent); color: var(--interview-ink); font-weight: 700; }
 .stages li[aria-current] > span { color: var(--color-accent); }
 .stageBody { animation: stage-enter var(--motion-slow) var(--motion-ease) both; }
 .templateGrid { list-style: none; padding: 0; margin: var(--space-4) 0; }
 .templateGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
 .templateGrid li { min-width: 0; }
-.templateGrid button { width: 100%; display: grid; gap: var(--space-3); padding: var(--space-3); text-align: left; background: var(--color-canvas); }
-.templateGrid img { display: block; width: 100%; height: clamp(96px, 16dvh, 160px); object-fit: contain; background: var(--color-paper); }
+.templateGrid button { width: 100%; display: grid; gap: var(--space-4); padding: var(--space-3); text-align: left; background: var(--color-paper); border-color: var(--color-border-soft); }
+.templateGrid img { display: block; width: 100%; height: clamp(96px, 16dvh, 160px); object-fit: contain; background: var(--color-canvas); padding: var(--space-2); }
 .templateGrid button > span { display: flex; justify-content: space-between; gap: var(--space-2); }
 .templateGrid button:hover:not(:disabled) { border-color: var(--color-accent); }
 @keyframes stage-enter { from { opacity: 0; transform: translateY(var(--space-3)); } to { opacity: 1; transform: translateY(0); } }
@@ -93,7 +93,7 @@
 .flow button, .flow a { font-size: var(--interview-control-size, 1rem); }
 
 /* Task title and utility links share a compact header; DOM order follows the display. */
-.taskHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-3); padding-bottom: var(--space-2); }
+.taskHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); padding-bottom: 0; }
 .taskHeader .utility { order: 2; }
 .taskHeader .taskTitle { margin: 0; }
 .interview .hint { font-size: .875rem; }
@@ -106,10 +106,31 @@
 .answerForm > label { margin-block: var(--space-2); }
 .answerForm > .actions { margin-block: var(--space-2); }
 .answerForm > .hint, .answerForm > h3 { margin-bottom: var(--space-2); }
-.conversationQuestion { border-bottom: 0; padding-bottom: 0; }
+.conversationQuestion { border: 0; padding-block: var(--space-4) 0; }
 @container interview (min-width: 900px) {
-  .conversationQuestion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; gap: var(--space-6); }
+  .conversationQuestion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; gap: var(--space-8); }
   .questionContext:empty { display: none; }
   .conversationQuestion:has(.questionContext:empty) { grid-template-columns: minmax(0, 1fr); }
   .templateGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* Task content leads; navigation and secondary choices keep their shared targets. */
+.utility button { font-weight: 400; font-size: var(--text-ui); }
+.utility .link { font-size: var(--text-ui); color: var(--color-muted); }
+.answerForm { max-width: 72ch; }
+.interview .answerForm > h3 { font-size: var(--interview-question-size, 1.25rem); margin-bottom: var(--space-3); }
+.answerForm > label { margin-top: var(--space-4); font-size: var(--text-ui); font-weight: 600; }
+.answerForm textarea { font-weight: 400; padding: var(--space-3); }
+.answerForm > .actions { margin-top: var(--space-3); margin-bottom: var(--space-4); }
+.answerForm > .actions > button:not(.primary) { border-color: transparent; text-decoration: underline; text-underline-offset: var(--space-1); font-weight: 400; }
+.answerForm > details { font-size: var(--text-ui); color: var(--color-muted); }
+.preparation > .hint { max-width: 65ch; }
+.preparation > .actions > button { font-size: var(--text-ui); font-weight: 400; }
+
+/* Short laptop screens retain the full task through spacing, never clipping. */
+@media (min-width: 1000px) and (max-height: 800px) {
+  .interview { padding: var(--interview-padding, var(--space-4)); }
+  .stages { margin-bottom: var(--space-3); }
+  .taskHeader { margin-bottom: var(--space-2); }
+  .conversationQuestion { padding-top: var(--space-2); }
 }
