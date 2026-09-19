@@ -56,10 +56,10 @@ from app.services.cv.readability import (
 from app.services.documents.service import make_image_resolver
 from app.services.storage.image_resolver import image_src_to_local_path
 
-# Luna is the shared default for assistant and interview actions.
+# Luna defaults to medium effort; an explicitly empty override selects task policy.
 _MODEL = os.getenv("AI_ASSISTANT_MODEL", "gpt-5.6-luna")
 _ASSISTANT_REASONING_EFFORT = (
-    os.getenv("AI_ASSISTANT_REASONING_EFFORT", "").strip().lower()
+    os.getenv("AI_ASSISTANT_REASONING_EFFORT", "medium").strip().lower()
 )
 _PROFILE_PATCHES_ENABLED = os.getenv("AI_ASSISTANT_PROFILE_PATCHES_ENABLED", "false").strip().lower() == "true"
 _DEFAULT_MAX_COMPLETION_TOKENS = 16_000
@@ -82,7 +82,7 @@ def _max_completion_tokens_for_action(action: str) -> int:
 
 
 def _reasoning_effort_for_action(action: str, task: str | None = None) -> str | None:
-    """Use task-specific effort unless deployment explicitly overrides it."""
+    """Use configured effort (medium by default); an empty value selects task policy."""
     return reasoning_effort(_model_for_action(action), action, task=task,
                             override=_ASSISTANT_REASONING_EFFORT)
 

@@ -4,7 +4,7 @@
 
 The backend separates inference policy from credit-billing actions, records content-free latency events, and can ask GPT for changed profile fields instead of a second full CV. The API model remains `gpt-5.6-luna`; the existing public response still contains `corrections` and `updated_cv_data`. No database migration, dependency, frontend change, or API endpoint is introduced.
 
-Production rollout is deliberately held: the Render Blueprint pins `AI_ASSISTANT_REASONING_EFFORT=high` and `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=false`. The application supports adaptive effort when the first variable is absent. Neither this document nor successful mocked tests constitutes approval to enable the experiment.
+The backend defaults to fixed `medium` effort, and the Render Blueprint pins `AI_ASSISTANT_REASONING_EFFORT=medium` and `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=false`. Apply the configuration through Blueprint synchronization and restart/redeploy. Adaptive effort requires an explicitly empty first variable. Adaptive effort and compact output remain optional experiments; the recorded benchmark did not evaluate fixed medium.
 
 ## Recorded live run: 18 September 2026
 
@@ -62,7 +62,7 @@ For each observation, a human reviewer compares `result` with the corresponding 
 python scripts/benchmark_ai_latency.py --evaluate-report ../tmp/ai-latency-live.json --reviews ../tmp/ai-latency-review.json --output ../tmp/ai-latency-reviewed.json
 ```
 
-The offline evaluation recomputes the summaries and validates output hashes. Passing requires all 24 cases, at least three repetitions of all three arms, no errors, explicit positive quality review of every observation, at least a 20% lower compact-arm median, and no worse compact-arm p95. Dry runs never qualify. Review per-action summaries as well: an aggregate improvement is not evidence that every task improved. The broader interview/scoped/translation quality review remains necessary before removing the global override for those operations.
+The offline evaluation recomputes the summaries and validates output hashes. Passing requires all 24 cases, at least three repetitions of all three arms, no errors, explicit positive quality review of every observation, at least a 20% lower compact-arm median, and no worse compact-arm p95. Dry runs never qualify. Review per-action summaries as well: an aggregate improvement is not evidence that every task improved. The broader interview/scoped/translation quality review remains necessary before opting those operations into adaptive task effort.
 
 ## Compatibility, limitations and rollback
 
@@ -70,7 +70,7 @@ Compact mapping first validates `cvDataBindings` against actual existing source 
 
 The response validator rejects unknown/duplicate IDs, blank replacements, changed protected numbers/tools, changed negation vocabulary, new placeholders, paragraph restructuring, and normalization that would change the profile structure. The finite `Python`/`Pythonie`/`Pythonem`/`Pythona` equivalence permits Polish inflection. These are conservative lexical guards, not proof of semantic fidelity; valid paraphrases may be rejected. Reported usage for rejected paid output is still settled once through the existing credit mechanisms.
 
-Roll out telemetry first. After reviewing the relevant quality evidence, remove the global reasoning override and restart; enable `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=true` only after its separate gate passes. To roll back, restore `AI_ASSISTANT_REASONING_EFFORT=high`, set the profile flag to `false`, and restart. Update the Blueprint as well as the running service so the next synchronization does not undo the intended state. Existing settled receipts and pending reservations retain their recovery behavior.
+Roll out telemetry first. After reviewing the relevant quality evidence, set `AI_ASSISTANT_REASONING_EFFORT` to an explicitly empty value and restart; enable `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=true` only after its separate gate passes. To roll back, restore `AI_ASSISTANT_REASONING_EFFORT=high`, set the profile flag to `false`, and restart. Update the Blueprint as well as the running service so the next synchronization does not undo the intended state. Existing settled receipts and pending reservations retain their recovery behavior.
 
 Relevant tests:
 
@@ -95,7 +95,7 @@ Official references: [Luna model](https://developers.openai.com/api/docs/models/
 
 Backend oddziela politykę inferencji od akcji rozliczającej kredyty, zapisuje pomiary czasu bez treści dokumentów i potrafi prosić GPT o zmienione pola zamiast drugiego pełnego CV. Modelem API pozostaje `gpt-5.6-luna`; publiczna odpowiedź nadal zawiera `corrections` oraz `updated_cv_data`. Zmiana nie wprowadza migracji bazy, zależności, modyfikacji frontendu ani endpointu API.
 
-Włączenie produkcyjne jest celowo wstrzymane: Blueprint Render ustawia `AI_ASSISTANT_REASONING_EFFORT=high` i `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=false`. Aplikacja obsługuje dobór poziomu do zadania przy braku pierwszej zmiennej. Ten dokument ani zaliczone testy z atrapami nie stanowią zatwierdzenia eksperymentu.
+Backend domyślnie używa stałego poziomu `medium`, a Blueprint Render ustawia `AI_ASSISTANT_REASONING_EFFORT=medium` i `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=false`. Zastosuj konfigurację przez synchronizację Blueprintu i restart lub ponowne wdrożenie. Dobór poziomu do zadania wymaga jawnie pustej pierwszej zmiennej. Dobór adaptacyjny i format kompaktowy pozostają opcjonalnymi eksperymentami; zapisany benchmark nie oceniał stałego medium.
 
 ## Zapisany pomiar API: 18 września 2026
 
@@ -153,7 +153,7 @@ Dla każdej obserwacji osoba oceniająca porównuje `result` z odpowiednim przyp
 python scripts/benchmark_ai_latency.py --evaluate-report ../tmp/ai-latency-live.json --reviews ../tmp/ai-latency-review.json --output ../tmp/ai-latency-reviewed.json
 ```
 
-Ocena offline przelicza podsumowania i sprawdza skróty odpowiedzi. Zaliczenie wymaga wszystkich 24 przypadków, co najmniej trzech powtórzeń wszystkich trzech wariantów, braku błędów, jawnej pozytywnej oceny każdej obserwacji, mediany wariantu compact krótszej o co najmniej 20% i niepogorszonego p95. Próba z atrapą nigdy nie kwalifikuje wdrożenia. Sprawdź też podsumowania dla poszczególnych akcji: lepszy wynik zbiorczy nie dowodzi poprawy każdego zadania. Przed usunięciem globalnego nadpisania dla wywiadu, edycji zakresowej i tłumaczenia nadal potrzebna jest ocena jakości tych przepływów.
+Ocena offline przelicza podsumowania i sprawdza skróty odpowiedzi. Zaliczenie wymaga wszystkich 24 przypadków, co najmniej trzech powtórzeń wszystkich trzech wariantów, braku błędów, jawnej pozytywnej oceny każdej obserwacji, mediany wariantu compact krótszej o co najmniej 20% i niepogorszonego p95. Próba z atrapą nigdy nie kwalifikuje wdrożenia. Sprawdź też podsumowania dla poszczególnych akcji: lepszy wynik zbiorczy nie dowodzi poprawy każdego zadania. Przed włączeniem adaptacyjnego poziomu zadania dla wywiadu, edycji zakresowej i tłumaczenia nadal potrzebna jest ocena jakości tych przepływów.
 
 ## Zgodność, ograniczenia i rollback
 
@@ -161,7 +161,7 @@ Mapowanie kompaktowe najpierw sprawdza `cvDataBindings` względem istniejących 
 
 Walidator odrzuca nieznane/powtórzone ID, puste zamienniki, zmienione chronione liczby/narzędzia, zmieniony zestaw negacji, nowe placeholdery, przebudowę akapitów i normalizację zmieniającą strukturę profilu. Skończona równoważność `Python`/`Pythonie`/`Pythonem`/`Pythona` dopuszcza polską odmianę. To ostrożne reguły leksykalne, a nie dowód zachowania znaczenia; prawidłowa parafraza może zostać odrzucona. Zużycie zgłoszone dla odrzuconej płatnej odpowiedzi nadal jest rozliczane jeden raz przez istniejący mechanizm kredytów.
 
-Najpierw wdróż pomiary. Po ocenie odpowiednich dowodów jakości usuń globalne nadpisanie poziomu i uruchom backend ponownie; `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=true` włącz dopiero po przejściu osobnej bramki. Rollback: przywróć `AI_ASSISTANT_REASONING_EFFORT=high`, ustaw flagę profilu na `false` i uruchom ponownie. Aktualizuj Blueprint oraz działającą usługę, aby kolejna synchronizacja nie cofnęła zamierzonego ustawienia. Rozliczone odpowiedzi i aktywne rezerwacje zachowują obecny mechanizm odzyskiwania.
+Najpierw wdróż pomiary. Po ocenie odpowiednich dowodów jakości ustaw `AI_ASSISTANT_REASONING_EFFORT` na jawnie pustą wartość i uruchom backend ponownie; `AI_ASSISTANT_PROFILE_PATCHES_ENABLED=true` włącz dopiero po przejściu osobnej bramki. Rollback: przywróć `AI_ASSISTANT_REASONING_EFFORT=high`, ustaw flagę profilu na `false` i uruchom ponownie. Aktualizuj Blueprint oraz działającą usługę, aby kolejna synchronizacja nie cofnęła zamierzonego ustawienia. Rozliczone odpowiedzi i aktywne rezerwacje zachowują obecny mechanizm odzyskiwania.
 
 Powiązane testy:
 

@@ -76,10 +76,10 @@ services:
       # Keep the deployment aligned with the shared assistant/interview default.
       - key: AI_ASSISTANT_MODEL
         value: gpt-5.6-luna
-      # Hold the production baseline until live quality/latency gates pass.
-      # Remove this override to activate the task-specific policy after review.
+      # Use medium effort across all assistant and interview tasks.
+      # An explicitly empty value activates the optional task-specific policy.
       - key: AI_ASSISTANT_REASONING_EFFORT
-        value: high
+        value: medium
       - key: AI_ASSISTANT_PROFILE_PATCHES_ENABLED
         value: "false"
       - key: CLOUDFLARE_ACCOUNT_ID
