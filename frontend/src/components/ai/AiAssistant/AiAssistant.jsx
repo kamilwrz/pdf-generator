@@ -38,6 +38,9 @@ import { collectPendingAiHighlights } from "../../../utils/aiCorrectionHighlight
 import { useDocumentLifecycle } from "../../../store/document-lifecycle-context";
 import {
     canvasEvidenceElementIds,
+    isIndirectMatch,
+    relatedCanvasEvidenceElementIds,
+    requirementIndirectLabel,
     requirementStatusLabel,
     validateJobOfferInput,
 } from "../../../utils/jobTailoring";
@@ -304,7 +307,11 @@ function RatingDashboard({
                     <ul className={classes.requirementList}>
                         {jobRequirements.map((item, index) => {
                             const statusLabel = requirementStatusLabel(item.match_status);
-                            const evidenceElementIds = canvasEvidenceElementIds(item)
+                            const indirect = isIndirectMatch(item);
+                            const directEvidenceIds = canvasEvidenceElementIds(item);
+                            // An indirect match highlights its transferable
+                            // (related) evidence instead of a direct proof.
+                            const evidenceElementIds = (indirect ? relatedCanvasEvidenceElementIds(item) : directEvidenceIds)
                                 .filter((elementId) => currentCanvasElementIds.has(elementId));
                             const canHighlightEvidence = evidenceElementIds.length > 0;
                             const previewKey = `${msg.id || "job-match"}:${item.id || index}`;
@@ -341,6 +348,13 @@ function RatingDashboard({
                                     )}
                                     <div>
                                         <strong>{item.text}</strong>
+                                        {indirect && (
+                                            <>
+                                                <span className={`${classes.requirementStatus} ${classes.requirementIndirect}`}>{requirementIndirectLabel()}</span>
+                                                {item.related_evidence && <p className={classes.requirementRelatedEvidence}>{item.related_evidence}</p>}
+                                                {item.transfer_note && <p className={classes.requirementTransferNote}>{item.transfer_note}</p>}
+                                            </>
+                                        )}
                                     </div>
                                 </li>
                             );

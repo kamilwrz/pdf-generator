@@ -122,6 +122,64 @@ class JobTailoringTests(unittest.TestCase):
         self.assertEqual(requirement["evidence"], "")
         self.assertEqual(result["categories"][0]["score"], 0.0)
 
+    def test_indirect_match_keeps_related_evidence_and_gap_without_upgrading_status(self):
+        raw = self._raw()
+        # AWS is not directly confirmed, but the candidate has related cloud work.
+        raw["requirements"][1].update({
+            "match_status": "missing",
+            "related_evidence_refs": ["canvas:summary"],
+            "transfer_note": "Praca z Python i SQL to pokrewna podstawa; brak potwierdzenia AWS.",
+        })
+
+        result = build_job_tailoring_result(raw, elements=self.elements, cv_data=self.profile)
+
+        aws = result["job_requirements"][1]
+        # Status and score are unchanged: a transfer is not a fulfilled requirement.
+        self.assertEqual(aws["match_status"], "missing")
+        self.assertEqual(aws["related_evidence_refs"], ["canvas:summary"])
+        self.assertIn("Analityk danych", aws["related_evidence"])
+        self.assertEqual(aws["transfer_note"], "Praca z Python i SQL to pokrewna podstawa; brak potwierdzenia AWS.")
+        # Score is identical to the same requirement without a transfer.
+        self.assertEqual(result["categories"][0]["score"], build_job_tailoring_result(
+            self._raw(), elements=self.elements, cv_data=self.profile)["categories"][0]["score"])
+
+    def test_indirect_match_drops_unknown_related_refs_and_a_note_without_support(self):
+        raw = self._raw()
+        raw["requirements"][1].update({
+            "match_status": "partial",
+            "evidence_refs": ["canvas:summary"],
+            "related_evidence_refs": ["canvas:missing"],
+            "transfer_note": "Nieoparta na dowodzie hipoteza.",
+        })
+
+        aws = build_job_tailoring_result(raw, elements=self.elements, cv_data=self.profile)["job_requirements"][1]
+
+        # An unknown related ref is dropped, and a transfer note without any
+        # surviving related evidence is not exposed as an indirect match.
+        self.assertEqual(aws["related_evidence_refs"], [])
+        self.assertEqual(aws["related_evidence"], "")
+        self.assertEqual(aws["transfer_note"], "")
+
+    def test_matched_requirement_never_reports_a_redundant_transfer(self):
+        raw = self._raw()
+        raw["requirements"][0].update({
+            "related_evidence_refs": ["canvas:summary"],
+            "transfer_note": "Zbędne przy pełnym dopasowaniu.",
+        })
+
+        python = build_job_tailoring_result(raw, elements=self.elements, cv_data=self.profile)["job_requirements"][0]
+
+        self.assertEqual(python["match_status"], "matched")
+        self.assertEqual(python["related_evidence_refs"], [])
+        self.assertEqual(python["transfer_note"], "")
+
+    def test_legacy_analysis_without_transfer_fields_stays_valid(self):
+        aws = build_job_tailoring_result(self._raw(), elements=self.elements, cv_data=self.profile)["job_requirements"][1]
+
+        self.assertEqual(aws["related_evidence_refs"], [])
+        self.assertEqual(aws["related_evidence"], "")
+        self.assertEqual(aws["transfer_note"], "")
+
     def test_priorities_are_kept_only_for_partial_or_missing_requirements(self):
         result = build_job_tailoring_result(
             self._raw(),

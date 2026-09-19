@@ -14,15 +14,15 @@ Końcowa polityka `ui_language_policy()` w `app/core/localisation.py` jest doł�
 
 | Akcja API | Cel UI | Handler | Odpowiedzialność |
 | --- | --- | --- | --- |
-| `rating` | Sprawdź CV | `_rate_cv` (linie 1187–1225) | przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami |
-| `position_rating` | Dopasuj do oferty | `_tailor_cv_to_position` (linie 1228–1307) | analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad |
-| `grammar` | Sprawdź błędy | `_fix_grammar` (linie 1310–1348) | poprawia gramatykę, ortografię i interpunkcję |
-| `language` | Popraw język | `_check_style` (linie 1366–1417) | ulepsza styl w języku bieżącego CV |
-| `improve` | Wzmocnij treść | `_improve_content` (linie 1420–1463) | wzmacnia opisy bez wymyślania faktów |
-| `shorten` | Skróć CV | `_shorten_content` (linie 1466–1527) | kondensuje treść bez zmiany znaczenia |
-| `ats_score` | Sprawdź ATS | `_ats_score` (linie 1815–1913) | łączy deterministyczny odczyt PDF z oceną struktury |
-| `translate` | Przetłumacz CV | `_translate_cv` (linie 1714–1812) | tłumaczy pełną treść i profil na wybrany język |
-| `chat` | Czat | `_chat` (linie 1938–2239) | odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji |
+| `rating` | Sprawdź CV | `_rate_cv` (linie 1201–1239) | przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami |
+| `position_rating` | Dopasuj do oferty | `_tailor_cv_to_position` (linie 1242–1321) | analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad |
+| `grammar` | Sprawdź błędy | `_fix_grammar` (linie 1324–1362) | poprawia gramatykę, ortografię i interpunkcję |
+| `language` | Popraw język | `_check_style` (linie 1380–1431) | ulepsza styl w języku bieżącego CV |
+| `improve` | Wzmocnij treść | `_improve_content` (linie 1434–1477) | wzmacnia opisy bez wymyślania faktów |
+| `shorten` | Skróć CV | `_shorten_content` (linie 1480–1541) | kondensuje treść bez zmiany znaczenia |
+| `ats_score` | Sprawdź ATS | `_ats_score` (linie 1829–1927) | łączy deterministyczny odczyt PDF z oceną struktury |
+| `translate` | Przetłumacz CV | `_translate_cv` (linie 1728–1826) | tłumaczy pełną treść i profil na wybrany język |
+| `chat` | Czat | `_chat` (linie 1952–2253) | odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji |
 
 `grammar`, `language`, `improve` i `shorten` używają wykrytego lub jawnie wybranego `cv_language`. Akcja `translate` wymaga `target_language`; rady UI używają języka żądania (PL lub EN), a proponowana treść jest zwracana w języku docelowym.
 
@@ -510,7 +510,7 @@ Pytania o brakujące dowody są pomocą dla autora, nie gotową treścią do zas
 
 ## `rating` — Sprawdź CV
 
-Handler `_rate_cv` w `backend/app/services/ai/assistant/service.py`, linie 1187–1225. Funkcja przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami.
+Handler `_rate_cv` w `backend/app/services/ai/assistant/service.py`, linie 1201–1239. Funkcja przeprowadza audyt 12 kategorii treści z dowodami, licznikami i kolejnymi akcjami; ATS i oferta pozostają osobnymi badaniami.
 
 ```python
 def _rate_cv(text: str, elements: list[dict]) -> dict:
@@ -556,7 +556,7 @@ def _rate_cv(text: str, elements: list[dict]) -> dict:
 
 ## `position_rating` — Dopasuj do oferty
 
-Handler `_tailor_cv_to_position` w `backend/app/services/ai/assistant/service.py`, linie 1228–1307. Funkcja analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad.
+Handler `_tailor_cv_to_position` w `backend/app/services/ai/assistant/service.py`, linie 1242–1321. Funkcja analizuje CV wobec oferty; dopasowaną treść przygotowuje wywiad.
 
 ```python
 def _tailor_cv_to_position(
@@ -643,7 +643,7 @@ def _tailor_cv_to_position(
 
 ## `grammar` — Sprawdź błędy
 
-Handler `_fix_grammar` w `backend/app/services/ai/assistant/service.py`, linie 1310–1348. Funkcja poprawia gramatykę, ortografię i interpunkcję.
+Handler `_fix_grammar` w `backend/app/services/ai/assistant/service.py`, linie 1324–1362. Funkcja poprawia gramatykę, ortografię i interpunkcję.
 
 ```python
 def _fix_grammar(elements: list[dict], language_code: str = "pl") -> dict:
@@ -651,7 +651,7 @@ def _fix_grammar(elements: list[dict], language_code: str = "pl") -> dict:
 
     ``language_code`` fixes the language of the corrected `content` so an
     English or German CV is not silently rewritten into Polish. Advice fields
-    remain Polish (see `_content_language_directive`).
+    follow the UI language (see `_content_language_directive`).
     """
     structured = _extract_content(elements)
 
@@ -689,7 +689,7 @@ Zwróć JSON:
 
 ## `language` — Popraw język
 
-Handler `_check_style` w `backend/app/services/ai/assistant/service.py`, linie 1366–1417. Funkcja ulepsza styl w języku bieżącego CV.
+Handler `_check_style` w `backend/app/services/ai/assistant/service.py`, linie 1380–1431. Funkcja ulepsza styl w języku bieżącego CV.
 
 ```python
 def _check_style(text: str, elements: list[dict], language_code: str = "pl") -> dict:
@@ -748,13 +748,13 @@ Zwróć JSON:
 
 ## `improve` — Wzmocnij treść
 
-Handler `_improve_content` w `backend/app/services/ai/assistant/service.py`, linie 1420–1463. Funkcja wzmacnia opisy bez wymyślania faktów.
+Handler `_improve_content` w `backend/app/services/ai/assistant/service.py`, linie 1434–1477. Funkcja wzmacnia opisy bez wymyślania faktów.
 
 ```python
 def _improve_content(elements: list[dict], language_code: str = "pl") -> dict:
     """Suggest stronger CV wording without changing layout geometry.
 
-    ``language_code`` keeps rewrites in the CV language; advice stays Polish.
+    Rewrites follow ``language_code``; advice follows the UI language.
     """
     structured = _extract_content(elements)
     language_mix = _detect_language_mix(elements)
@@ -799,7 +799,7 @@ Zwróć JSON:
 
 ## `shorten` — Skróć CV
 
-Handler `_shorten_content` w `backend/app/services/ai/assistant/service.py`, linie 1466–1527. Funkcja kondensuje treść bez zmiany znaczenia.
+Handler `_shorten_content` w `backend/app/services/ai/assistant/service.py`, linie 1480–1541. Funkcja kondensuje treść bez zmiany znaczenia.
 
 ```python
 def _shorten_content(elements: list[dict], language_code: str = "pl") -> dict:
@@ -868,7 +868,7 @@ Zwróć JSON:
 
 ## `ats_score` — Sprawdź ATS
 
-Handler `_ats_score` w `backend/app/services/ai/assistant/service.py`, linie 1815–1913. Funkcja łączy deterministyczny odczyt PDF z oceną struktury.
+Handler `_ats_score` w `backend/app/services/ai/assistant/service.py`, linie 1829–1927. Funkcja łączy deterministyczny odczyt PDF z oceną struktury.
 
 ```python
 def _ats_score(
@@ -974,7 +974,7 @@ Zwróć JSON:
 
 ## `translate` — Przetłumacz CV
 
-Handler `_translate_cv` w `backend/app/services/ai/assistant/service.py`, linie 1714–1812. Funkcja tłumaczy pełną treść i profil na wybrany język.
+Handler `_translate_cv` w `backend/app/services/ai/assistant/service.py`, linie 1728–1826. Funkcja tłumaczy pełną treść i profil na wybrany język.
 
 ```python
 def _translate_cv(
@@ -1080,7 +1080,7 @@ Zwróć JSON:
 
 ## `chat` — Czat
 
-Handler `_chat` w `backend/app/services/ai/assistant/service.py`, linie 1938–2239. Funkcja odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji.
+Handler `_chat` w `backend/app/services/ai/assistant/service.py`, linie 1952–2253. Funkcja odpowiada na pytania o CV i przygotowuje bezpieczne operacje do akceptacji.
 
 ```python
 def _chat(
@@ -1389,7 +1389,7 @@ Zwróć JSON:
 
 ## Redakcja kanonicznego profilu CV
 
-Handler `_rewrite_profile_content` w `backend/app/services/ai/assistant/service.py`, linie 1591–1681. Przy istniejącym `cv_data` zwraca kompletny `updated_cv_data` i poprawki płótna do akceptacji. Wspólny standard jest dołączany zależnie od wybranej akcji; jej reguły nadal określają język, zakres i dozwolone zmiany struktury.
+Handler `_rewrite_profile_content` w `backend/app/services/ai/assistant/service.py`, linie 1605–1695. Przy istniejącym `cv_data` zwraca kompletny `updated_cv_data` i poprawki płótna do akceptacji. Wspólny standard jest dołączany zależnie od wybranej akcji; jej reguły nadal określają język, zakres i dozwolone zmiany struktury.
 
 ```python
 def _rewrite_profile_content(
@@ -1537,10 +1537,14 @@ Uwzględniaj tylko rzeczywiście zmienione fragmenty. Puste tablice są poprawn�
 
 ## Redakcja i wersjonowanie generowania po wywiadzie
 
-Plik `backend/app/services/interviews/editorial.py`, linie 1–204. `EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. Zwraca pełne `path/value/additional_points`, zachowuje dowody i zaakceptowane `framing`; serwer dopisuje fragmenty podziału do tej samej roli. Niezależna weryfikacja sprawdza fakty i czytelność; dopuszcza jedną parę redakcji i kontroli naprawczej. Wersja procesu unieważnia ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.
+Plik `backend/app/services/interviews/editorial.py`, linie 1–208. `EDITORIAL_TASK` stosuje wspólny standard wyłącznie do edytowalnej prozy. Zwraca pełne `path/value/additional_points`, zachowuje dowody i zaakceptowane `framing`; serwer dopisuje fragmenty podziału do tej samej roli. Niezależna weryfikacja sprawdza fakty i czytelność; dopuszcza jedną parę redakcji i kontroli naprawczej. Wersja procesu unieważnia ponowne użycie etapów starszej polityki, bez blokowania odczytu zapisanych podglądów.
 
 ```python
 """Content-only interview redaction and resumable, version-bound generation.
+
+Editing wording and changing evidence are separate operations. A draft may
+rephrase a supported fact, but it must not replace the saved answer that proves
+it. A stage cache stores a completed paid result so a later retry can reuse it.
 
 Raw answers never pass through a write here. A durable attempt ID joins paid
 stage caches across recoverable failures; only the final verified CV is applied.
@@ -1748,7 +1752,7 @@ def begin_generation(db, row, request, profile):
 
 ## Wspólna polityka dopasowania i redakcji CV
 
-Plik `backend/app/services/tailoring/policy.py`, linie 1–191. Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.
+Plik `backend/app/services/tailoring/policy.py`, linie 1–208. Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.
 
 ```python
 """Shared job-matching instructions for analysis and verified CV preparation.
@@ -1820,6 +1824,20 @@ wywiadu dopasowane do zawodu: zadanie, metoda, wybór, jakość, trudność, wsp
 nauka lub obserwowany efekt. Jeden kierunek na brak; bez rutynowej listy o samodzielności
 i wyniku. Nie wymuszaj metryk ani potwierdzenia treści przepisanej z oferty.
 
+DOPASOWANIE POŚREDNIE (TRANSFEROWALNE)
+Dla wymagania partial lub missing aktywnie szukaj pokrewnej podstawy w istniejących
+źródłach: podobne czynności, porównywalny efekt pracy, sąsiedni obszar, a także
+kompetencje miękkie wynikające z opisanej sytuacji (koordynacja wolontariuszy wskazuje
+na organizację pracy zespołu; obsługa trudnych zgłoszeń — na komunikację i odporność).
+Umieść takie dowody w related_evidence_refs, używając wyłącznie istniejących
+identyfikatorów źródeł, nie evidence_refs. To nie jest potwierdzenie wymagania:
+dopasowanie pośrednie nigdy nie zmienia match_status ani wagi i nie przenosi braku.
+W transfer_note napisz jedno zdanie: na czym polega pokrewieństwo i czego nadal brakuje
+do pełnego spełnienia (np. „projekt edukacyjny w SQL to pokrewna podstawa; brak
+komercyjnego stażu"). Gdy nie ma realnie pokrewnego dowodu, zostaw related_evidence_refs
+puste i transfer_note pusty; nie naciągaj odległych skojarzeń ani samego słowa z oferty.
+Dla matched nie podawaj transferu — wymaganie jest już spełnione wprost.
+
 DOPASOWANIE DO ZAWODU
 Dobierz istotny konkret do roli, bez odpytywania wszystkich według jednego schematu:
 inżynieria — decyzja, integracja, niezawodność lub wdrożenie; zarządzanie — organizacja
@@ -1842,6 +1860,9 @@ Gdy ten sam fakt występuje w profilu i na kanwie, preferuj cv:/path z profile_e
 te identyfikatory zachowują kontekst pola podczas wywiadu. canvas: stosuj dla treści
 obecnej tylko na kanwie, note: dla notatek. Nie twórz ścieżek spoza podanego katalogu.
 Nie dopisuj negatywnej diagnozy 'nie znasz' na podstawie pustego fragmentu CV.
+related_evidence_refs (0–5) i transfer_note wypełniaj tylko dla partial/missing z realnie
+pokrewnym dowodem, zgodnie z sekcją DOPASOWANIE POŚREDNIE; w pozostałych razach zostaw
+pustą listę i pusty transfer_note. Te pola nie liczą się do wyniku i nie zmieniają statusu.
 
 message: 2–3 konkretne zdania o najważniejszym dopasowaniu i istotnej niewiadomej;
 bez liczbowej oceny, procentu szans, prognozy rekrutacji ani obietnicy przejścia ATS.

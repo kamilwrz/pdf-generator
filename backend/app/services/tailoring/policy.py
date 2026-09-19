@@ -67,6 +67,20 @@ wywiadu dopasowane do zawodu: zadanie, metoda, wybór, jakość, trudność, wsp
 nauka lub obserwowany efekt. Jeden kierunek na brak; bez rutynowej listy o samodzielności
 i wyniku. Nie wymuszaj metryk ani potwierdzenia treści przepisanej z oferty.
 
+DOPASOWANIE POŚREDNIE (TRANSFEROWALNE)
+Dla wymagania partial lub missing aktywnie szukaj pokrewnej podstawy w istniejących
+źródłach: podobne czynności, porównywalny efekt pracy, sąsiedni obszar, a także
+kompetencje miękkie wynikające z opisanej sytuacji (koordynacja wolontariuszy wskazuje
+na organizację pracy zespołu; obsługa trudnych zgłoszeń — na komunikację i odporność).
+Umieść takie dowody w related_evidence_refs, używając wyłącznie istniejących
+identyfikatorów źródeł, nie evidence_refs. To nie jest potwierdzenie wymagania:
+dopasowanie pośrednie nigdy nie zmienia match_status ani wagi i nie przenosi braku.
+W transfer_note napisz jedno zdanie: na czym polega pokrewieństwo i czego nadal brakuje
+do pełnego spełnienia (np. „projekt edukacyjny w SQL to pokrewna podstawa; brak
+komercyjnego stażu"). Gdy nie ma realnie pokrewnego dowodu, zostaw related_evidence_refs
+puste i transfer_note pusty; nie naciągaj odległych skojarzeń ani samego słowa z oferty.
+Dla matched nie podawaj transferu — wymaganie jest już spełnione wprost.
+
 DOPASOWANIE DO ZAWODU
 Dobierz istotny konkret do roli, bez odpytywania wszystkich według jednego schematu:
 inżynieria — decyzja, integracja, niezawodność lub wdrożenie; zarządzanie — organizacja
@@ -89,6 +103,9 @@ Gdy ten sam fakt występuje w profilu i na kanwie, preferuj cv:/path z profile_e
 te identyfikatory zachowują kontekst pola podczas wywiadu. canvas: stosuj dla treści
 obecnej tylko na kanwie, note: dla notatek. Nie twórz ścieżek spoza podanego katalogu.
 Nie dopisuj negatywnej diagnozy 'nie znasz' na podstawie pustego fragmentu CV.
+related_evidence_refs (0–5) i transfer_note wypełniaj tylko dla partial/missing z realnie
+pokrewnym dowodem, zgodnie z sekcją DOPASOWANIE POŚREDNIE; w pozostałych razach zostaw
+pustą listę i pusty transfer_note. Te pola nie liczą się do wyniku i nie zmieniają statusu.
 
 message: 2–3 konkretne zdania o najważniejszym dopasowaniu i istotnej niewiadomej;
 bez liczbowej oceny, procentu szans, prognozy rekrutacji ani obietnicy przejścia ATS.

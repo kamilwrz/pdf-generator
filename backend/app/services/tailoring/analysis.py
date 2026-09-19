@@ -40,7 +40,8 @@ JOB_TAILORING_RESPONSE_SCHEMA = {
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["id", "text", "kind", "weight", "match_status", "evidence_refs"],
+                    "required": ["id", "text", "kind", "weight", "match_status", "evidence_refs",
+                                 "related_evidence_refs", "transfer_note"],
                     "properties": {
                         "id": {"type": "string"},
                         "text": {"type": "string"},
@@ -52,6 +53,18 @@ JOB_TAILORING_RESPONSE_SCHEMA = {
                             "maxItems": 5,
                             "items": {"type": "string"},
                         },
+                        # Transferable (indirect) support for a partial/missing
+                        # requirement: existing candidate evidence whose meaning
+                        # is related but not a direct proof. Grounded against the
+                        # same evidence catalog; never upgrades match_status.
+                        "related_evidence_refs": {
+                            "type": "array",
+                            "maxItems": 5,
+                            "items": {"type": "string"},
+                        },
+                        # One sentence naming the bridge and the residual gap.
+                        # Presentation/question context only; never a career fact.
+                        "transfer_note": {"type": "string"},
                     },
                 },
             },
@@ -366,6 +379,18 @@ def _normalise_requirements(
             status = "missing"
         if status == "missing":
             evidence_refs = []
+        # Transferable support: existing evidence whose meaning is related but is
+        # not a direct proof. It is grounded exactly like a match reference, but
+        # never changes the score or upgrades the status. A matched requirement
+        # needs no transfer (it is already directly satisfied), and a related ref
+        # that duplicates the direct proof adds nothing.
+        related_refs = _valid_evidence_refs(item.get("related_evidence_refs"), evidence_catalog)
+        related_refs = [ref for ref in related_refs if ref not in evidence_refs]
+        if status == "matched":
+            related_refs = []
+        # The note only makes sense when it accompanies surviving related
+        # evidence; a bare hypothesis is not exposed as an indirect match.
+        transfer_note = _feedback_text(item.get("transfer_note"))[:2000] if related_refs else ""
         default_weight = {"required": 3, "preferred": 2, "responsibility": 1}[kind]
         try:
             weight = max(1, min(3, int(item.get("weight", default_weight))))
@@ -379,6 +404,9 @@ def _normalise_requirements(
             "match_status": status,
             "evidence": _evidence_excerpt(evidence_refs, evidence_catalog),
             "evidence_refs": evidence_refs,
+            "related_evidence": _evidence_excerpt(related_refs, evidence_catalog),
+            "related_evidence_refs": related_refs,
+            "transfer_note": transfer_note,
         })
     aliases = {
         original_id: canonical_ids[next(iter(targets))]

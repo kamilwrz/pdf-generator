@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { t } from '../../../i18n';
+import { isIndirectMatch, requirementIndirectLabel } from '../../../utils/jobTailoring.js';
 import classes from './JobMatchPanel.module.css';
 
 /** Full assistant workspace: analyse an offer, then reuse its findings in an interview. */
@@ -41,10 +42,19 @@ export default function JobMatchPanel({ url, description, notes, onUrl, onDescri
       <h3 ref={resultHeading} tabIndex={-1}>{t('ai:jobMatch.result')}</h3>
       {stale ? <p role="status">{t('ai:jobMatch.stale')}</p> : <p>{t('ai:jobMatch.analysisHint')}</p>}
       {analysis.jobOffer?.title && <p><strong>{analysis.jobOffer.title}</strong></p>}
-      <ul>{requirements.map((item, index) => <li key={item.id || index}>
-        <span className={classes.status} data-status={item.match_status}>{t(`ai:jobMatch.${['matched', 'partial'].includes(item.match_status) ? item.match_status : 'missing'}`)}</span>
-        <strong>{item.text}</strong>
-      </li>)}</ul>
+      <ul>{requirements.map((item, index) => {
+        const indirect = isIndirectMatch(item);
+        return <li key={item.id || index} data-indirect={indirect || undefined}>
+          <span className={classes.status} data-status={item.match_status}>{t(`ai:jobMatch.${['matched', 'partial'].includes(item.match_status) ? item.match_status : 'missing'}`)}</span>
+          {indirect && <span className={classes.indirect}>{requirementIndirectLabel()}</span>}
+          <strong>{item.text}</strong>
+          {/* Show the related CV evidence and the residual gap so the user can
+              see how their existing experience supports this requirement even
+              though it is not a direct match. */}
+          {indirect && item.related_evidence && <p className={classes.relatedEvidence}>{item.related_evidence}</p>}
+          {indirect && item.transfer_note && <p className={classes.transferNote}>{item.transfer_note}</p>}
+        </li>;
+      })}</ul>
       {requirements.length === 0 && <p>{analysis.text}</p>}
       {analysis.strengths?.length > 0 && <details><summary>{t('ai:jobMatch.strengths')}</summary><ul>{analysis.strengths.map((text, i) => <li key={i}>{text}</li>)}</ul></details>}
     </section>}

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
     canvasEvidenceElementIds,
+    isIndirectMatch,
+    relatedCanvasEvidenceElementIds,
+    requirementIndirectLabel,
     requirementStatusLabel,
     validateJobOfferInput,
 } from "./jobTailoring";
@@ -55,5 +58,32 @@ describe("job tailoring form", () => {
             evidence_refs: "canvas:not-an-array",
         })).toEqual([]);
         expect(canvasEvidenceElementIds(null)).toEqual([]);
+    });
+
+    it("recognises an indirect (transferable) match only with related evidence", () => {
+        expect(isIndirectMatch({ match_status: "missing", related_evidence_refs: ["canvas:summary"] })).toBe(true);
+        expect(isIndirectMatch({ match_status: "partial", related_evidence_refs: ["note:1"] })).toBe(true);
+        // A direct match, or a partial/missing requirement without related
+        // evidence, is not an indirect match.
+        expect(isIndirectMatch({ match_status: "matched", related_evidence_refs: ["canvas:summary"] })).toBe(false);
+        expect(isIndirectMatch({ match_status: "missing", related_evidence_refs: [] })).toBe(false);
+        expect(isIndirectMatch({ match_status: "missing" })).toBe(false);
+        expect(isIndirectMatch(null)).toBe(false);
+    });
+
+    it("maps related canvas evidence for an indirect match and ignores non-canvas refs", () => {
+        expect(relatedCanvasEvidenceElementIds({
+            match_status: "missing",
+            related_evidence_refs: ["canvas:experience:0", "note:1", "cv:/summary", "canvas:experience:0"],
+        })).toEqual(["experience:0"]);
+        // Direct matches expose their evidence through the direct mapper, not here.
+        expect(relatedCanvasEvidenceElementIds({
+            match_status: "matched",
+            related_evidence_refs: ["canvas:summary"],
+        })).toEqual([]);
+    });
+
+    it("labels the indirect match in Polish", () => {
+        expect(requirementIndirectLabel()).toBe("Dopasowanie pośrednie");
     });
 });

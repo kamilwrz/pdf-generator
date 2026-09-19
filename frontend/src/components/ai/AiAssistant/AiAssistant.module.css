@@ -688,6 +688,18 @@
 
 .requirement_missing { color: var(--color-danger); }
 
+/* Transferable/indirect match: an accent badge plus quiet supporting copy so
+   related experience reads as context, never as a confirmed requirement. */
+.requirementIndirect { color: var(--color-accent); margin-top: var(--space-1); }
+
+.requirementRelatedEvidence { margin: var(--space-1) 0 0; color: var(--color-muted); font: 400 var(--text-ui)/1.5 var(--font-ui); }
+
+.requirementRelatedEvidence::before { content: "“"; }
+
+.requirementRelatedEvidence::after { content: "”"; }
+
+.requirementTransferNote { margin: var(--space-1) 0 0; color: var(--color-ink-soft, var(--color-muted)); font: 400 var(--text-ui)/1.5 var(--font-ui); }
+
 .requirementStatusInteractive {
     appearance: none;
     cursor: pointer;
