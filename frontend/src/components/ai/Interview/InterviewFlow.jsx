@@ -294,7 +294,10 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
   // facts before leaving. Failed saves retain the editor and its local draft.
   function goTo(key) {
     if (busy || factEditing || (key !== 'facts' && facts.some((fact) => !fact.text.trim()))) return;
-    const show = () => { setReviewOpen(key === 'facts'); setPanel(key); };
+    // Clear a status left over from the previous task (e.g. "answer saved")
+    // so it cannot linger, out of context, on the panel being entered. The
+    // confirm branch below sets its own notice right after this call.
+    const show = () => { setReviewOpen(key === 'facts'); setPanel(key); setNotice(''); };
     if (key === 'facts' || !needsFactSave) { show(); return; }
     return run(async () => {
       await operation('confirm', { facts });
@@ -341,13 +344,19 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       const message = status === 'answered' ? uiText("interview:interviewFlow.answerSaved", { value0: (destination) })
         : status === 'no_experience' ? uiText("interview:interviewFlow.lackOfExperienceSaved", { value0: (destination) })
           : status === 'unknown' ? uiText("interview:interviewFlow.savedICannotRemember") : uiText("interview:interviewFlow.questionSkipped");
-      setAnswer(''); setAssistedAnswer(null); setNotice(message);
+      setAnswer(''); setAssistedAnswer(null);
       // Persist first. A failed next-question request leaves the saved answer
       // intact and exposes explicit retry; loading a session never runs AI.
+      // An explicit "finish" click moves straight to template selection, whose
+      // own heading already confirms progress; leaving this notice set would
+      // otherwise linger there as a stale, out-of-context status line.
       if (finish) setPanel('prepare');
-      else if (next && !session.question.clarification && canAi && !sourceChanged) {
-        const following = canContinue(next) ? await operation('next') : next;
-        if (alive.current && following && !following.question) setPanel('prepare');
+      else {
+        setNotice(message);
+        if (next && !session.question.clarification && canAi && !sourceChanged) {
+          const following = canContinue(next) ? await operation('next') : next;
+          if (alive.current && following && !following.question) setPanel('prepare');
+        }
       }
     }
   }, 'answers');

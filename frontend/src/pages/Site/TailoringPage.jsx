@@ -23,7 +23,7 @@ const setupSteps = ['source', 'offer', 'questions'];
 export default function TailoringPage() {
   const { flowId } = useParams();
   useTranslation();
-  return <SiteLayout workspace={Boolean(getAccessToken())} compact dense focused title={t('public:siteLayout.interview')}
+  return <SiteLayout workspace={Boolean(getAccessToken())} compact dense focused showFooter title={t('public:siteLayout.interview')}
     eyebrow={t('interview:interviewPage.interviewPro')}
     breadcrumbs={[{ label: t('public:siteLayout.interview'), to: '/app/assistant' }, { label: t('tailoring:title') }]}>
     {!getAccessToken() ? <section className={styles.panel}>

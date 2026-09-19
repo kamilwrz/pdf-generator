@@ -27,7 +27,7 @@ def env():
     other = User(username='tailor-other', email='other@example.com', hashed_password='test', is_active=True)
     db.add_all([user, other]); db.commit()
     seed_plans(db); set_user_plan(db, user.id, 'free')
-    cv = Pdf(owner_id=user.id, title='Source CV', cv_data={'name': 'Anna Example', 'skills': ['SQL']}, revision=1, template_id='linden')
+    cv = Pdf(owner_id=user.id, title='Source CV', cv_data={'name': 'Anna Example', 'skills': ['SQL']}, revision=1, template_id='meridian')
     db.add(cv); db.commit()
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_current_user] = lambda: user
@@ -84,7 +84,10 @@ def test_start_replays_one_confirmed_isolated_interview_without_ai(env):
     assert session.state['evidence_scope'] == 'session'
     assert session.state['confirmed'] is True
     assert session.state['answers'] == [] and session.state['question'] is None
-    assert session.state['template_id'] == 'linden'
+    # The tailored session preserves the source CV's own template rather than
+    # a hardcoded default, matching the /preview "tailoring preserves the
+    # source CV template" rule instead of silently overriding it.
+    assert session.state['template_id'] == 'meridian'
     assert db.query(CareerProfile).count() == 0
     # A completed document is obtained from server state, never a client ID.
     state = deepcopy(session.state); state['document_id'] = 123; session.state = state; db.commit()

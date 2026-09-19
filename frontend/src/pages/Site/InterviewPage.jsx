@@ -19,7 +19,7 @@ export default function InterviewPage() {
   // Saved sessions can originate from either mode; do not relabel a resumed
   // tailoring conversation as general improvement before its data is loaded.
   const mode = uiText(sessionId ? 'documents:documentsPage.savedConversation' : 'public:hero.openInterview');
-  return <SiteLayout workspace compact dense focused title={uiText("interview:interviewPage.cvThroughAnInterview")} eyebrow={uiText("interview:interviewPage.interviewPro")}
+  return <SiteLayout workspace compact dense focused showFooter title={uiText("interview:interviewPage.cvThroughAnInterview")} eyebrow={uiText("interview:interviewPage.interviewPro")}
     breadcrumbs={[{ label: uiText('public:siteLayout.interview'), to: '/app/assistant' }, { label: mode }]}>
     <div className={classes.interviewWorkspace}>{!sessionId && params.has('source')
       ? <OnboardingSource key={`${kind}:${sourceId}:${language}`} kind={kind} sourceId={sourceId} language={language} />

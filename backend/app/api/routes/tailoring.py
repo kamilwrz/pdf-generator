@@ -196,7 +196,12 @@ def start_flow(flow_id: UUID, request: Start, http_request: Request,
         db.refresh(row)
     try:
         session = create_interview(InterviewCreate(
-            mode="tailor", include_profile=False, template_id="linden", language=state["language"],
+            # Leave template_id unset so create_interview falls back to the
+            # selected source's own template. A document source then keeps its
+            # existing design; a PDF import has no known template and offers
+            # the full gallery, matching the /preview "tailoring preserves the
+            # source CV template" rule instead of silently overriding it.
+            mode="tailor", include_profile=False, language=state["language"],
             **{f"source_{state['source_kind']}_id": state["source_id"]},
             job_description=state["job_description"] if state["offer_kind"] == "text" else "",
             job_offer_url=state["job_offer_url"] if state["offer_kind"] == "url" else "",

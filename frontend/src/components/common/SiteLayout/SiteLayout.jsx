@@ -44,7 +44,7 @@ export function SiteFooter() {
 }
 
 /** Route changes reset reading position and focus, while anchors keep native navigation. */
-export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, workspace = false, breadcrumbs, heroAside, heroActions, compact = false, dense = false, focused = false, children }) {
+export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, workspace = false, breadcrumbs, heroAside, heroActions, compact = false, dense = false, focused = false, showFooter = false, children }) {
   useTranslation();
   const heading = useRef(null);
   const { pathname, hash } = useLocation();
@@ -83,6 +83,6 @@ export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, worksp
       </div>
       {children}
     </main>
-    {!focused && <SiteFooter />}
+    {(!focused || showFooter) && <SiteFooter />}
   </div>;
 }
