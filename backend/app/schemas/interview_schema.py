@@ -186,6 +186,12 @@ class Requirement(Contract):
     kind: Literal["required", "preferred", "responsibility"] = "required"
     weight: int = Field(default=3, ge=1, le=3)
     missing_detail: str = Field(default="", max_length=2000)
+    # Transferable (indirect) support: existing evidence whose meaning is related
+    # but not a direct proof. It never upgrades the status; it lets a bridging
+    # question quote the candidate's own experience. Defaults keep older saved
+    # replies valid.
+    related_evidence_refs: list[str] = Field(default_factory=list, max_length=5)
+    transfer_note: str = Field(default="", max_length=2000)
 
 
 class JobAnalysis(Contract):

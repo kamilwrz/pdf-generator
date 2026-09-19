@@ -111,6 +111,19 @@ _UNKNOWN_REQUIREMENT_QUESTIONS = {
     "learning": ("Czy zdobywałeś lub zdobywałaś wiedzę związaną z wymaganiem „{label}”?", "Have you studied anything related to the requirement ‘{label}’?"),
     "proficiency": ("Jak oceniasz swoją znajomość obszaru „{label}”?", "How would you assess your familiarity with ‘{label}’?"),
 }
+# Bridging question for an indirectly-supported requirement: it quotes the
+# candidate's own related experience and asks whether it also covered the
+# requirement, requesting a concrete example. Ordered (Polish, English) to match
+# the record banks' `[int(english)]` indexing.
+_BRIDGE_QUESTION = (
+    "Twoje CV wspomina: „{quote}”. Czy to doświadczenie obejmowało również wymaganie „{label}”? Opisz przykład.",
+    "Your CV mentions: “{quote}”. Did that experience also involve the requirement ‘{label}’? Describe an example.",
+)
+
+
+def _compact_fact(fact):
+    """Return a fact's visible text without surrounding whitespace, or empty."""
+    return " ".join(str((fact or {}).get("text") or "").split())
 
 
 def _normalize(value):
@@ -308,6 +321,22 @@ def fallback_question(selected, entries, answers):
     choices = [{"entry_id": selected["id"], "topic": f"entry:{selected['id']}:{angle}"[:150],
                 "angle": angle, "text": bank[angle][int(english)].format(label=label),
                 "context": label, "reason": reason, "follow_up_to": None} for angle in order]
+    # Bridging question: when transferable evidence links the candidate's own
+    # experience to this requirement, quote that experience first and ask whether
+    # it also covered the requirement, requesting a concrete example. This turns
+    # a generic "do you have experience with X?" into a grounded probe and also
+    # confirms a soft skill implied by a described situation. It never claims the
+    # requirement is met — the answer decides. Reserved for the first slot of an
+    # unresolved requirement so it does not repeat once the topic has history.
+    related = [fact for fact in selected.get("related_facts", []) if _compact_fact(fact)]
+    if related and not _entry_history(selected, entries, answers):
+        quote = _compact_fact(related[0])[:200]
+        bridge = _BRIDGE_QUESTION[int(english)].format(quote=quote, label=label)
+        bridge_choice = {"entry_id": selected["id"], "topic": f"entry:{selected['id']}:bridge"[:150],
+                         "angle": "application", "text": bridge, "context": label,
+                         "reason": reason, "follow_up_to": None}
+        if is_distinct_question(bridge_choice, selected, entries, answers):
+            return bridge_choice
     distinct = next((choice for choice in choices if is_distinct_question(choice, selected, entries, answers)), None)
     if distinct:
         return distinct

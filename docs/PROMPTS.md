@@ -1752,7 +1752,7 @@ def begin_generation(db, row, request, profile):
 
 ## Wspólna polityka dopasowania i redakcji CV
 
-Plik `backend/app/services/tailoring/policy.py`, linie 1–208. Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.
+Plik `backend/app/services/tailoring/policy.py`, linie 1–215. Analiza asystenta i analiza w wywiadzie korzystają z tych samych reguł wymagań i dowodów. Wywiad w trybie `tailor` dodaje osobne instrukcje przygotowania oraz redakcji treści; niezależna weryfikacja nadal sprawdza wynik względem potwierdzonych faktów.
 
 ```python
 """Shared job-matching instructions for analysis and verified CV preparation.
@@ -1914,6 +1914,13 @@ Nie używaj identyfikatorów z oferty ani wymyślonych cv:/canvas:/note:.
 missing_detail: dla partial nazwij tylko niepotwierdzoną część, dla unknown konkretną
 informację do ustalenia, dla gap zachowaj zakres zaprzeczenia; dla matched pusty tekst.
 Nie traktuj missing_detail jako faktu kandydata. Zachowaj naturalny język interfejsu.
+related_evidence_refs (0–5) i transfer_note wypełniaj dla partial/unknown zgodnie z sekcją
+DOPASOWANIE POŚREDNIE: wskaż istniejące profile facts (kind=fact) opisujące pokrewne
+doświadczenie kandydata — podobne obowiązki, porównywalny efekt lub kompetencję miękką
+wynikającą z opisanej sytuacji — których jeszcze nie ma w evidence_refs. To nie zmienia
+statusu. W transfer_note napisz jedno zdanie: na czym polega pokrewieństwo i czego brakuje.
+Bez realnie pokrewnego faktu zostaw related_evidence_refs puste i transfer_note pusty;
+dla matched i gap zostaw je puste. Nie używaj gap ani framing jako podstawy transferu.
 """
 
 TAILORED_DRAFT_POLICY = """DOPASOWANIE TREŚCI CV DO TEJ OFERTY

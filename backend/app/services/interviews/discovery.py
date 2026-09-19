@@ -227,6 +227,10 @@ def update_discovery_budget(state, profile):
         # to the candidate without treating the offer itself as experience.
         entries = [{'id': item['id'], 'kind': 'requirement', 'label': item['text'],
                     'facts': requirement_facts(item, profile),
+                    # Transferable support anchors a bridging question to the
+                    # candidate's own related experience without upgrading status.
+                    'related_facts': requirement_facts(item, profile, related=True),
+                    'transfer_note': item.get('transfer_note', ''),
                     'requirement_kind': item.get('kind', 'required'), 'weight': item.get('weight', 3),
                     'missing_detail': item.get('missing_detail', ''),
                     'question_count': 2, 'status': item['status']}

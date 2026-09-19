@@ -105,6 +105,16 @@ def requirement_topics(requirements, *, evidence_catalog=None, candidate_notes='
         except (ValueError, TypeError):
             weight = 3
         refs = list(dict.fromkeys(ref for ref in item.get('evidence_refs', []) if isinstance(ref, str)))
+        # Transferable (indirect) support: existing evidence that is related but
+        # not a direct proof. Kept as a separate channel with its own snapshots so
+        # a bridging question can quote the candidate's own experience. Deduped
+        # against the direct refs and dropped for a matched requirement.
+        related_refs = [ref for ref in dict.fromkeys(
+            ref for ref in item.get('related_evidence_refs', []) if isinstance(ref, str))
+            if ref not in refs]
+        if status == 'matched':
+            related_refs = []
+        transfer_note = _compact(item.get('transfer_note'))[:2000] if related_refs else ''
         missing_detail = _compact(item.get('missing_detail'))
         if not missing_detail:
             missing_detail = ' '.join(details.get(_compact(item.get('id')), []))
@@ -112,14 +122,17 @@ def requirement_topics(requirements, *, evidence_catalog=None, candidate_notes='
                        'text': text, 'status': status, 'kind': kind, 'weight': weight,
                        'missing_detail': '' if status == 'matched' else missing_detail[:2000],
                        'evidence_refs': refs,
-                       'source_evidence': _source_snapshots(refs, catalog, candidate_notes)})
+                       'source_evidence': _source_snapshots(refs, catalog, candidate_notes),
+                       'related_evidence_refs': related_refs,
+                       'related_source_evidence': _source_snapshots(related_refs, catalog, candidate_notes),
+                       'transfer_note': transfer_note})
     # Selection importance owns ordering: a central duty can matter more than
     # a peripheral explicit requirement. Kind breaks equal-weight ties; stable
     # sorting preserves offer order and legacy ordering when metadata is absent.
     return sorted(result, key=lambda item: (-item['weight'], item['kind'] != 'required'))
 
 
-def requirement_facts(item, profile):
+def requirement_facts(item, profile, *, related=False):
     """Resolve requirement context solely to current confirmed selected-store facts.
 
     Direct career-profile IDs remain supported. Assistant IDs are rebound only
@@ -127,8 +140,18 @@ def requirement_facts(item, profile):
     text is whitespace-normalized but never fuzzy-matched or negation-stripped.
     Ambiguous duplicate sources, stale snapshots and canvas-only citations stay
     unbound. Returned values are actual profile facts, never generated analysis.
+
+    With ``related=True`` the transferable (indirect) channel is resolved from
+    ``related_evidence_refs`` / ``related_source_evidence`` instead. Transferable
+    support is always an existing real fact (never a gap), so a bridging question
+    can quote the candidate's own experience without treating the offer or an
+    unproven claim as evidence.
     """
-    allowed_kind = 'gap' if item.get('status') == 'gap' else 'fact'
+    refs_key = 'related_evidence_refs' if related else 'evidence_refs'
+    snapshots_key = 'related_source_evidence' if related else 'source_evidence'
+    # Transferable support is a real fact by definition; only the direct channel
+    # of a confirmed-absence requirement resolves to a gap.
+    allowed_kind = 'gap' if not related and item.get('status') == 'gap' else 'fact'
     candidates = [fact for fact in profile.get('facts', []) if fact.get('kind', 'fact') == allowed_kind]
     by_id = {fact['id']: fact for fact in candidates}
     resolved, seen = [], set()
@@ -138,12 +161,12 @@ def requirement_facts(item, profile):
             seen.add(fact['id'])
             resolved.append(fact)
 
-    for ref in item.get('evidence_refs', []):
+    for ref in item.get(refs_key, []):
         # Assistant namespaces must pass snapshot validation even if a manually
         # named career fact happens to reuse the same identifier.
         if ref in by_id and not ref.startswith(('cv:', 'canvas:', 'note:')):
             include(by_id[ref])
-    for snapshot in item.get('source_evidence', []):
+    for snapshot in item.get(snapshots_key, []):
         if not isinstance(snapshot, dict) or not _compact(snapshot.get('text')):
             continue
         matches = [fact for fact in candidates

@@ -105,6 +105,83 @@ def test_requirement_context_preserves_gap_and_framing_semantics(status, expecte
     assert [fact['id'] for fact in requirement_facts(topic, {'facts': facts})] == expected
 
 
+def test_requirement_topics_carry_transferable_evidence_and_note():
+    path = '/experience/0/bullets/0'
+    text = 'Koordynowałam pracę wolontariuszy w bibliotece.'
+    topics = requirement_topics([
+        {'id': 'lead', 'text': 'Zarządzanie zespołem', 'status': 'missing', 'evidence_refs': [],
+         'related_evidence_refs': [f'cv:{path}'],
+         'transfer_note': 'Koordynacja wolontariuszy to pokrewna podstawa; brak zarządzania komercyjnego.'},
+    ], evidence_catalog={f'cv:{path}': text})
+    topic = topics[0]
+    assert topic['related_evidence_refs'] == [f'cv:{path}']
+    assert topic['transfer_note'].startswith('Koordynacja wolontariuszy')
+    assert len(topic['related_source_evidence']) == 1
+    assert topic['related_source_evidence'][0]['text'] == text
+    # A related ref that duplicates the direct proof is dropped, and a matched
+    # requirement never carries a redundant transfer.
+    deduped = requirement_topics([
+        {'id': 'x', 'text': 'X', 'status': 'partial', 'evidence_refs': ['fact-a'],
+         'related_evidence_refs': ['fact-a', 'fact-b'], 'transfer_note': 'note'},
+        {'id': 'y', 'text': 'Y', 'status': 'matched', 'evidence_refs': ['fact-a'],
+         'related_evidence_refs': ['fact-b'], 'transfer_note': 'redundant'},
+    ])
+    assert deduped[0]['related_evidence_refs'] == ['fact-b']
+    assert deduped[1]['related_evidence_refs'] == [] and deduped[1]['transfer_note'] == ''
+
+
+def test_requirement_facts_related_resolves_transferable_facts_only():
+    path = '/experience/0/bullets/0'
+    text = 'Koordynowałam pracę wolontariuszy.'
+    topic = requirement_topics([
+        {'id': 'lead', 'text': 'Zarządzanie zespołem', 'status': 'missing', 'evidence_refs': [],
+         'related_evidence_refs': [f'cv:{path}'], 'transfer_note': 'Pokrewna koordynacja.'},
+    ], evidence_catalog={f'cv:{path}': text})[0]
+    fact = {'id': 'coord', 'path': path, 'text': text, 'kind': 'fact'}
+    # The direct resolver still returns nothing (no direct proof of the requirement).
+    assert requirement_facts(topic, {'facts': [fact]}) == []
+    # The related resolver surfaces the transferable fact so a bridging question
+    # can quote the candidate's own experience.
+    assert requirement_facts(topic, {'facts': [fact]}, related=True) == [fact]
+    # A gap fact is never transferable support.
+    assert requirement_facts(topic, {'facts': [{**fact, 'kind': 'gap'}]}, related=True) == []
+
+
+def test_discovery_entry_exposes_related_facts_for_a_bridging_question():
+    path = '/experience/0/bullets/0'
+    text = 'Koordynowałam pracę wolontariuszy.'
+    fact = {'id': 'coord', 'path': path, 'text': text, 'kind': 'fact'}
+    state = {'mode': 'tailor', 'job_analysis_ready': True, 'answers': [],
+             'requirements': requirement_topics([
+                 {'id': 'lead', 'text': 'Zarządzanie zespołem', 'status': 'missing', 'evidence_refs': [],
+                  'related_evidence_refs': [f'cv:{path}'], 'transfer_note': 'Pokrewna koordynacja.'},
+             ], evidence_catalog={f'cv:{path}': text})}
+    entries = update_discovery_budget(state, {'facts': [fact]})
+    assert entries[0]['related_facts'] == [fact]
+    assert entries[0]['transfer_note'] == 'Pokrewna koordynacja.'
+
+
+def test_fallback_question_bridges_from_a_candidate_fact_for_an_indirect_requirement():
+    from app.services.interviews.questions import fallback_question
+    path = '/experience/0/bullets/0'
+    text = 'Koordynowałam pracę wolontariuszy.'
+    fact = {'id': 'coord', 'path': path, 'text': text, 'kind': 'fact'}
+    state = {'mode': 'tailor', 'job_analysis_ready': True, 'answers': [],
+             'requirements': requirement_topics([
+                 {'id': 'lead', 'text': 'Zarządzanie zespołem', 'status': 'missing', 'evidence_refs': [],
+                  'related_evidence_refs': [f'cv:{path}'], 'transfer_note': 'Pokrewna koordynacja.'},
+             ], evidence_catalog={f'cv:{path}': text})}
+    entries = update_discovery_budget(state, {'facts': [fact]})
+    selected = next_entry(entries, state['answers'])
+    question = fallback_question(selected, entries, state['answers'])
+    # The bridging question quotes the candidate's own experience and links it to
+    # the requirement, asking for a concrete example — not a generic "do you have
+    # experience with X?".
+    assert 'Koordynowałam pracę wolontariuszy' in question['text']
+    assert 'Zarządzanie zespołem' in question['text']
+    assert question['entry_id'] == selected['id']
+
+
 def test_two_questions_per_unresolved_requirement_without_third_followup():
     state = {'mode': 'tailor', 'job_analysis_ready': True, 'requirements': requirement_topics(REQUIREMENTS),
              'question_limit': 5, 'answers': []}

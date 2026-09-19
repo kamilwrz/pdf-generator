@@ -648,12 +648,15 @@ def next_question(db, user, row, request):
         requirements = []
         for item in analysis['output']['requirements']:
             refs = [ref for ref in item['evidence_refs'] if ref in catalog]
+            # Transferable support is a real confirmed fact, never a gap.
+            related = [ref for ref in item.get('related_evidence_refs', [])
+                       if ref in catalog and catalog[ref].get('kind', 'fact') == 'fact']
             status = item['status']
             if status in {'matched', 'partial'} and not any(catalog[ref]['kind'] == 'fact' for ref in refs):
                 status = 'unknown'
             if status == 'gap' and not any(catalog[ref]['kind'] == 'gap' for ref in refs):
                 status = 'unknown'
-            requirements.append({**item, 'status': status, 'evidence_refs': refs})
+            requirements.append({**item, 'status': status, 'evidence_refs': refs, 'related_evidence_refs': related})
         state.update(requirements=requirement_topics(requirements), job_analysis_ready=True)
     entries = update_discovery_budget(state, profile)
     selected = next_entry(entries, state["answers"])
@@ -662,7 +665,7 @@ def next_question(db, user, row, request):
     else:
         response = paid_model(db, user, row, request, "next", {
             "task": DISCOVERY_TASK + (QUALITY_TASK if state["mode"] != "tailor" else ""),
-            **({"question_policy": 'Masz najwyżej dwa główne pytania na to wymaganie. Wybierz różne brakujące szczegóły istotne dla tej oferty, bez ustalonej kolejności doświadczenie/wkład/wynik. Dla partial doprecyzuj niepotwierdzoną część zamiast ponownie pytać o cały wymóg. Nie zakładaj, że kandydat spełnia wymaganie; oferta nie jest dowodem. Przy gap uszanuj potwierdzony brak: możesz zapytać o pokrewną praktykę lub naukę, ale nie wracaj do zaprzeczonego doświadczenia i nie przedstawiaj pokrewnej umiejętności jako spełnienia wymogu. follow_up_to zawsze null. requirements zwróć puste; analiza jest już zapisana.',
+            **({"question_policy": 'Masz najwyżej dwa główne pytania na to wymaganie. Wybierz różne brakujące szczegóły istotne dla tej oferty, bez ustalonej kolejności doświadczenie/wkład/wynik. Dla partial doprecyzuj niepotwierdzoną część zamiast ponownie pytać o cały wymóg. Gdy question_scope zawiera related_facts, pierwsze pytanie ma być mostkujące: zacytuj konkretne pokrewne doświadczenie kandydata z related_facts i zapytaj, czy obejmowało również to wymaganie, prosząc o przykład — zamiast ogólnego „czy masz doświadczenie z X?". Odpowiedź rozstrzyga; nie zakładaj, że pokrewne doświadczenie spełnia wymaganie. Nie zakładaj, że kandydat spełnia wymaganie; oferta nie jest dowodem. Przy gap uszanuj potwierdzony brak: możesz zapytać o pokrewną praktykę lub naukę, ale nie wracaj do zaprzeczonego doświadczenia i nie przedstawiaj pokrewnej umiejętności jako spełnienia wymogu. follow_up_to zawsze null. requirements zwróć puste; analiza jest już zapisana.',
             "analysis": state.get('requirements', []),
             "source_cv_data": state['source_cv_data']} if state["mode"] == "tailor" else {}),
             "question_scope": selected,
