@@ -8,7 +8,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    const sections = page.locator('main > section');
+    const sections = page.locator('main > section:not([aria-labelledby="cv-assistant-title"]), main > section[aria-labelledby="cv-assistant-title"] > section');
     await expect(sections).toHaveCount(8);
     const metrics = await sections.evaluateAll(nodes => nodes.map(node => {
       const rect = node.getBoundingClientRect();
@@ -53,7 +53,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
       expect(Math.abs(priceCard.width - interviewCopy.width)).toBeLessThan(1);
     }
     // Exercise the complete lower page rather than only the first feature pair.
-    const faq = page.locator('main > section').nth(6);
+    const faq = sections.nth(6);
     await faq.locator('summary').last().focus();
     await page.keyboard.press('Enter');
     await expect(faq.locator('details').last()).toHaveAttribute('open', '');

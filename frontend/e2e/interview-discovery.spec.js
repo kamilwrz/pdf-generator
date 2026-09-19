@@ -15,7 +15,7 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/pricing');
-    await expect(page.getByText('Asystent CV i dopasowanie do ogłoszenia', { exact: true })).toBeVisible();
+    await expect(page.getByText('Asystent CV do dopracowania opisów doświadczenia', { exact: true })).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-discovery-pricing-${width}.png`, fullPage: true });
     await page.getByRole('link', { name: 'Jak działa Asystent CV i kredyty' }).click();
     await expect(page).toHaveURL(/\/help#wywiad$/);
@@ -52,7 +52,7 @@ test('Pro users get direct entry points and canonical interview benefits in the 
   await page.goto('/app/account');
   await expect(page.getByText('ASYSTENT CV · W TWOIM PRO')).toBeVisible();
   await page.getByRole('button', { name: 'Zmień plan' }).click();
-  await expect(page.getByRole('dialog').getByText('Asystent CV i dopasowanie do ogłoszenia', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Asystent CV do dopracowania opisów doświadczenia', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Zmień plan' })).toBeFocused();
   expect(api.calls.some((call) => call.method === 'POST')).toBe(false);
@@ -69,23 +69,23 @@ for (const state of ['free', 'unavailable']) {
       await expect(page.locator('h1')).toBeVisible();
       if (path === '/app/account') await expect(page.getByText(state === 'free' ? 'Twój plan: Darmowy' : 'Nie udało się pobrać planu.', { exact: true })).toBeVisible();
       await expect(page.getByText(/ASYSTENT CV · (MASZ DOSTĘP W PRO|W TWOIM PRO)/)).toHaveCount(0);
-      await expect(page.getByRole('navigation', { name: 'Główna nawigacja' }).getByRole('link', { name: 'Profil zawodowy' })).toBeVisible();
+      await expect(page.getByRole('navigation', { name: 'Główna nawigacja' }).getByRole('link', { name: 'Asystent CV', exact: true })).toBeVisible();
     }
     api.assertHermetic();
   });
 }
 
 for (const width of [390, 1280]) {
-  test(`landing, Pro registration and account start explain the interview at ${width}px`, async ({ page }) => {
+  test(`landing, Pro registration and account onboarding explain the assistant at ${width}px`, async ({ page }) => {
     const api = await installMockApi(page);
     await page.route('**/api/tailoring', route => route.fulfill({ json: { items: [] } }));
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    await page.getByRole('link', { name: 'Chcę lepiej opisać swoje doświadczenie' }).click();
+    await page.getByRole('link', { name: 'Popraw treść', exact: true }).click();
     await expect(page.locator('#wywiad')).toBeFocused();
     await page.goto('/register?plan=pro');
-    await expect(page.getByText('Asystent CV i dopasowanie do ogłoszenia', { exact: true })).toBeVisible();
+    await expect(page.getByText('Asystent CV do dopracowania opisów doświadczenia', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-discovery-register-${width}.png`, fullPage: true });
     await signIn(page);
@@ -93,13 +93,11 @@ for (const width of [390, 1280]) {
     // The first editor entry loads its workspace bundle; allow the same cold
     // development-server startup window as the shared login fixture.
     await expect(page.getByRole('heading', { name: 'Przygotujmy Twoje CV' })).toBeVisible({ timeout: 20000 });
-    const entry = page.getByRole('link', { name: 'Asystent CV Rozpocznij rozmowę', exact: true });
-    await expect(entry).toBeVisible();
-    await expect(entry).toHaveAttribute('href', '/app/interview');
+    await expect(page.getByText('Asystent CV', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mam CV', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Zaczynam od zera', exact: true })).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-discovery-start-${width}.png`, fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.getByRole('link', { name: 'Jak działa Asystent CV', exact: true }).click();
-    await expect(page.locator('#wywiad')).toBeFocused();
     api.assertHermetic();
   });
 }

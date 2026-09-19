@@ -38,7 +38,7 @@ for (const language of ['pl', 'en']) {
         }
       }, { lang: language, authenticated: signedIn });
       await page.goto('/');
-      const pro = page.locator('#cennik article').last().getByRole('link', { name: language === 'pl' ? 'Wybierz Pro na 30 dni' : 'Choose Pro for 30 days', exact: true });
+      const pro = page.locator('#cennik article').last().getByRole('link', { name: language === 'pl' ? 'Włącz Pro na 30 dni' : 'Get Pro for 30 days', exact: true });
       await expect(pro).toHaveAttribute('href', signedIn ? '/app/account' : '/register?plan=pro');
       await pro.click();
       await expect(page).toHaveURL(signedIn ? /\/app\/account$/ : /\/register\?plan=pro$/);
