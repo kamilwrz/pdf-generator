@@ -148,6 +148,7 @@
 /* Native disclosures retain visible focus and a comfortable click area. */
 .faqSection { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--landing-column-gap); }
 .faqSection > :first-child { align-self: start; }
+.knowledgeIcon { display: block; width: calc(4 * var(--space-16)); max-width: 100%; height: auto; margin-top: var(--space-12); color: var(--color-accent); pointer-events: none; }
 .faqList { border-top: 1px solid var(--color-border-soft); }
 .faqList details { border-bottom: 1px solid var(--color-border-soft); }
 .faqList summary { position: relative; min-height: var(--control-height); padding: var(--space-6) var(--space-8) var(--space-6) 0; cursor: pointer; font-size: 1.125rem; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; list-style: none; }
@@ -165,6 +166,7 @@
 @media (max-width: 1024px) {
     .page { --landing-gutter: var(--space-6); --landing-section-space: var(--space-16); --landing-column-gap: var(--space-8); }
     .hero, .interviewSection, .offerIntro, .trustStrip, .faqSection { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+    .knowledgeIcon { width: calc(2 * var(--space-16)); margin-top: var(--space-6); }
     .tailoringSection > figure, .tailoringCopy { grid-column: auto; grid-row: auto; }
     .templateCard { flex-basis: calc((100% - 2 * var(--space-6)) / 3); }
 }

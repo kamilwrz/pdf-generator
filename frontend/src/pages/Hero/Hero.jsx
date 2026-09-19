@@ -328,6 +328,7 @@ export default function Hero() {
                 <div>
                     <p className={classes.kicker} data-section-index="07">{uiText("public:hero.beforeYouStart")}</p>
                     <h2>{uiText("public:hero.whatShouldYouKnow")}</h2>
+                    <KnowledgeIcon />
                 </div>
                 <div className={classes.faqList}>
                     <details>
@@ -370,5 +371,20 @@ export default function Hero() {
             </main>
             <SiteFooter />
         </div>
+    );
+}
+
+/** Decorative knowledge motif; the FAQ heading carries its accessible meaning. */
+function KnowledgeIcon() {
+    return (
+        <svg className={classes.knowledgeIcon} viewBox="0 0 240 200" fill="none" aria-hidden="true" focusable="false">
+            <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M24 108c34-6 66 0 96 18 30-18 62-24 96-18v72c-34-6-66 0-96 12-30-12-62-18-96-12Z" fill="var(--color-surface)" />
+                <path d="M32 96c32-4 60 4 88 22 28-18 56-26 88-22v72c-32-4-60 4-88 20-28-16-56-24-88-20Z" fill="var(--color-paper)" />
+                <path d="M120 118v70M48 116c18 0 36 5 54 14m-54 2c18 0 36 5 54 14m-54 2c12 0 24 2 36 7m108-39c-18 0-36 5-54 14m54 2c-18 0-36 5-54 14m54 2c-12 0-24 2-36 7" />
+                <path d="M108 80c0-10-14-14-14-30a26 26 0 0 1 52 0c0 16-14 20-14 30Z" fill="var(--color-accent-soft)" />
+                <path d="M108 87h24m-20 7h16m-14-14V64l-6-6m18 22V64l6-6m-18 6h12M120 8v6m-34 5 5 6m63-6-5 6M76 49h-8m104 0h-8M83 75l-6 5m80-5 6 5" />
+            </g>
+        </svg>
     );
 }
