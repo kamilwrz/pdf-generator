@@ -23,7 +23,7 @@ import { Link } from "react-router-dom";
 import { useCanvasContext } from "../../../store/canvas-context";
 import { useSession } from "../../../store/session-context";
 import { useUiSurfaces } from "../../../store/ui-surfaces-context";
-import { RiFileTextLine, RiDownload2Line, RiShuffleLine, RiFileReduceLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
+import { RiDownload2Line, RiShuffleLine, RiFileReduceLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiArrowLeftSLine, RiArrowRightSLine } from "react-icons/ri";
 import { FiPlus, FiSave, FiTrash2, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { TiPen } from "react-icons/ti";
 import { TEMPLATES } from "../../../templates";
@@ -61,7 +61,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
         };
     }, []);
 
-    const { showAiPanel, showNewCvSetup, showChangeTemplateModal } = useUiSurfaces();
+    const { showNewCvSetup, showChangeTemplateModal } = useUiSurfaces();
     const {
         isDemoContent,
         activeCvData,
@@ -82,7 +82,7 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
         onePageFit,
         onFitToOnePage,
     } = useCanvasContext();
-    const { entitlements, isGuest } = useSession();
+    const { entitlements } = useSession();
     const { applyTemplate, fillingId } = useApplyCvTemplate();
 
     const prevTemplate = useMemo(
@@ -112,16 +112,6 @@ export default function Topbar({ titleRef, title, onTitleChange }) {
                     </div>
                 ) : null}
                 {!isDemoContent && <div className={classes.workflowCluster} role="group" aria-label={uiText("editor:topbar.creatingCv")}>
-                    <button
-                        type="button"
-                        className={`${classes.feature} ${classes.labeled}`}
-                        onClick={showAiPanel}
-                        aria-label={uiText("editor:topbar.importPdf")}
-                        title={isGuest ? uiText("editor:topbar.importPdfAccountRequired") : uiText("editor:topbar.importPdf")}
-                    >
-                        <RiFileTextLine />
-                        <span className={`${classes.actionLabel} ${classes.toolLabel}`}>{uiText("editor:topbar.importPdf")}</span>
-                    </button>
                     <button
                         type="button"
                         className={`${classes.feature} ${classes.labeled}`}

@@ -75,6 +75,15 @@ for (const width of [390, 834, 960, 1280, 1366, 1600, 1760, 1920]) {
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(change).toBeFocused();
+    const creation = page.getByRole("group", { name: "Tworzenie CV", exact: true });
+    await expect(creation.getByRole("button")).toHaveCount(1);
+    const newCv = creation.getByRole("button", { name: "Nowe CV", exact: true });
+    await newCv.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Zaczynam od zera", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mam CV", exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(newCv).toBeFocused();
     await page.screenshot({ path: `test-results/topbar-${width}.png` });
     api.assertHermetic();
   });

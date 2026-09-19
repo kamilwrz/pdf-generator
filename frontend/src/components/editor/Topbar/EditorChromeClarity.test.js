@@ -8,11 +8,11 @@ const pageControlsUrl = new URL("../PageControls/PageControls.jsx", import.meta.
 const sidebarUrl = new URL("../Sidebar/Sidebar.jsx", import.meta.url);
 const sidebarControlsUrl = new URL("../../common/SidebarControls/SidebarControls.jsx", import.meta.url);
 
-test("topbar labels ambiguous actions without changing their existing handlers", async () => {
+test("topbar uses New CV as the single creation entry and labels document actions", async () => {
   const source = await readFile(topbarUrl, "utf8");
 
-  assert.match(source, />Importuj PDF<\/span>/);
-  assert.match(source, /onClick={showAiPanel}/);
+  assert.doesNotMatch(source, />Importuj PDF<\/span>/);
+  assert.doesNotMatch(source, /onClick={showAiPanel}/);
   assert.match(source, />Nowe CV<\/span>/);
   assert.match(source, /onClick={showNewCvSetup}/);
   assert.match(source, />Zmień szablon<\/span>/);

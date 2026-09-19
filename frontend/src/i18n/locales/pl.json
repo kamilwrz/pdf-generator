@@ -862,7 +862,6 @@
     "startChooser.includedInYourPro": "W Twoim Pro",
     "startChooser.checkingSavedCv": "Sprawdzamy zapisane CV…",
     "changeTemplateModal.yourCv": "Twoje CV",
-    "topbar.importPdfAccountRequired": "Importuj PDF — wymagane konto",
     "dropzone.checkingAllowance": "Sprawdzanie limitu…",
     "pdfCanvas.saveConflict": "Konflikt zapisu",
     "pdfCanvas.thisIsTheOnlyRequiredFieldBefore": "To jedyne pole wymagane przed zapisem lub eksportem CV.",
