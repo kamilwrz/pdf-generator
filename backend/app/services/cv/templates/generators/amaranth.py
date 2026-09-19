@@ -159,10 +159,10 @@ def _gen_amaranth(cv: dict) -> list[dict]:
         "chip_text": "#FFFFFF",
         "display": "PlayfairDisplay",
         "sans": "Roboto",
-        # Reuse the pre-tinted Vellum burgundy glyph set: it carries both the
-        # six contact icons and the portrait placeholder, and its ink is the
-        # closest available match to this palette's claret accent.
-        "icon_theme": "vellum-burgundy",
+        # Amaranth's own claret contact/portrait glyph theme. Every appearance
+        # palette owns a matching real-ink theme (``amaranth-<palette>``) so the
+        # icons follow the selected edition in both the canvas and the PDF.
+        "icon_theme": "amaranth-claret",
     }
     L, W = _LEFT, _WIDTH
     display, sans = C["display"], C["sans"]
@@ -252,7 +252,7 @@ def _gen_amaranth(cv: dict) -> list[dict]:
     header.append(
         {**_rect(L, divider_y + _ACCENT_DELTA_TOP, _ACCENT_W, _ACCENT_H, C["accent"],
                  filled=True, borderRadius=_ACCENT_H / 2.0, zIndex=3, page=1),
-         "id": "amaranth-masthead-accent"}
+         "id": "amaranth-masthead-accent", "appearanceColorRole": "accent"}
     )
 
     # --- Rounded-rectangle photo slot (top-right). Every member is tagged so

@@ -18,6 +18,7 @@ import { applyRegentTextSizeLayout } from "./regentTypographyLayout.js";
 import { applySlateTextSizeLayout } from "./slateTypographyLayout.js";
 import { applySterlingTextSizeLayout } from "./sterlingTypographyLayout.js";
 import { applyVellumTextSizeLayout } from "./vellumTypographyLayout.js";
+import { applyAmaranthTextSizeLayout } from "./amaranthTypographyLayout.js";
 
 import { applyFacetTextSizeLayout } from "./facetAppearance.js";
 
@@ -25,6 +26,7 @@ const SMALL_TEXT_SIZE_ID = "S";
 
 const typographyLayouts = new Map([
   ["facet", applyFacetTextSizeLayout],
+  ["amaranth", applyAmaranthTextSizeLayout],
   ["atrium", applyAtriumTextSizeLayout],
   ["aurelia", applyAureliaTextSizeLayout],
   ["cadenza", applyCadenzaTextSizeLayout],

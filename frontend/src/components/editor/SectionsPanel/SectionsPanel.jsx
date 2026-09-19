@@ -115,6 +115,16 @@ import {
   applyVellumTextSizeLayout,
 } from "../../../utils/vellumTypographyLayout";
 import {
+  applyAmaranthPalette,
+  getAmaranthAppearance,
+  AMARANTH_PALETTES,
+  AMARANTH_TEXT_SIZES,
+} from "../../../utils/amaranthAppearance";
+import {
+  applyAmaranthRenderedHeightsLayout,
+  applyAmaranthTextSizeLayout,
+} from "../../../utils/amaranthTypographyLayout";
+import {
   applyAureliaPalette,
   AURELIA_PALETTES,
   AURELIA_TEXT_SIZES,
@@ -263,6 +273,7 @@ export default function SectionsPanel({ onClose }) {
   const isAureliaAppearance = activeTemplateId === "aurelia";
   const isAtriumAppearance = activeTemplateId === "atrium";
   const isRegentAppearance = activeTemplateId === "regent";
+  const isAmaranthAppearance = activeTemplateId === "amaranth";
   const appearanceEnabled = isAtriumAppearance
     || isFacetAppearance
     || isRegentAppearance
@@ -273,7 +284,8 @@ export default function SectionsPanel({ onClose }) {
     || isMeridianAppearance
     || isCadenzaAppearance
     || isVellumAppearance
-    || isAureliaAppearance;
+    || isAureliaAppearance
+    || isAmaranthAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
     if (isFacetAppearance) return {
@@ -371,6 +383,16 @@ export default function SectionsPanel({ onClose }) {
       applyRenderedHeightsLayout: applyAureliaRenderedHeightsLayout,
       paletteDescription: uiText("editor:sectionsPanel.theWhiteBackgroundStaysFixedThePalette"),
     };
+    if (isAmaranthAppearance) return {
+      templateName: "Amaranth",
+      palettes: AMARANTH_PALETTES,
+      textSizes: AMARANTH_TEXT_SIZES,
+      value: getAmaranthAppearance(A4_Elements),
+      applyPalette: applyAmaranthPalette,
+      applyTextSizeLayout: applyAmaranthTextSizeLayout,
+      applyRenderedHeightsLayout: applyAmaranthRenderedHeightsLayout,
+      paletteDescription: uiText("editor:amaranthAppearance.palettes"),
+    };
     return {
       templateName: "Sterling",
       palettes: STERLING_PALETTES,
@@ -380,7 +402,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isFacetAppearance, isAtriumAppearance, isAureliaAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isRegentAppearance, isSlateAppearance, isVellumAppearance]);
+  }, [A4_Elements, isFacetAppearance, isAtriumAppearance, isAmaranthAppearance, isAureliaAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isRegentAppearance, isSlateAppearance, isVellumAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -643,7 +665,7 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isFacetAppearance ? classes.palettePaperFacet : ""} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isRegentAppearance ? classes.palettePaperRegent : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""} ${isAureliaAppearance ? classes.palettePaperAurelia : ""}`}
+                        className={`${classes.palettePaper} ${isFacetAppearance ? classes.palettePaperFacet : ""} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isRegentAppearance ? classes.palettePaperRegent : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""} ${isAureliaAppearance ? classes.palettePaperAurelia : ""} ${isAmaranthAppearance ? classes.palettePaperAmaranth : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
@@ -713,6 +735,19 @@ export default function SectionsPanel({ onClose }) {
                             <span className={classes.paletteVellumCopy} />
                             <span className={classes.paletteVellumSection} />
                             <span className={classes.paletteVellumFooter} />
+                          </>
+                        ) : isAmaranthAppearance ? (
+                          <>
+                            <span className={classes.paletteAmaranthName} />
+                            <span className={classes.paletteAmaranthJob} />
+                            <span className={classes.paletteAmaranthContacts} />
+                            <span className={classes.paletteAmaranthPhoto} />
+                            <span className={classes.paletteAmaranthDivider} />
+                            <span className={classes.paletteAmaranthAccent} />
+                            <span className={classes.paletteAmaranthField} />
+                            <span className={classes.paletteAmaranthChip} />
+                            <span className={classes.paletteAmaranthCopy} />
+                            <span className={classes.paletteAmaranthFooter} />
                           </>
                         ) : isCadenzaAppearance ? (
                           <>

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { AMARANTH_PALETTES } from "./amaranthAppearance.js";
 import { ATRIUM_PALETTES } from "./atriumAppearance.js";
 import { AURELIA_PALETTES } from "./aureliaAppearance.js";
 import { CADENZA_PALETTES } from "./cadenzaAppearance.js";
@@ -13,6 +14,7 @@ import { STERLING_PALETTES } from "./sterlingAppearance.js";
 import { VELLUM_PALETTES } from "./vellumAppearance.js";
 
 const PALETTE_GROUPS = [
+  AMARANTH_PALETTES,
   ATRIUM_PALETTES,
   AURELIA_PALETTES,
   CADENZA_PALETTES,

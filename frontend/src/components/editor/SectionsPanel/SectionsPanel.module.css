@@ -161,6 +161,24 @@
 .paletteVellumSection { position: absolute; top: 83px; left: 10px; width: 27px; height: 2px; background: var(--palette-heading-paper); }
 .paletteVellumSection::after { position: absolute; top: 6px; left: 0; width: 12px; height: 2px; background: var(--palette-ornament); box-shadow: 17px 0 0 var(--palette-rule), 28px 0 0 var(--palette-rule), 39px 0 0 var(--palette-rule); content: ""; }
 .paletteVellumFooter { position: absolute; right: 9px; bottom: 9px; left: 9px; height: 1px; background: var(--palette-rule); }
+
+/* Amaranth: rounded-rectangle motif — a rounded photo well, a divider with a
+   short rounded accent bar, a tinted summary field, and a filled accent chip
+   heading with a white label. Every colour comes from the palette variables. */
+.palettePaperAmaranth { background: var(--palette-paper); }
+.paletteAmaranthName { position: absolute; top: 10px; left: 9px; width: 34px; height: 5px; background: var(--palette-ink); }
+.paletteAmaranthJob { position: absolute; top: 19px; left: 9px; width: 24px; height: 2px; background: var(--palette-accent); }
+.paletteAmaranthContacts { position: absolute; top: 27px; left: 11px; width: 3px; height: 3px; background: var(--palette-accent); box-shadow: 11px 0 0 var(--palette-accent), 22px 0 0 var(--palette-accent); }
+.paletteAmaranthPhoto { position: absolute; top: 8px; right: 9px; width: 20px; height: 24px; border: 2px solid var(--palette-ornament); border-radius: 5px; background: var(--palette-photo); }
+.paletteAmaranthPhoto::before { position: absolute; top: 5px; left: 50%; width: 5px; height: 5px; transform: translateX(-50%); border: 1px solid var(--palette-accent); border-radius: 50%; content: ""; }
+.paletteAmaranthPhoto::after { position: absolute; right: 3px; bottom: 3px; left: 3px; height: 6px; border: 1px solid var(--palette-accent); border-bottom: 0; border-radius: 6px 6px 0 0; content: ""; }
+.paletteAmaranthDivider { position: absolute; top: 40px; right: 32px; left: 18px; height: 1px; background: var(--palette-rule); }
+.paletteAmaranthAccent { position: absolute; top: 39px; left: 9px; width: 7px; height: 3px; border-radius: 2px; background: var(--palette-accent); }
+.paletteAmaranthField { position: absolute; top: 46px; right: 9px; left: 9px; height: 13px; border-radius: 3px; background: var(--palette-field); }
+.paletteAmaranthChip { position: absolute; top: 63px; left: 9px; width: 26px; height: 6px; border-radius: 3px; background: var(--palette-accent); }
+.paletteAmaranthChip::after { position: absolute; top: 2px; left: 3px; width: 18px; height: 2px; background: var(--palette-paper); content: ""; }
+.paletteAmaranthCopy { position: absolute; top: 74px; right: 10px; left: 10px; height: 1px; background: var(--palette-body); box-shadow: 0 5px 0 var(--palette-rule), 0 10px 0 var(--palette-body), 0 15px 0 var(--palette-rule); }
+.paletteAmaranthFooter { position: absolute; right: 9px; bottom: 9px; left: 9px; height: 1px; background: var(--palette-rule); }
 .paletteVellumFooter::after { position: absolute; right: 0; bottom: -5px; width: 6px; height: 3px; background: var(--palette-accent); content: ""; }
 .palettePaperAtrium { background: var(--palette-paper); }
 .paletteAtriumName { position: absolute; top: 11px; left: 22px; width: 43px; height: 4px; background: var(--palette-ink); }

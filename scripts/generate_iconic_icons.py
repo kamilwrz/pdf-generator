@@ -366,6 +366,14 @@ _ATRIUM_GLYPHS = [
     "email", "phone", "location", "linkedin", "github", "website", "portrait",
 ]
 
+# Amaranth carries the same seven-glyph contact + rounded-rectangle portrait
+# family. Each of its six white-paper palettes owns a real-ink theme tinted to
+# that palette's accent, so contact icons and the portrait glyph match the
+# selected edition in both the canvas and the PDF export.
+_AMARANTH_GLYPHS = [
+    "email", "phone", "location", "linkedin", "github", "website", "portrait",
+]
+
 # Only these subsets are generated, so existing themes are untouched.
 # Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
@@ -423,6 +431,14 @@ SUBSET_THEMES = {
     "vellum-ink": ("#345F7B", _VELLUM_GLYPHS),
     "vellum-burgundy": ("#843E51", _VELLUM_GLYPHS),
     "vellum-emerald": ("#2D6A57", _VELLUM_GLYPHS),
+    # Amaranth's six white-paper editions, each tinted to its accent so the
+    # rounded contact icons and portrait glyph match the selected palette.
+    "amaranth-claret": ("#78304A", _AMARANTH_GLYPHS),
+    "amaranth-ink": ("#2E4A63", _AMARANTH_GLYPHS),
+    "amaranth-forest": ("#2F5C43", _AMARANTH_GLYPHS),
+    "amaranth-copper": ("#9E5230", _AMARANTH_GLYPHS),
+    "amaranth-plum": ("#593F6B", _AMARANTH_GLYPHS),
+    "amaranth-graphite": ("#3A3E42", _AMARANTH_GLYPHS),
     # Legacy Atrium contacts remain available for saved documents created
     # before Appearance. New documents use one complete seven-glyph family per
     # palette; left-aligned section labels retain their linear lead-in rules.

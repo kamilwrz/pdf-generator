@@ -80,7 +80,7 @@ test("Amaranth renders its rounded claret chrome and exact date rail", () => {
     "the well sits below the outline frame so the applied photo covers it",
   );
   assert.equal(glyph?.photoSlot, "glyph");
-  assert.match(glyph?.src, /\/vellum-burgundy\/portrait\.png$/);
+  assert.match(glyph?.src, /\/amaranth-claret\/portrait\.png$/);
   assert.equal(photoCluster.length, 4);
   assert.ok(photoCluster.every((element) => (
     element.fixedToPage === true && element.repeatOnContinuation === false
