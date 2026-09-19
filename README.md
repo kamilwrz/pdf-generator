@@ -8066,3 +8066,11 @@ Odhaczana roadmapa produktu, UX i komercjalizacji jest utrzymywana w [`docs/CV_S
 - [WAI-ARIA APG: wzorzec okna modalnego](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) — zasady pułapki klawiatury, fokusu początkowego, Escape, etykietowania i przywracania fokusu wdrożone w `DialogShell`.
 - [WCAG 2.2: powiększanie tekstu](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html) oraz [widoczny focus](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible) — oficjalne uzasadnienie kontroli skalowania do 200% i trwałych wskaźników klawiatury.
 - Projekt: [`docs/cv-template-generation.md`](docs/cv-template-generation.md), [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/BUGZ.MD`](docs/BUGZ.MD) oraz [`docs/designs/cv-only-ux-monetization.md`](docs/designs/cv-only-ux-monetization.md)
+
+### Recent assistant-answer fix
+
+Answer assistance remains available for narrative questions that mention a certificate as context, for example asking which tasks an eJPT certificate confirms. The factual-question guard now blocks only direct requests for a certificate, licence, qualification, date, number, or language level. Regression coverage is in `backend/tests/test_interview_answer_help.py`.
+
+### Ostatnia poprawka propozycji odpowiedzi
+
+Propozycje odpowiedzi pozostają dostępne dla pytań opisowych, które wspominają certyfikat jako kontekst, na przykład pytają o zadania potwierdzane przez certyfikat eJPT. Strażnik pytań faktograficznych blokuje teraz tylko bezpośrednie pytania o certyfikat, licencję, kwalifikację, datę, liczbę lub poziom języka. Test regresji znajduje się w `backend/tests/test_interview_answer_help.py`.

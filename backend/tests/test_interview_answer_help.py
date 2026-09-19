@@ -165,6 +165,7 @@ def test_exact_or_unsupported_questions_never_call_ai(environment, question):
     'Jak wyglądało sprawdzanie raportu, gdy brakowało dokumentów?',
     'Wpis 2: Jak wyglądało sprawdzanie raportu, kiedy brakowało dokumentów?',
     'Entry 2, question 1: What did you do when supporting documents were missing?',
+    'Jakie konkretne zadania z testów penetracyjnych potwierdza certyfikat eJPT Junior Penetration Tester?',
 ])
 def test_narrative_circumstances_keep_help_available_for_generation_and_resume(environment, text):
     client, db, _, _ = environment

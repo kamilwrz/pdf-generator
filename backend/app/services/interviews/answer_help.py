@@ -23,7 +23,8 @@ ANGLES = {'overview', 'problem', 'approach', 'decision', 'constraint', 'quality'
 EXACT_QUESTION = re.compile(
     r'\b(?:ile|ilu|jak długo|jak nazywa\w*|któr\w* dat\w*|jak\w* dat\w*|w którym roku|'
     r'how many|how much|how long|which date|what date|what year|which year|'
-    r'certyfikat\w*|certificat\w*|uprawnieni\w*|licen[cs]\w*|'
+    r'(?:\b(?:what|which)\s+(?:kind\s+of\s+)?(?:certificat\w*|licen[cs]\w*|qualification\w*)\b|'
+    r'\b(?:jaki|jaką|jakie)\s+(?:certyfikat\w*|licen[cs]\w*|uprawnieni\w*)\b)|'
     r'poziom\w* język\w*|language level|proficiency|'
     r'procent\w*|percent\w*|wynik\w* liczbow\w*|numeric\w*)\b', re.I)
 # "When" and "kiedy" also introduce circumstances in narrative questions.
