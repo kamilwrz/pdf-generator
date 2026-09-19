@@ -33,22 +33,26 @@
 
 /* Hero */
 .hero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: var(--landing-column-gap); }
-.heroCopy { min-width: 0; max-width: 52ch; text-align: left; }
+.heroCopy { min-width: 0; max-width: 60ch; text-align: left; }
 .heroHeading { display: grid; gap: var(--space-6); }
-.hero h1 { margin: 0; max-width: 100%; overflow-wrap: anywhere; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 700; line-height: 1.05; letter-spacing: -.045em; }
+.hero h1 { margin: 0; max-width: 100%; overflow-wrap: anywhere; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 700; line-height: 1.05; letter-spacing: -.035em; text-wrap: balance; }
 .hero h1 span { color: var(--color-accent); }
 .heroSubheading { margin: 0; color: var(--color-ink-soft); font-size: var(--text-body); line-height: 1.55; }
 .heroActions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-8); }
 .accountNote { max-width: 48ch; margin: var(--space-4) 0 0; color: var(--color-muted); font-size: var(--text-ui); line-height: 1.55; }
-.contentPaths { display: grid; margin-top: var(--space-8); }
-.contentPath { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-width: 0; min-height: var(--control-height); padding-block: var(--space-3); border-bottom: 1px solid var(--color-border-soft); color: var(--color-ink); text-decoration: none; font-size: var(--text-ui); }
-.contentPath strong { min-width: 0; line-height: 1.55; font-weight: 500; }
-.contentPath > svg { width: var(--space-4); height: var(--space-4); flex: 0 0 auto; color: var(--color-accent); }
-.contentPath:hover strong, .contentPath:focus-visible strong { text-decoration: underline; text-underline-offset: var(--space-1); }
-.contentPath:active { background: var(--color-canvas); }
-.heroTrust { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-4); margin: var(--space-6) 0 0; padding: 0; color: var(--color-muted); font-size: var(--text-label); line-height: 1.4; list-style: none; }
-.heroTrust li { display: flex; gap: var(--space-2); align-items: center; }
-.heroTrust li::before { content: ''; width: var(--space-1); height: var(--space-1); border-radius: var(--radius-pill); background: var(--color-accent); }
+.heroTools { display: grid; margin-top: var(--space-8); border-top: 1px solid var(--color-border-soft); }
+.toolLink { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: var(--control-height); padding-block: var(--space-3); border-bottom: 1px solid var(--color-border-soft); color: var(--color-ink); text-decoration: none; }
+.toolLink > span { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); }
+.toolLink strong, .assistantTool > p { font: 600 var(--text-body)/1.4 var(--font-ui); }
+.toolLink span > span { color: var(--color-muted); font: 400 var(--text-ui)/1.55 var(--font-ui); }
+.heroTools svg { width: var(--space-4); height: var(--space-4); flex: 0 0 auto; color: var(--color-accent); }
+.toolLink:hover strong, .toolLink:focus-visible strong, .assistantTool a:hover, .assistantTool a:focus-visible { text-decoration: underline; text-underline-offset: var(--space-1); }
+.toolLink:active, .assistantTool a:active { background: var(--color-canvas); }
+.assistantTool { padding-top: var(--space-3); }
+.assistantTool > p { display: flex; align-items: baseline; gap: var(--space-2); margin: 0; }
+.assistantTool small { color: var(--color-accent); font: 500 var(--text-label)/1.4 var(--font-ui); }
+.assistantTool > div { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); }
+.assistantTool a { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--control-height); color: var(--color-ink); text-decoration: none; font: 400 var(--text-ui)/1.4 var(--font-ui); }
 
 /* Examples keep equal columns and semantic copy-first compact order. */
 .interviewSection { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--landing-column-gap); scroll-margin-top: var(--space-8); }

@@ -10,8 +10,8 @@ describe("landing product positioning", () => {
   it("keeps one main heading and makes the account and paid AI boundaries explicit", () => {
     const hero = source.slice(source.indexOf('<section id="top"'), source.indexOf('<section id="szablony"'));
     assert.equal((source.match(/<h1>/g) || []).length, 1);
-    assert.match(hero, /Darmowa rejestracja jest potrzebna dopiero przy zapisie lub pobieraniu PDF/);
-    assert.match(hero, /FREE_TEMPLATES.length/);
+    assert.match(hero, /Darmowe konto do zapisu i pobrania PDF/);
+    assert.match(hero, /Narzędzia CV Studio/);
     assert.match(source, /Asystent CV · Pro/);
     assert.doesNotMatch(hero, /100% ZA DARMO|zwiększy Twoje szanse|systemy ATS/);
   });
@@ -19,7 +19,6 @@ describe("landing product positioning", () => {
   it("preserves directed starts without buffering anonymous analytics", () => {
     assert.doesNotMatch(source, /queueGuestEvent|guestEvents/);
     assert.match(source, /const newCvUrl = "\/app\/new"/);
-    assert.match(source, /getEditorPath\(\{ start: "new", template: selectedTemplateId \}\)/);
     assert.match(source, /buildStartUrl\("import", "free"\)/);
     assert.match(source, /getEditorPath\(\{ start: "demo" \}\)/);
     assert.match(source, /if \(start === "import"\)/);

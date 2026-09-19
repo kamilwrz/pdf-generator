@@ -6,7 +6,7 @@ const claimDialog = (page) => page.getByRole("dialog", { name: "Czy ten szkic na
 
 async function prepareDownload(page) {
   await page.goto("/");
-  await page.locator("#top").getByRole("link", { name: "Zacznij z szablonem Linden", exact: true }).first().click();
+  await page.locator("#top").getByRole("link", { name: "Stwórz CV za darmo", exact: true }).first().click();
   await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
   await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   await expect(nameField(page)).toBeFocused();
@@ -122,7 +122,7 @@ test("a returning guest must confirm replacement and cancellation retains the dr
   const api = await installMockApi(page);
   await prepareDownload(page);
   await page.goto("/");
-  await page.locator("#top").getByRole("link", { name: "Zacznij z szablonem Linden", exact: true }).first().click();
+  await page.locator("#top").getByRole("link", { name: "Stwórz CV za darmo", exact: true }).first().click();
   await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
   await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   const confirmation = page.getByRole("dialog", { name: "Utworzyć nowe CV?" });

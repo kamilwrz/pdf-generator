@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
  *
  * Page order: hero → interview → job tailoring → Studio tools + templates → privacy → pricing → FAQ → final CTA → footer.
  *
- * Free template starts preserve selection through shared onboarding. Guests
+ * Creation starts the shared onboarding; template choice belongs there. Guests
  * can edit locally; saving and exporting require an account. Import enters the
  * account-scoped flow, while the demo opens sample content. Navigation to an
  * Assistant workflow or its credit explanation never starts paid AI. Gallery
@@ -140,9 +140,6 @@ function TemplateGallery() {
 export default function Hero() {
   usePageTitle("common:homeTitle");
   useTranslation();
-    const [selectedTemplateId, setSelectedTemplateId] = useState(
-        FREE_TEMPLATES.find((template) => template.id === "linden")?.id || FREE_TEMPLATES[0]?.id || null,
-    );
     useEffect(() => {
         // Warm the optional API while visitors read the landing page. Loading
         // the marketing content never depends on the backend being available.
@@ -153,9 +150,6 @@ export default function Hero() {
     // adds scale, every template, and AI workflows without changing PDF quality.
     const importUrl = buildStartUrl("import", "free");
     const newCvUrl = "/app/new";
-    const selectedTemplateUrl = getEditorPath({ start: "new", template: selectedTemplateId });
-    const selectedTemplate = FREE_TEMPLATES.find((template) => template.id === selectedTemplateId);
-    const templateAction = uiText('public:hero.startWithTemplate', { template: selectedTemplate?.name });
     const demoUrl = getEditorPath({ start: "demo" });
     const canResumeGuestDraft = !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent;
     // Existing accounts manage their plan in the account workspace; this
@@ -169,36 +163,32 @@ export default function Hero() {
             <main id="site-content" tabIndex={-1} className={classes.content}>
             <section id="top" className={classes.hero} tabIndex={-1}>
                 <div className={classes.heroCopy}>
-                    <p className={classes.kicker} data-section-index="01">CV Studio online</p>
                     <div className={classes.heroHeading}>
                         <h1>{uiText("public:hero.yourCv")}<br /><span>{uiText("public:hero.readyToSend")}</span></h1>
-                        <p className={classes.heroSubheading}>{uiText("public:hero.chooseATemplateAndEnterContentDirectly")}</p>
+                        <p className={classes.heroSubheading}>{uiText("public:hero.intro")}</p>
                     </div>
                     <div className={classes.heroActions}>
-                        <CtaLink to={selectedTemplateUrl}>{templateAction}</CtaLink>
-                        {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>{uiText("public:hero.returnToCvDraft")} <ArrowIcon /></Link> : <CtaLink to={demoUrl} variant="secondary">{uiText("public:hero.exploreTheEditor")}</CtaLink>}
+                        <CtaLink to={newCvUrl}>{uiText("public:hero.createACvForFree")}</CtaLink>
+                        {canResumeGuestDraft && <CtaLink to={getEditorPath()} variant="link">{uiText("public:hero.returnToCvDraft")}</CtaLink>}
                     </div>
-                    <p className={classes.accountNote}>{uiText("public:hero.startWithoutAnAccountFreeRegistrationIs")}</p>
-                    <nav className={classes.contentPaths} aria-label={uiText('public:hero.contentPaths')}>
-                        <a className={classes.contentPath} href="#wywiad">
-                            <strong>{uiText('public:hero.interviewJump')}</strong><ArrowIcon />
-                        </a>
-                        <a className={classes.contentPath} href="#dopasowanie">
-                            <strong>{uiText('public:hero.tailoringJump')}</strong><ArrowIcon />
-                        </a>
+                    <p className={classes.accountNote}>{uiText("public:hero.accountNote")}</p>
+                    <nav className={classes.heroTools} aria-label={uiText('public:hero.tools')}>
+                        <Link className={classes.toolLink} to={demoUrl}>
+                            <span><strong>{uiText('public:hero.editor')}</strong><span>{uiText('public:hero.editorHint')}</span></span><ArrowIcon />
+                        </Link>
+                        <Link className={classes.toolLink} to={importUrl}>
+                            <span><strong>{uiText('public:hero.import')}</strong><span>{uiText('public:hero.importHint')}</span></span><ArrowIcon />
+                        </Link>
+                        <div className={classes.assistantTool}>
+                            <p>{uiText('public:siteLayout.interview')} <small>Pro</small></p>
+                            <div>
+                                <a href="#wywiad">{uiText('public:hero.improveContent')}<ArrowIcon /></a>
+                                <a href="#dopasowanie">{uiText('public:hero.tailorToJob')}<ArrowIcon /></a>
+                            </div>
+                        </div>
                     </nav>
-                    <ul className={classes.heroTrust} aria-label={uiText("public:hero.startWith")}>
-                        <li>{uiText("public:hero.freeEditor")}</li>
-                        <li>{uiText("public:hero.pdfWithoutAWatermark")}</li>
-                        <li>{FREE_TEMPLATES.length} {uiText("public:hero.freeTemplates")}</li>
-                    </ul>
                 </div>
-                <HeroTemplateShowcase
-                    templates={FREE_TEMPLATES}
-                    selectedId={selectedTemplateId}
-                    onSelect={setSelectedTemplateId}
-                    mobileAction={<CtaLink to={selectedTemplateUrl}>{templateAction}</CtaLink>}
-                />
+                <HeroTemplateShowcase templates={FREE_TEMPLATES} />
             </section>
 
             <section id="wywiad" className={classes.interviewSection} aria-labelledby="interview-title" tabIndex={-1}>

@@ -2,51 +2,32 @@ import { expect, test } from "@playwright/test";
 import { installMockApi, login } from "./support/mockApi.js";
 
 for (const name of ["Sterling", "Meridian", "Linden"]) {
-  test(`hero creates the selected Free template: ${name}`, async ({ page }) => {
+  test('hero starts onboarding, where the template is chosen: ' + name, async ({ page }) => {
     const api = await installMockApi(page);
-    await page.goto("/");
-    const hero = page.locator("#top");
-    await expect(hero.getByRole("radio")).toHaveCount(3);
-    await hero.locator("label").filter({ hasText: name }).click();
-    await expect(hero.getByRole("radio", { name, exact: true })).toBeChecked();
-    await expect(hero.getByRole("link", { name: `Zacznij z szablonem ${name}`, exact: true }).first()).toHaveAttribute("href", `/cvstudio/guest?start=new&template=${name.toLowerCase()}`);
-    const request = page.waitForRequest((request) => request.url().endsWith("/ai/fill_template") && request.method() === "POST");
-    await hero.getByRole("link", { name: `Zacznij z szablonem ${name}`, exact: true }).first().click();
-    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
+    await page.goto('/');
+    const hero = page.locator('#top');
+    await expect(hero.getByRole('radio')).toHaveCount(0);
+    await hero.getByRole('link', { name: 'Stwórz CV za darmo', exact: true }).click();
+    await page.getByRole('button', { name: 'Zaczynam od zera', exact: true }).click();
+    await page.getByRole('radio', { name: new RegExp(name) }).check();
+    const request = page.waitForRequest(request => request.url().endsWith('/ai/fill_template') && request.method() === 'POST');
+    await page.getByRole('button', { name: 'Otwórz CV w edytorze', exact: true }).click();
     expect((await request).postDataJSON().template_id).toBe(name.toLowerCase());
     await expect(page).toHaveURL(/\/cvstudio\/guest$/);
-    await expect(page.getByRole("dialog", { name: "CV STUDIO" })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'CV STUDIO' })).toHaveCount(0);
     await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
     api.assertHermetic();
   });
 }
 
-test("keyboard selection updates the CTA and motion settles without an automatic loop", async ({ page }) => {
+test('unavailable sample images retain a working creation path', async ({ page }) => {
   await installMockApi(page);
-  await page.goto("/");
-  const hero = page.locator("#top");
-  await hero.getByRole("radio", { name: "Linden", exact: true }).focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(hero.getByRole("radio", { name: "Sterling", exact: true })).toBeChecked();
-  const card = hero.getByRole("button", { name: "Pokaż szablon Sterling" });
-  await expect(card).toHaveAttribute("data-active", "true");
-  await expect.poll(() => card.evaluate((element) => new DOMMatrix(getComputedStyle(element).transform).m11)).toBe(1);
-  await page.keyboard.press("Tab");
-  // Focus remains in the document's ordinary order; cards do not add hidden
-  // tab stops behind the foreground preview.
-  await expect(hero.getByRole("radio", { name: "Sterling", exact: true })).not.toBeFocused();
-});
-
-test("unavailable images retain template selection and a working CTA", async ({ page }) => {
-  await installMockApi(page);
-  await page.route("**/hero-templates/**", (route) => route.abort());
-  await page.goto("/");
-  const hero = page.locator("#top");
-  await expect(hero.getByText("Nie udało się wczytać podglądu. Wybierz szablon po nazwie i przejdź do edytora.")).toBeVisible();
-  await hero.getByRole("link", { name: "Zacznij z szablonem Linden", exact: true }).first().click();
-    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
+  await page.route('**/hero-templates/**', route => route.abort());
+  await page.goto('/');
+  await expect(page.locator('#top').getByRole('status')).toContainText('Nie udało się wczytać podglądów');
+  await page.locator('#top').getByRole('link', { name: 'Stwórz CV za darmo', exact: true }).click();
+  await page.getByRole('button', { name: 'Zaczynam od zera', exact: true }).click();
+  await page.getByRole('button', { name: 'Otwórz CV w edytorze', exact: true }).click();
   await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
 });
 
@@ -72,56 +53,28 @@ test("workspace and legacy redirects preserve a Free selection", async ({ page }
   }
 });
 
-test("Free showcase fits compact, tablet, laptop, wide and 200% equivalent layouts", async ({ page }, testInfo) => {
-  await installMockApi(page);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
-  for (const width of [390, 834, 1280, 1920, 640]) {
-    await page.setViewportSize({ width, height: width === 640 ? 400 : 950 });
-    const hero = page.locator("#top");
-    await hero.locator("label").filter({ hasText: "Linden" }).click();
-    await expect.poll(() => hero.locator("img").evaluateAll((images) => images.every((image) => image.complete && image.naturalWidth > 0))).toBe(true);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    for (const label of await hero.locator("label").all()) {
-      const box = await label.boundingBox();
-      expect(box.height).toBeGreaterThanOrEqual(44);
-      expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(width);
-    }
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({ path: testInfo.outputPath(`hero-${width}.png`), fullPage: true });
-  }
-});
-
-test("touch swipe changes selection and leaves vertical scrolling native", async ({ page }) => {
-  await installMockApi(page);
-  await page.goto("/");
-  const stage = page.getByTestId("hero-template-stage");
-  // Dispatch pointer events on the stage to verify direction/cancellation
-  // deterministically on both mouse and touch browser profiles.
-  await stage.evaluate((element) => {
-    element.setPointerCapture = () => {};
-    element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 200, clientY: 200 }));
-    element.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 100, clientY: 205 }));
-  });
-  await expect(page.locator("#top").getByRole("radio", { name: "Sterling", exact: true })).toBeChecked();
-  await expect(stage).toHaveCSS("touch-action", "pan-y pinch-zoom");
-});
-
-
-test("compact CTA preserves selection through onboarding and refresh restores the draft", async ({ page }) => {
+test('mobile creation retains a draft and exposes a direct resume alongside the demo', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installMockApi(page);
-  await page.goto("/");
-  const hero = page.locator("#top");
-  await hero.locator("label").filter({ hasText: "Meridian" }).click();
-  await hero.getByRole("link", { name: "Zacznij z szablonem Meridian", exact: true }).last().click();
-    await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
-    await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
-  await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
-  await page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]').fill("Anna Nowak");
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("cvstudio.guest.doc"))).not.toBeNull();
-  await page.reload();
-  await expect(page.getByRole("dialog", { name: "CV STUDIO" })).toHaveCount(0);
+  await page.goto('/');
+  await page.locator('#top').getByRole('link', { name: 'Stwórz CV za darmo', exact: true }).click();
+  await page.getByRole('button', { name: 'Zaczynam od zera', exact: true }).click();
+  await page.getByRole('radio', { name: /Linden/ }).check();
+  await page.getByRole('button', { name: 'Otwórz CV w edytorze', exact: true }).click();
+  const name = page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]');
+  await expect(name).toBeFocused();
+  await name.fill('Anna Nowak');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('cvstudio.guest.doc'))).toContain('Anna Nowak');
+  await page.goto('/');
+  const hero = page.locator('#top');
+  await expect(hero.getByRole('link', { name: 'Edytor CV Wypróbuj na przykładzie', exact: true })).toBeVisible();
+  await hero.getByRole('link', { name: 'Wróć do szkicu CV', exact: true }).click();
   await expect(page).toHaveURL(/\/cvstudio\/guest$/);
+  await expect(page.getByRole('button', { name: 'Pobierz PDF', exact: true })).toBeVisible();
+  // Display-mode canvas text has a zero-height baseline box for PDF parity.
+  // Its rendered text and CSS visibility verify restoration without requiring an editing box.
+  await expect(page.getByText('Anna Nowak', { exact: true })).toHaveCSS('visibility', 'visible');
+  await expect(page.getByRole('dialog', { name: 'CV STUDIO' })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText('Anna Nowak', { exact: true })).toHaveCSS('visibility', 'visible');
 });
