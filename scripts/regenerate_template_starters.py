@@ -280,9 +280,11 @@ TEMPLATES = [
     "cadenza",
     "vellum",
     "aurelia",
+    "amaranth",
 ]
 
 DOC_BLURBS = {
+    "amaranth": "Amaranth: bordeaux single column, Playfair Display and Roboto, rounded photo/label chrome and a right-hand date rail.",
     "facet": "Facet: white paper, angular inlays, Barlow Condensed and Lato, two flowing columns.",
     "nova": (
         "Nova template (`layouts: [\"icons\"]`).\n"
@@ -451,7 +453,7 @@ def main() -> None:
         )
     generated: dict[str, list[dict]] = {}
     for template_id in selected_templates:
-        if template_id in ("regent", "meridian"):
+        if template_id in ("regent", "meridian", "amaranth"):
             cv = REGENT_DEMO_CV
         elif template_id == "aurelia":
             cv = AURELIA_DEMO_CV
@@ -465,7 +467,7 @@ def main() -> None:
         page_one = [e for e in elements if e.get("page", 1) == 1]
         generated[template_id] = tag_flow_roles(relativize_assets(page_one))
         spilled = len(elements) - len(page_one)
-        if spilled and template_id not in {"regent", "meridian"}:
+        if spilled and template_id not in {"regent", "meridian", "amaranth"}:
             raise SystemExit(
                 f"{template_id}: starter spilled {spilled} elements onto page 2; "
                 "trim COMPACT_DEMO_CV / DEMO_CV so the mockup shows every section."

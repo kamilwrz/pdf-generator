@@ -199,6 +199,24 @@ export const TEMPLATES = [
         serverMaterialized: true,
     },
     {
+        id: "amaranth",
+        tier: "paid",
+        name: "Amaranth",
+        get description() { return uiText("editor:index.aWarmSingleColumnLayoutWithRounded"); },
+        details: {
+            get heading() { return uiText("editor:index.roundedSectionLabelsAndAClearDate"); },
+            get body() { return uiText("editor:index.amaranthKeepsEverySectionInOneColumn"); },
+            highlights: localisedList([
+                () => uiText("editor:index.oneColumnKeepsANaturalTopToBottom"),
+                () => uiText("editor:index.datesAndLocationsSitOnTheRightForScanning"),
+                () => uiText("editor:index.anOptionalPhotoHasItsOwnRoundedFrame"),
+            ]),
+        },
+        layouts: ["single", "icons"],
+        accent: "#78304A",
+        serverMaterialized: true,
+    },
+    {
         id: "atrium",
         tier: "paid",
         name: "Atrium",

@@ -15,6 +15,7 @@ from app.services.cv.templates.generators.cadenza import _gen_cadenza
 from app.services.cv.templates.generators.vellum import _gen_vellum
 from app.services.cv.templates.generators.aurelia import _gen_aurelia
 from app.services.cv.templates.generators.facet import _gen_facet
+from app.services.cv.templates.generators.amaranth import _gen_amaranth
 
 
 @dataclass(frozen=True)
@@ -80,6 +81,10 @@ TEMPLATE_CATALOG: tuple[TemplateMetadata, ...] = (
         "aurelia", "Aurelia", "Oliwkowo-złoty editorial z ramowym mastheadem", "pro",
         ("icons", "single"), "#98884D", "/template-mockups/aurelia.png",
     ),
+    TemplateMetadata(
+        "amaranth", "Amaranth", "Bordowy editorial z zaokrąglonymi akcentami i prawą osią dat", "pro",
+        ("icons", "single"), "#78304A", "/template-mockups/amaranth.png",
+    ),
 )
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
@@ -94,6 +99,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
     "cadenza": frozenset({"single", "icons"}),
     "vellum": frozenset({"single", "icons"}),
     "aurelia": frozenset({"single", "icons"}),
+    "amaranth": frozenset({"single", "icons"}),
 }
 
 _GENERATORS = {
@@ -108,6 +114,7 @@ _GENERATORS = {
     "cadenza": _gen_cadenza,
     "vellum": _gen_vellum,
     "aurelia": _gen_aurelia,
+    "amaranth": _gen_amaranth,
 }
 
 

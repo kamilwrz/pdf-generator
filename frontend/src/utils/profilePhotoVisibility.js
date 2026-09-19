@@ -26,6 +26,10 @@ const SUPPORTED_TEMPLATE_IDS = new Set([
   "slate",
   "linden",
   "vellum",
+  // Amaranth's rounded-rectangle slot sits beside the masthead like Vellum's
+  // portrait, independent of the left contact column, so hiding it simply
+  // removes the tagged photo cluster without reflowing any sidebar contacts.
+  "amaranth",
 ]);
 
 const SIDEBAR_CONTACT_TEMPLATE_IDS = new Set(["slate", "linden"]);

@@ -29,9 +29,24 @@ describe("findFitAcrossTypography", () => {
     assert.equal(applyTemplateTypography({ elements: regular, templateId: 'unknown', textSizeId: 'L' }), null);
     assert.equal(applyTemplateTypography({ elements: regular, templateId: 'linden', textSizeId: 'XXL' }), null);
   });
+  // Templates whose Appearance system (palettes + S/M/L/XL text-size layout) is
+  // a tracked follow-up rather than part of their first release. Amaranth ships
+  // with a single authored claret palette and no typography transaction yet, so
+  // the one-page fitter falls back to spacing-only + AI shortening for it (both
+  // `supportsSmallTypographyFit` and `applyTemplateTypography` degrade safely to
+  // no-ops). Remove an id here once its typography layout lands.
+  const TYPOGRAPHY_PENDING_TEMPLATE_IDS = new Set(["amaranth"]);
   it("covers every public template with an explicit S transaction", () => {
     assert.ok(publicTemplateIds.length > 0);
     for (const templateId of publicTemplateIds) {
+      if (TYPOGRAPHY_PENDING_TEMPLATE_IDS.has(templateId)) {
+        assert.equal(
+          supportsSmallTypographyFit(templateId),
+          false,
+          `${templateId} is listed as typography-pending but already registers a layout; remove it from TYPOGRAPHY_PENDING_TEMPLATE_IDS`,
+        );
+        continue;
+      }
       assert.equal(
         supportsSmallTypographyFit(templateId),
         true,

@@ -17,9 +17,11 @@ import { vellumTemplate } from "./vellum";
 import { aureliaTemplate } from "./aurelia";
 
 import { facetTemplate } from "./facet";
+import { amaranthTemplate } from "./amaranth";
 
 export const TEST_TEMPLATES = [
   { id: "facet", elements: facetTemplate },
+  { id: "amaranth", elements: amaranthTemplate },
   { id: "monument", elements: monumentTemplate },
   { id: "slate", elements: slateTemplate },
   { id: "atrium", elements: atriumTemplate },

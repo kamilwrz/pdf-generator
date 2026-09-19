@@ -59,6 +59,7 @@ describe("all template starters expose a reversible masthead title", () => {
     assert.deepEqual(
       TEMPLATES.map((template) => template.id).sort(),
       [
+        "amaranth",
         "atrium",
         "aurelia",
         "cadenza",
