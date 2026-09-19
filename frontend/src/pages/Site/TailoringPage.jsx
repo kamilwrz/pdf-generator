@@ -10,6 +10,7 @@ import { fetchOwnedPdfDownload, triggerBlobDownload } from '../../utils/download
 import { useEntitlements } from '../../hooks/useEntitlements';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import InterviewFlow from '../../components/ai/Interview/InterviewFlow';
+import InterviewLoading from '../../components/ai/Interview/InterviewLoading';
 import InterviewSourcePicker from '../../components/ai/Interview/InterviewSourcePicker';
 import ui from '../../components/common/SiteLayout/SiteLayout.module.css';
 import styles from './TailoringPage.module.css';
@@ -72,6 +73,7 @@ function Workspace({ id }) {
   const [sources, setSources] = useState({ documents: [], imports: [] });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [operation, setOperation] = useState('');
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState('');
@@ -134,12 +136,12 @@ function Workspace({ id }) {
     return () => clearTimeout(timer);
   }, [draft, dirty, flow?.locked, save]);
 
-  async function run(work) {
+  async function run(work, name = '') {
     if (lock.current) return;
-    lock.current = true; setBusy(true); setError(null); setNotice('');
+    lock.current = true; setBusy(true); setOperation(name); setError(null); setNotice('');
     try { await work(); }
     catch (err) { if (alive.current) setError(err); }
-    finally { lock.current = false; if (alive.current) setBusy(false); }
+    finally { lock.current = false; if (alive.current) { setBusy(false); setOperation(''); } }
   }
   async function move(next) {
     const value = { ...current.current, step: next };
@@ -192,28 +194,43 @@ function Workspace({ id }) {
   const selectedData = flow && draft?.source_id === flow.source_id && draft?.source_kind === flow.source_kind ? flow.source_cv_data : null;
   const hasOffer = draft && (draft.offer_kind === 'text' ? draft.job_description.trim() : draft.job_offer_url.trim());
 
+  // One persistent workspace at every step: a vertical numbered rail on the
+  // left (help-guide visual language) and a single fixed-height working panel
+  // on the right. Intake, the conversation, its loading states and the final
+  // download all render inside the same panel, whose body owns vertical
+  // scrolling, so a stage change never reads as moving to another window.
+  const startingInterview = busy && operation === 'start';
   return <div className={styles.workspace}>
-    {flow && draft && !documentId && <div className={styles.progressHeader}>
+    {flow && draft && <aside className={styles.rail}>
       <ol className={styles.steps} aria-label={t('tailoring:steps')}>{setupSteps.map((item, index) => {
         // A step already finished — including a CV chosen in onboarding before
-        // this route ever rendered — must read as completed, not skipped.
-        const done = index < setupSteps.indexOf(step);
-        return <li key={item} aria-current={item === step ? 'step' : undefined} data-complete={done || undefined}>
+        // this route ever rendered — must read as completed, not skipped. The
+        // download stage marks every setup step as completed.
+        const done = documentId ? true : index < setupSteps.indexOf(step);
+        return <li key={item} aria-current={!documentId && item === step ? 'step' : undefined} data-complete={done || undefined}>
           <span aria-hidden="true">{done ? '✓' : String(index + 1).padStart(2, '0')}</span>{t(`tailoring:step.${item}`)}
           {done && <span className={styles.srOnly}> ({t('interview:simple.stepDone')})</span>}
         </li>;
       })}</ol>
-      <div className={styles.status} role="status">{saving ? t('tailoring:saving') : dirty ? t('tailoring:unsaved') : t('tailoring:saved')}{busy && ` · ${t('tailoring:working')}`}{notice && ` · ${t(notice)}`}</div>
-    </div>}
+      <p className={styles.status} role="status">{saving ? t('tailoring:saving') : dirty ? t('tailoring:unsaved') : t('tailoring:saved')}{busy && ` · ${t('tailoring:working')}`}{notice && ` · ${t(notice)}`}</p>
+    </aside>}
+    <section className={styles.workPanel} aria-busy={busy}>
+    <div className={styles.panelBody}>
     {error && <div role="alert" className={ui.error}><p>{error.message}</p><div className={ui.actions}>
       {error.status === 401 ? <Link className={ui.secondary} to={`/login?returnTo=${encodeURIComponent(`/app/tailor/${id}`)}`}>{t('public:siteLayout.signIn')}</Link>
         : <button className={ui.secondary} disabled={busy || saving} onClick={() => run(load)}>{t('tailoring:reload')}</button>}
       {dirty && <button className={ui.secondary} disabled={busy} onClick={() => run(() => save(current.current))}>{t('tailoring:retrySave')}</button>}
     </div><p>{t('tailoring:reloadHint')}</p></div>}
-    {blocker.state === 'blocked' && <section className={ui.notice} role="alert"><p>{t('tailoring:leaveHint')}</p><div className={ui.actions}><button className={ui.primary} onClick={() => blocker.reset()}>{t('tailoring:stay')}</button><button className={ui.secondary} onClick={() => blocker.proceed()}>{t('tailoring:leave')}</button></div></section>}
-    {!flow && !error && <p className={styles.status} role="status">{t('tailoring:loading')}</p>}
-    {flow && draft && !flow.session_id && <section className={styles.panel} aria-busy={busy}>
+    {blocker.state === 'blocked' && <div className={ui.notice} role="alert"><p>{t('tailoring:leaveHint')}</p><div className={ui.actions}><button className={ui.primary} onClick={() => blocker.reset()}>{t('tailoring:stay')}</button><button className={ui.secondary} onClick={() => blocker.proceed()}>{t('tailoring:leave')}</button></div></div>}
+    {!flow && !error && <p className={styles.hint} role="status">{t('tailoring:loading')}</p>}
+    {flow && draft && !flow.session_id && <>
+      {/* Starting the interview runs the paid offer analysis; the wait surface
+          replaces the form inside the same panel while the form stays mounted
+          with its draft so a failure returns to it without losing input. */}
+      {startingInterview && <InterviewLoading operation="start" />}
+      <div hidden={startingInterview}>
       <header className={styles.panelHeader}>
+        <p className={styles.stepEyebrow}>{t('tailoring:stepOf', { number: setupSteps.indexOf(step) + 1, total: setupSteps.length })}</p>
         <h2 ref={heading} tabIndex={-1}>{t(`tailoring:step.${step}`)}</h2>
         {step === 'offer' && <p>{t('tailoring:offerHint')}</p>}
       </header>
@@ -230,28 +247,33 @@ function Workspace({ id }) {
       </>}
       {step === 'offer' && <>
         <fieldset className={styles.radios}><legend>{t('tailoring:offerInput')}</legend>{['text', 'url'].map(kind => <label key={kind}><input type="radio" name="offerKind" checked={draft.offer_kind === kind} onChange={() => change({ offer_kind: kind })} />{t(`tailoring:offer.${kind}`)}</label>)}</fieldset>
-        {draft.offer_kind === 'text' ? <label>{t('tailoring:description')}<textarea rows={8} maxLength={20000} value={draft.job_description} onChange={event => change({ job_description: event.target.value })} /></label>
+        {draft.offer_kind === 'text' ? <label>{t('tailoring:description')}<textarea rows={7} maxLength={20000} value={draft.job_description} onChange={event => change({ job_description: event.target.value })} /></label>
           : <label>{t('tailoring:url')}<input type="url" maxLength={2048} value={draft.job_offer_url} onChange={event => change({ job_offer_url: event.target.value })} placeholder="https://…" /><span className={styles.hint}>{t('tailoring:urlHint')}</span></label>}
-        <div className={styles.offerMeta}><label>{t('tailoring:language')}<select value={draft.language} onChange={event => change({ language: event.target.value })}><option value="pl">Polski</option><option value="en">English</option></select></label>
-          <div className={styles.notice}><p>{t('tailoring:price')}</p><p>{t('tailoring:credits')}</p><p>{t('tailoring:confirmHint')}</p></div></div>
+        <label className={styles.languageField}>{t('tailoring:language')}<select value={draft.language} onChange={event => change({ language: event.target.value })}><option value="pl">Polski</option><option value="en">English</option></select></label>
         <div className={styles.stageActions}>
-          {canAi ? <button className={ui.primary} disabled={!hasOffer} onClick={() => run(start)}>{t('tailoring:startInterview')}</button>
+          {canAi ? <button className={ui.primary} disabled={!hasOffer} onClick={() => run(start, 'start')}>{t('tailoring:startInterview')}</button>
             : <button className={ui.primary} disabled={!hasOffer || !entitlements} onClick={() => run(purchase)}>{t('tailoring:buyPro')}</button>}
           <button className={`${ui.secondary} ${styles.quietButton}`} onClick={() => run(() => move('source'))}>{t('tailoring:backSource')}</button>
         </div>
         {!entitlements && <button className={ui.secondary} onClick={refresh}>{t('tailoring:checkPlan')}</button>}
       </>}
       </fieldset>
-      {flow.locked && !flow.session_id && <div className={ui.notice}><p>{t('tailoring:recoverStart')}</p><button className={ui.primary} disabled={busy} onClick={() => run(start)}>{t('tailoring:retryStart')}</button></div>}
-    </section>}
-    {flow?.session_id && !documentId && <InterviewFlow sessionId={flow.session_id} mode="tailor" guided onDocumentSaved={savedDocument} />}
-    {documentId && <section className={styles.panel}>
-      <h2 ref={heading} tabIndex={-1}>{t('tailoring:ready')}</h2><p>{t('tailoring:readyHint')}</p>
+      {flow.locked && !flow.session_id && <div className={ui.notice}><p>{t('tailoring:recoverStart')}</p><button className={ui.primary} disabled={busy} onClick={() => run(start, 'start')}>{t('tailoring:retryStart')}</button></div>}
+      </div>
+    </>}
+    {flow?.session_id && !documentId && <div className={styles.flowHost}><InterviewFlow sessionId={flow.session_id} mode="tailor" guided onDocumentSaved={savedDocument} /></div>}
+    {documentId && <div>
+      <header className={styles.panelHeader}>
+        <h2 ref={heading} tabIndex={-1}>{t('tailoring:ready')}</h2>
+        <p>{t('tailoring:readyHint')}</p>
+      </header>
       <div className={ui.actions}><button className={ui.primary} disabled={busy} onClick={() => run(async () => {
         const result = await fetchOwnedPdfDownload(documentId, { retries: 0 });
         triggerBlobDownload(result.blob, result.title); setNotice('tailoring:downloaded');
       })}>{t('tailoring:download')}</button><Link className={ui.secondary} to={`/app/documents/${documentId}`}>{t('tailoring:edit')}</Link></div>
       <Link to="/app/documents">{t('tailoring:documents')}</Link>
-    </section>}
+    </div>}
+    </div>
+    </section>
   </div>;
 }
