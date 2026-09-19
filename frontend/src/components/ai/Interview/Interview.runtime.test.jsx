@@ -122,11 +122,11 @@ describe('interview workflow', () => {
     expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
   });
 
-  it('explains informal answers and bounded follow-ups without starting AI on read', async () => {
+  it('explains bounded follow-ups and keeps the answer field named without starting AI on read', async () => {
     session.question.follow_up_to = 'earlier-question';
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    const input = await screen.findByLabelText('Twoja odpowiedź');
-    expect(input).toHaveAccessibleDescription(/Pisz własnymi słowami/);
+    // The visible caption was removed; the accessible name must survive it.
+    await screen.findByRole('textbox', { name: 'Twoja odpowiedź' });
     expect(screen.getByText(/Dopytanie do wcześniejszej odpowiedzi/)).toHaveTextContent('możesz je pominąć');
     expect(interviewRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   });
@@ -157,11 +157,16 @@ describe('interview workflow', () => {
     expect(screen.getByLabelText('Twoja odpowiedź')).toHaveValue('Moja odpowiedź');
   });
 
-  it('distinguishes unknown from a confirmed gap', async () => {
+  it('skips a question with the single Skip action and protects a typed draft', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
-    await user.click(await screen.findByRole('button', { name: 'Nie pamiętam' }));
-    await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'unknown' })));
+    const skip = await screen.findByRole('button', { name: 'Pomiń' });
+    // A typed draft blocks skipping so text is never discarded silently.
+    await user.type(screen.getByRole('textbox', { name: 'Twoja odpowiedź' }), 'Szkic');
+    expect(skip).toBeDisabled();
+    await user.clear(screen.getByRole('textbox', { name: 'Twoja odpowiedź' }));
+    await user.click(skip);
+    await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST', expect.objectContaining({ status: 'skipped', answer: '' })));
   });
 
   it('blocks generation when the source changes', async () => {
@@ -564,17 +569,17 @@ describe('assisted answer provenance', () => {
     expect(interviewRequest.mock.calls.some(([path]) => path.endsWith('/answers'))).toBe(false);
   });
 
-  it.each([
-    ['unknown', 'Nie pamiętam'], ['skipped', 'Pomiń'], ['no_experience', 'Nie mam takiego doświadczenia'],
-  ])('an explicit %s answer drops unsaved assisted prose without confirming it', async (status, label) => {
+  it('requires clearing unsaved assisted prose before Skip, then skips without confirming it', async () => {
     render(<MemoryRouter><InterviewFlow sessionId="session" /></MemoryRouter>);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Użyj propozycji' }));
     expect(screen.getByLabelText('Twoja odpowiedź')).toHaveValue(suggestion.draft);
-    await user.click(screen.getByText('Inne odpowiedzi'));
-    await user.click(screen.getByRole('button', { name: label, exact: true }));
+    // Inserted assisted text is a draft; Skip must not discard it silently.
+    expect(screen.getByRole('button', { name: 'Pomiń', exact: true })).toBeDisabled();
+    await user.clear(screen.getByLabelText('Twoja odpowiedź'));
+    await user.click(screen.getByRole('button', { name: 'Pomiń', exact: true }));
     await waitFor(() => expect(interviewRequest).toHaveBeenCalledWith('/ai/interviews/session/answers', 'POST',
-      expect.objectContaining({ question_id: 'q1', answer: '', status })));
+      expect.objectContaining({ question_id: 'q1', answer: '', status: 'skipped' })));
     const body = interviewRequest.mock.calls.find(([path]) => path.endsWith('/answers'))[2];
     expect(body).not.toHaveProperty('suggestion_id');
     expect(body).not.toHaveProperty('confirm_suggestion');

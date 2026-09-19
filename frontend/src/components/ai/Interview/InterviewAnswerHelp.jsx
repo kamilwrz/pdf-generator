@@ -171,12 +171,10 @@ function QuestionAnswerHelp({ session, answer, disabled = false, canAi = false, 
           if (help) { setOpen(true); return; }
           void generate();
         }}>{uiText(help ? 'interview:answerHelp.reopen' : 'interview:answerHelp.generate')}</button>
-      <p className={classes.hint}>{uiText('interview:answerHelp.credits')}</p>
       {!help && !canAi && <p className={classes.hint}>{uiText('interview:answerHelp.unavailable')}</p>}
     </>}
     {open && <div id={regionId}>
       <h4 ref={heading} tabIndex={-1}>{uiText('interview:answerHelp.title')}</h4>
-      <p className={classes.hint}>{uiText('interview:answerHelp.credits')}</p>
       {help && !pending && <>
         {help.mode === 'draft' && <figure className={classes.proposal}>
           <figcaption>{uiText('interview:answerHelp.draftLabel')}</figcaption>

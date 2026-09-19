@@ -10,7 +10,7 @@ import { fetchOwnedPdfDownload, triggerBlobDownload } from '../../utils/download
 import { useEntitlements } from '../../hooks/useEntitlements';
 import SiteLayout from '../../components/common/SiteLayout/SiteLayout';
 import InterviewFlow from '../../components/ai/Interview/InterviewFlow';
-import CvContent from '../../components/ai/Interview/CvContent';
+import InterviewSourcePicker from '../../components/ai/Interview/InterviewSourcePicker';
 import ui from '../../components/common/SiteLayout/SiteLayout.module.css';
 import styles from './TailoringPage.module.css';
 
@@ -75,13 +75,11 @@ function Workspace({ id }) {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState('');
-  const [file, setFile] = useState(null);
   const remote = useRef(null);
   const current = useRef(null);
   const alive = useRef(true);
   const queue = useRef(Promise.resolve());
   const lock = useRef(false);
-  const importKey = useRef(crypto.randomUUID());
   // Resume the same checkout after a browser refresh or cancelled redirect.
   const checkoutKey = useRef(`tailor-${id}`);
   const heading = useRef(null);
@@ -148,13 +146,24 @@ function Workspace({ id }) {
     await save(value);
     current.current = value; setDraft(value); setDirty(false);
   }
-  async function upload() {
-    if (!file) return;
-    const result = await extractCvPdf(file, importKey.current);
-    const value = { ...current.current, source_kind: 'import', source_id: result.import.id };
-    await save(value);
-    current.current = value; setDraft(value); setDirty(false); setFile(null);
-    setSources(await interviewRequest('/tailoring/sources')); refresh();
+  /**
+   * Extract an uploaded PDF, select the resulting import as the flow source
+   * and refresh the shared list. Rethrowing lets the shared picker keep the
+   * chosen file so a retry reuses the same idempotency key.
+   */
+  async function uploadSource(file, key) {
+    if (lock.current) return;
+    let failure;
+    await run(async () => {
+      try {
+        const result = await extractCvPdf(file, key);
+        const value = { ...current.current, source_kind: 'import', source_id: result.import.id };
+        await save(value);
+        current.current = value; setDraft(value); setDirty(false);
+        setSources(await interviewRequest('/tailoring/sources')); refresh();
+      } catch (err) { failure = err; throw err; }
+    });
+    if (failure) throw failure;
   }
   async function purchase() {
     const saved = await save(current.current);
@@ -185,7 +194,15 @@ function Workspace({ id }) {
 
   return <div className={styles.workspace}>
     {flow && draft && !documentId && <div className={styles.progressHeader}>
-      <ol className={styles.steps} aria-label={t('tailoring:steps')}>{setupSteps.map((item, index) => <li key={item} aria-current={item === step ? 'step' : undefined}><span>{String(index + 1).padStart(2, '0')}</span>{t(`tailoring:step.${item}`)}</li>)}</ol>
+      <ol className={styles.steps} aria-label={t('tailoring:steps')}>{setupSteps.map((item, index) => {
+        // A step already finished — including a CV chosen in onboarding before
+        // this route ever rendered — must read as completed, not skipped.
+        const done = index < setupSteps.indexOf(step);
+        return <li key={item} aria-current={item === step ? 'step' : undefined} data-complete={done || undefined}>
+          <span aria-hidden="true">{done ? '✓' : String(index + 1).padStart(2, '0')}</span>{t(`tailoring:step.${item}`)}
+          {done && <span className={styles.srOnly}> ({t('interview:simple.stepDone')})</span>}
+        </li>;
+      })}</ol>
       <div className={styles.status} role="status">{saving ? t('tailoring:saving') : dirty ? t('tailoring:unsaved') : t('tailoring:saved')}{busy && ` · ${t('tailoring:working')}`}{notice && ` · ${t(notice)}`}</div>
     </div>}
     {error && <div role="alert" className={ui.error}><p>{error.message}</p><div className={ui.actions}>
@@ -202,18 +219,14 @@ function Workspace({ id }) {
       </header>
       <fieldset disabled={busy || Boolean(flow.locked)} className={styles.fields}>
       {step === 'source' && <>
-        <div className={styles.sourceGrid}>
-          {(sources.documents.length > 0 || sources.imports.length > 0) && <label>{t('tailoring:existing')}<select value={draft.source_id ? `${draft.source_kind}:${draft.source_id}` : ''} onChange={event => {
-            const [kind, number] = event.target.value.split(':'); change({ source_kind: kind || null, source_id: number ? Number(number) : null });
-          }}><option value="">{t('tailoring:chooseSource')}</option><optgroup label={t('tailoring:documents')}>{sources.documents.map(item => <option key={item.id} value={`document:${item.id}`}>{item.title}</option>)}</optgroup><optgroup label={t('tailoring:imports')}>{sources.imports.map(item => <option key={item.id} value={`import:${item.id}`}>{item.filename}</option>)}</optgroup></select></label>}
-          <div className={styles.uploadGroup}><label>{t('tailoring:file')}<input type="file" accept="application/pdf,.pdf" onChange={event => { setFile(event.target.files?.[0] || null); importKey.current = crypto.randomUUID(); }} /></label>
-            {file && <button type="button" className={ui.secondary} disabled={file.size > 10 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.pdf')} onClick={() => run(upload)}>{t('tailoring:upload')}</button>}
-            {file && (file.size > 10 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.pdf')) && <p role="alert">{t('tailoring:fileLimit')}</p>}
-          </div>
-        </div>
-        <div className={styles.supportingRow}><button type="button" className={`${ui.secondary} ${styles.quietButton}`} onClick={() => run(async () => { setSources(await interviewRequest('/tailoring/sources')); })}>{t('tailoring:recoverImport')}</button></div>
-        {selectedData && <div className={styles.review}><CvContent data={selectedData} /></div>}
-        <div className={styles.stageActions}><button className={ui.primary} disabled={!selectedData || saving || dirty} onClick={() => run(() => move('offer'))}>{t('tailoring:toOffer')}</button><Link to="/app/new">{t('tailoring:noCv')}</Link></div>
+        {/* The shared CV step: one list of saved CVs and imports plus inline
+            upload. Selecting a row only records the choice — moving on stays
+            behind the explicit action below, and no CV content is rendered. */}
+        <InterviewSourcePicker documents={sources.documents} imports={sources.imports}
+          selected={draft.source_id ? `${draft.source_kind}:${draft.source_id}` : ''}
+          onSelect={value => { const [kind, number] = value.split(':'); change({ source_kind: kind, source_id: Number(number) }); }}
+          onUpload={uploadSource} />
+        <div className={styles.stageActions}><button className={ui.primary} disabled={!selectedData || saving || dirty} onClick={() => run(() => move('offer'))}>{t('tailoring:toOffer')}</button></div>
       </>}
       {step === 'offer' && <>
         <fieldset className={styles.radios}><legend>{t('tailoring:offerInput')}</legend>{['text', 'url'].map(kind => <label key={kind}><input type="radio" name="offerKind" checked={draft.offer_kind === kind} onChange={() => change({ offer_kind: kind })} />{t(`tailoring:offer.${kind}`)}</label>)}</fieldset>

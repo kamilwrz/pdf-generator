@@ -8,15 +8,15 @@ const HELP_ID = 'answer-help-0';
 const copy = {
   pl: {
     suggest: 'Zaproponuj odpowiedź', use: 'Użyj propozycji',
-    confirm: 'Potwierdzam i zapisuję odpowiedź', answer: 'Twoja odpowiedź', credits: 'Kredyty rozmowy',
-    other: 'Inne odpowiedzi', unknown: 'Nie pamiętam', skip: 'Pomiń',
+    confirm: 'Potwierdzam i zapisuję odpowiedź', answer: 'Twoja odpowiedź', credits: 'Kredyty',
+    skip: 'Pomiń',
     retry: 'Spróbuj ponownie', error: 'Nie udało się przygotować propozycji. Twoja odpowiedź została zachowana.',
     cancel: 'Ukryj propozycję', reopen: 'Pokaż propozycję',
   },
   en: {
     suggest: 'Suggest an answer', use: 'Use suggestion',
-    confirm: 'Confirm and save answer', answer: 'Your answer', credits: 'Conversation credits',
-    other: 'Other answers', unknown: 'I cannot remember', skip: 'Skip',
+    confirm: 'Confirm and save answer', answer: 'Your answer', credits: 'Credits',
+    skip: 'Skip',
     retry: 'Try again', error: 'We could not prepare a suggestion. Your answer has been kept.',
   },
 };
@@ -180,7 +180,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     expect(flow.current().question).toEqual(flow.question);
     expect(flow.current().evidence_profile.facts).toEqual(flow.facts);
     expect(flow.saves()).toEqual([]);
-    await expect(credits).toContainText(language === 'pl' ? '5 kredytów' : '5 credits');
+    await expect(credits).toContainText(language === 'pl' ? 'Zużyte 5' : 'Used 5');
     await use.focus();
     await page.keyboard.press('Enter');
     await expect(flow.answer).toHaveValue(suggestedDraft);
@@ -294,7 +294,7 @@ test('hiding pending help keeps the request locked and caches its late response 
   await expect(page.getByRole('button', { name: copy.pl.use, exact: true })).toHaveCount(0);
   expect(flow.helps()).toHaveLength(1);
   expect(flow.saves()).toEqual([]);
-  await expect(page.getByRole('region', { name: copy.pl.credits, exact: true })).toContainText('5 kredytów');
+  await expect(page.getByRole('region', { name: copy.pl.credits, exact: true })).toContainText('Zużyte 5');
   await reopen.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: copy.pl.use, exact: true })).toBeVisible();
@@ -348,16 +348,13 @@ test('oversized suggestion preserves the full draft and displays a recoverable e
   expectSourceIsolation(flow);
 });
 
-for (const [button, status] of [['unknown', 'unknown'], ['skip', 'skipped']]) {
-  test(`${status} answers never generate or adopt a suggestion`, async ({ page }) => {
-    const flow = await openInterview(page);
-    await page.getByText(copy.pl.other, { exact: true }).click();
-    await page.getByRole('button', { name: copy.pl[button], exact: true }).click();
-    await expect.poll(() => flow.saves().length).toBe(1);
-    expect(flow.saves()[0].body).toMatchObject({ status, question_id: QUESTION_ID });
-    expect(flow.saves()[0].body.confirm_suggestion).not.toBe(true);
-    expect(flow.helps()).toEqual([]);
-    expect(flow.current().evidence_profile.facts).toEqual(flow.facts);
-    expectSourceIsolation(flow);
-  });
-}
+test('skipped answers never generate or adopt a suggestion', async ({ page }) => {
+  const flow = await openInterview(page);
+  await page.getByRole('button', { name: copy.pl.skip, exact: true }).click();
+  await expect.poll(() => flow.saves().length).toBe(1);
+  expect(flow.saves()[0].body).toMatchObject({ status: 'skipped', question_id: QUESTION_ID });
+  expect(flow.saves()[0].body.confirm_suggestion).not.toBe(true);
+  expect(flow.helps()).toEqual([]);
+  expect(flow.current().evidence_profile.facts).toEqual(flow.facts);
+  expectSourceIsolation(flow);
+});

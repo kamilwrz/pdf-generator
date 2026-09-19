@@ -115,7 +115,7 @@ for (const width of [390, 834, 1280, 1920]) {
     });
   }
 
-  test(`English interview credit history reflows at ${width}px`, async ({ page }) => {
+  test(`English interview credit line reflows at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await installInterviewApi(page);
@@ -125,11 +125,10 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Start conversation', exact: true }).click();
     await page.getByRole('button', { name: 'Continue to conversation', exact: true }).click();
     await page.getByRole('button', { name: 'Next question', exact: true }).click();
-    const credits = page.getByRole('region', { name: 'Conversation credits' });
-    await expect(credits).toContainText('Last AI request — Assistant question: 7 credits');
-    await credits.locator('summary').focus();
-    await page.keyboard.press('Enter');
-    await expect(credits.getByText('Assistant question: 7 credits', { exact: true })).toBeVisible();
+    // The receipt is a single static line: no history disclosure to operate.
+    const credits = page.getByRole('region', { name: 'Credits' });
+    await expect(credits).toContainText('Used 7');
+    await expect(credits.locator('details')).toHaveCount(0);
     if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../tmp/interview-credits-en-${width}.png`, fullPage: true });
@@ -147,19 +146,15 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await page.getByRole('button', { name: 'Następne pytanie', exact: true }).click();
     await expect(page.getByText(/Pytanie 1 z maksymalnie 8 · Zapisane odpowiedzi: 0/)).toBeVisible();
-    const credits = page.getByRole('region', { name: 'Kredyty rozmowy' });
-    await expect(credits).toContainText('Ostatnie zapytanie AI — Pytanie asystenta: 7 kredytów');
-    await credits.locator('summary').focus();
-    await page.keyboard.press('Enter');
-    await expect(credits.getByText('Pytanie asystenta: 7 kredytów', { exact: true })).toBeVisible();
-    await page.keyboard.press('Enter');
+    const credits = page.getByRole('region', { name: 'Kredyty' });
+    await expect(credits).toContainText('Zużyte 7');
     await page.getByLabel('Twoja odpowiedź').fill('Tworzę raporty.');
     await page.getByRole('button', { name: 'Zapisz odpowiedź', exact: true }).click();
     await expect(page.getByText('Odpowiedź zapisana w profilu zawodowym.', { exact: true })).toBeVisible();
     await expect(page.getByText(/do zapisania/)).toHaveCount(0);
     expect(api.calls.filter((call) => call.path.endsWith('/confirm'))).toHaveLength(1);
     await page.goto(`/app/interview/${ID}`);
-    await expect(page.getByRole('region', { name: 'Kredyty rozmowy' })).toContainText('Zużycie w tej rozmowie: 7 kredytów');
+    await expect(page.getByRole('region', { name: 'Kredyty' })).toContainText('Zużyte 7');
     await openInformation(page);
     await page.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
     await openPreparation(page);
@@ -250,13 +245,12 @@ for (const width of [390, 834, 1280, 1920]) {
     await flow.getByRole('button', { name: 'Wybierz szablon', exact: true }).click();
     await flow.getByRole('button', { name: 'Utwórz CV · Sterling', exact: true }).click();
     await expect(flow.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();
-    await expect(flow.getByRole('region', { name: 'Kredyty rozmowy' })).toContainText('Ostatnie zapytanie AI — Przygotowanie CV: 18 kredytów');
+    // The static receipt line repeats only settled usage for this interview.
     // The embedded host owns the account balance; the interview receipt only
     // repeats its own settled cost, avoiding two competing balance readouts.
-    await expect(flow.getByRole('region', { name: 'Kredyty rozmowy' })).not.toContainText('Pozostało na koncie:');
+    await expect(flow.getByRole('region', { name: 'Kredyty' })).toContainText('Zużyte 25');
+    await expect(flow.getByRole('region', { name: 'Kredyty' })).not.toContainText('Dostępne');
     await expect(page.getByTitle('Wykorzystano 25 z 200 kredytów AI w tym miesiącu')).toContainText('175');
-    await flow.getByRole('region', { name: 'Kredyty rozmowy' }).locator('summary').click();
-    await expect(flow.getByText('Redakcja języka i stylu: 6 kredytów')).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-assistant-${width}.png`, fullPage: true });
     expect(await flow.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     const start = api.calls.find((call) => call.path.endsWith('/interviews') && call.method === 'POST');

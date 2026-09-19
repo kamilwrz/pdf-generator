@@ -1,45 +1,32 @@
-/* The receipt wraps as one compact row before the working panel in either host. */
+/* The receipt is one static wrapping line before the working panel in either host. */
 .credits {
   min-width: 0;
-  border-bottom: 0;
-  padding: 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-canvas);
   margin-bottom: var(--space-4);
   font: .875rem/1.4 var(--font-ui);
   overflow-wrap: anywhere;
 }
 
-.summary {
+.line {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-1) var(--space-4);
+  margin: 0;
+  min-height: var(--control-height-compact, 36px);
 }
 
-.summary > * { min-width: 0; }
-.credits .summary p { margin: 0; }
-.credits .notice, .credits .hint { margin: var(--space-2) 0 0; }
-.hint, .history time { color: var(--color-muted); }
+.line + .line { margin-top: var(--space-2); }
 
-.history summary {
-  display: list-item;
-  align-content: center;
-  min-height: var(--control-height);
-  font-weight: 600;
-  cursor: pointer;
+.label {
+  font: 600 .75rem/1.25 var(--font-ui);
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
-.history summary:hover { background: var(--color-surface); }
-.history summary:active { background: var(--color-canvas); }
-.history summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.history > ol { max-height: 24rem; overflow-y: auto; margin: 0; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-6); }
-.history > ol > li { padding-block: var(--space-2); border-top: 1px solid var(--color-border); }
-.history ul { padding-left: var(--space-4); }
-
-.history > summary { font-weight: 400; font-size: .875rem; }
-.history > summary > span { display: inline-block; margin-right: var(--space-4); }
+.hint { color: var(--color-muted); }
 .metric { color: var(--color-muted); }
 .metric strong { color: var(--chrome-ink, var(--color-ink)); font-variant-numeric: tabular-nums; margin-left: var(--space-1); }
-.history[open] { padding-bottom: var(--space-3); }
 
 @media (min-width: 1000px) and (max-height: 800px) { .credits { margin-bottom: var(--space-2); } }

@@ -43,6 +43,10 @@
 .stages li > span { flex-shrink: 0; font: var(--text-label)/1 var(--font-mono); }
 .stages li[aria-current] { border-bottom-width: 2px; border-color: var(--color-accent); color: var(--interview-ink); font-weight: 700; }
 .stages li[aria-current] > span { color: var(--color-accent); }
+/* A step finished here or upstream in onboarding reads as done, not pending. */
+.stages li[data-complete] { color: var(--interview-ink); }
+.stages li[data-complete] > span { color: var(--color-accent); }
+.srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .stageBody { animation: stage-enter var(--motion-slow) var(--motion-ease) both; }
 .templateGrid { list-style: none; padding: 0; margin: var(--space-4) 0; }
 .templateGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
@@ -104,13 +108,17 @@
 
 .answerForm { min-width: 0; }
 .answerForm > label { margin-block: var(--space-2); }
+.answerForm > textarea { margin-block: var(--space-3); }
 .answerForm > .actions { margin-block: var(--space-2); }
 .answerForm > .hint, .answerForm > h3 { margin-bottom: var(--space-2); }
-.conversationQuestion { border: 0; padding-block: var(--space-4) 0; }
+/* One reading column at every width: the requirement context is a compact
+   strip above the question, never a second pane beside the answer form. */
+.conversationQuestion { border: 0; padding-block: var(--space-4) 0; display: grid; gap: var(--space-4); }
+.questionContext { display: grid; gap: var(--space-2); max-width: 72ch; }
+.questionContext:empty { display: none; }
+/* The grid gap owns vertical rhythm inside the context strip. */
+.questionContext > * { margin-bottom: 0; }
 @container interview (min-width: 900px) {
-  .conversationQuestion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; gap: var(--space-8); }
-  .questionContext:empty { display: none; }
-  .conversationQuestion:has(.questionContext:empty) { grid-template-columns: minmax(0, 1fr); }
   .templateGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 

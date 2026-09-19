@@ -71,10 +71,15 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const api = await setup(page);
     await page.goto(`/app/tailor/${ID}`);
-    await page.getByLabel('Or choose a saved source').selectOption('document:41');
-    await expect(page.getByText('Anna Example', { exact: true })).toBeVisible();
+    const row = page.getByRole('button', { name: 'Anna CV', exact: true });
+    await row.click();
+    await expect(row).toHaveAttribute('aria-pressed', 'true');
+    // Selecting a CV never renders its content in the tailoring flow.
+    await expect(page.getByText('Anna Example', { exact: true })).toHaveCount(0);
     await page.screenshot({ path: `test-results/tailoring-source-${width}.png`, fullPage: true });
     await page.getByRole('button', { name: 'Continue to the advert', exact: true }).click();
+    // The finished CV step is marked completed on the persistent rail.
+    await expect(page.getByRole('list', { name: 'CV tailoring steps' }).locator('li[data-complete]')).toHaveCount(1);
     await page.getByLabel('Job description (required)').fill('Reporting analyst: SQL and dashboards.');
     await expect(page.getByText('Progress saved', { exact: true })).toBeVisible();
     await page.screenshot({ path: `test-results/tailoring-offer-${width}.png`, fullPage: true });
@@ -84,6 +89,7 @@ for (const width of [390, 834, 1280, 1920]) {
     const progress = page.getByRole('list', { name: 'CV tailoring steps' });
     await expect(progress).toBeVisible();
     await expect(progress.locator('li[aria-current="step"]')).toContainText('03');
+    await expect(progress.locator('li[data-complete]')).toHaveCount(2);
     // The guided conversation requests its first question immediately, the
     // same way an ordinary CV Assistant conversation never waits for a
     // separate manual "next question" click on the very first question.
@@ -111,7 +117,7 @@ test('opening tailoring without a saved flow id skips straight to the first step
   const api = await setup(page);
   await page.goto('/app/tailor');
   await expect(page).toHaveURL(new RegExp(`/app/tailor/${ID}$`));
-  await expect(page.getByRole('heading', { name: 'Your CV', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'CV', exact: true })).toBeVisible();
   // The removed intro screen ("Start with your CV", its price paragraph and the
   // saved-history list) and the removed source-step hints must never appear.
   await expect(page.getByRole('heading', { name: 'Start with your CV' })).toHaveCount(0);
@@ -137,7 +143,7 @@ test('Free intake retains advert after checkout cancellation and never calls int
 test('autosave failure preserves text, blocks navigation and supports retry', async ({ page }) => {
   const api = await setup(page);
   await page.goto(`/app/tailor/${ID}`);
-  await page.getByLabel('Or choose a saved source').selectOption('document:41');
+  await page.getByRole('button', { name: 'Anna CV', exact: true }).click();
   await page.getByRole('button', { name: 'Continue to the advert', exact: true }).click();
   api.failSave(true);
   await page.getByLabel('Job description (required)').fill('Unsaved important advert');

@@ -5,10 +5,13 @@ import { interviewRequest } from '../../../services/interviews';
 import classes from './InterviewCredits.module.css';
 
 /**
- * Show settled request costs in every interview host, outside the PDF tree.
- * Read the ledger after success AND failure: a preview may charge for completed
- * stages before a later stage fails. Never infer charges from the account balance
- * or retained session.usage, which can describe another request or a replay.
+ * One static receipt line in every interview host, outside the PDF tree:
+ * "Kredyty · Zużyte N · Dostępne M". The per-request history disclosure was
+ * removed on request to reduce cognitive load; the ledger read remains because
+ * the used total must come from settled charges, never from the account
+ * balance or retained session.usage, which can describe another request or a
+ * replay. The read repeats after success AND failure: a preview may charge for
+ * completed stages before a later stage fails.
  */
 export default function InterviewCredits({ sessionId, revision, busy, entitlements, balanceLoading, balanceError, onRefreshBalance, showBalance = true }) {
   const { t } = useTranslation();
@@ -33,43 +36,23 @@ export default function InterviewCredits({ sessionId, revision, busy, entitlemen
   }, [request]);
 
   const data = snapshot?.sessionId === sessionId ? snapshot.data : null;
-  const latest = data?.requests[0];
   const number = (value) => new Intl.NumberFormat(getUiLocale()).format(value);
-  const credits = (value) => t('interview:credits.amount', { count: value, value: number(value) });
-  const operation = (value) => t(`interview:credits.operation.${value}`);
   const remaining = entitlements?.remaining?.ai_credits;
   const knownBalance = !busy && !balanceLoading && !balanceError && Number.isFinite(remaining) && remaining >= 0;
-  const status = (item) => `${credits(item.credits_charged)}${item.pending ? ` · ${t('interview:credits.pending')}` : ''}`;
-  const retryRead = () => { setRetry((value) => value + 1); onRefreshBalance?.(); };
-  const readStatus = busy ? t('interview:credits.working') : loading ? t('interview:credits.loading') : failed ? t('interview:credits.error') : null;
+  // An unknown amount stays an explicit dash; a settling charge is announced
+  // rather than shown as a stale or invented number.
+  const pending = busy || loading || data?.requests.some((item) => item.pending);
 
   return <section className={classes.credits} aria-label={t('interview:credits.title')}>
-    <details className={classes.history}>
-      <summary>
-        <span>{t('interview:credits.title')}</span>
-        <span className={classes.metric} aria-live="polite" aria-atomic="true">{t('interview:credits.usedShort')} <strong>{data ? number(data.credits_charged) : '—'}</strong></span>
-        {showBalance && <span className={classes.metric}>{t('interview:credits.balanceShort')} <strong>{knownBalance ? number(remaining) : '—'}</strong></span>}
-        {(busy || loading || data?.requests.some(item => item.pending)) && <span className={classes.hint}>{t('interview:credits.pending')}</span>}
-      </summary>
-      <div role="status" aria-live="polite" aria-atomic="true">
-        <div className={classes.summary}>
-          <p><strong>{t('interview:credits.total')}</strong> {data ? credits(data.credits_charged) : '—'}</p>
-          {showBalance && <p><strong>{t('interview:credits.remaining')}</strong> {knownBalance ? credits(remaining) : t('interview:credits.unavailable')}</p>}
-          {latest && <p>{t('interview:credits.latest', { operation: operation(latest.operation), cost: status(latest) })}</p>}
-          {!latest && !readStatus && <p>{t('interview:credits.empty')}</p>}
-        </div>
-        {readStatus && !failed && <p className={classes.notice}>{readStatus}</p>}
-      </div>
-      <p className={classes.hint}>{t('interview:credits.free')}</p>
-      {latest && <p className={classes.hint}>{t('interview:credits.history', { count: data.requests.length })}</p>}
-      <ol>{data?.requests.map((item) => <li key={item.id}>
-        <div className={classes.summary}><strong>{operation(item.operation)}</strong><span>{status(item)}</span></div>
-        <time dateTime={item.created_at}>{new Intl.DateTimeFormat(getUiLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.created_at))}</time>
-        <ul>{item.stages.map((stage, index) => <li key={index}>{operation(stage.operation === 'preview' ? 'draft' : stage.operation)}: {stage.status === 'pending' ? t('interview:credits.pending') : credits(stage.credits_charged)}{stage.status === 'failed' ? ` · ${t('interview:credits.failedStage')}` : ''}</li>)}</ul>
-      </li>)}</ol>
-      {latest && <p className={classes.hint}>{t('interview:credits.recovery')}</p>}
-      {!failed && data?.requests.some((item) => item.pending) && <button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button>}
-    </details>
-    {failed && <div role="status"><p className={classes.notice}>{readStatus}</p><button type="button" disabled={busy || loading} onClick={retryRead}>{t('interview:credits.retry')}</button></div>}
+    <p className={classes.line}>
+      <span className={classes.label}>{t('interview:credits.title')}</span>
+      <span className={classes.metric} aria-live="polite" aria-atomic="true">{t('interview:credits.usedShort')} <strong>{data ? number(data.credits_charged) : '—'}</strong></span>
+      {showBalance && <span className={classes.metric}>{t('interview:credits.balanceShort')} <strong>{knownBalance ? number(remaining) : '—'}</strong></span>}
+      {pending && !failed && <span className={classes.hint}>{t('interview:credits.pending')}</span>}
+    </p>
+    {failed && <div role="status" className={classes.line}>
+      <span className={classes.hint}>{t('interview:credits.error')}</span>
+      <button type="button" disabled={busy || loading} onClick={() => { setRetry((value) => value + 1); onRefreshBalance?.(); }}>{t('interview:credits.retry')}</button>
+    </div>}
   </section>;
 }

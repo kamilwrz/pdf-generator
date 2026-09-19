@@ -197,7 +197,6 @@ test('question waiting, failed answer and draft recovery use distinct states', a
   await expect(page.getByRole('heading', { name: 'Przygotowujemy pytanie' })).toBeVisible();
   await page.screenshot({ path: '../tmp/interview-loading-question.png', fullPage: true });
   releaseQuestion();
-  await expect(page.getByLabel('Twoja odpowiedź')).toHaveAccessibleDescription(/Pisz własnymi słowami/);
   await page.getByLabel('Twoja odpowiedź').fill('Zautomatyzowałam raport tygodniowy.');
   api.failAnswer();
   const releaseAnswer = api.hold('answers');
@@ -220,10 +219,10 @@ for (const language of ['pl', 'en']) {
       await page.goto(`/app/interview/${ID}`);
       const heading = page.getByRole('heading', { level: 1 });
       await expect(heading).toHaveText(language === 'pl' ? 'Asystent CV' : 'CV Assistant');
-      const credits = page.getByRole('region', { name: language === 'pl' ? 'Kredyty rozmowy' : 'Conversation credits' });
-      const details = credits.locator('details');
-      await expect(credits.locator('summary')).toContainText(language === 'pl' ? 'Zużyte 0' : 'Used 0');
-      await expect(details).not.toHaveAttribute('open');
+      // One static receipt line replaced the former history disclosure.
+      const credits = page.getByRole('region', { name: language === 'pl' ? 'Kredyty' : 'Credits' });
+      await expect(credits).toContainText(language === 'pl' ? 'Zużyte 0' : 'Used 0');
+      await expect(credits.locator('details')).toHaveCount(0);
       const next = page.getByRole('button', { name: language === 'pl' ? 'Następne pytanie' : 'Next question', exact: true });
       await expect(next).toBeInViewport();
       // The footer fills unused viewport space, but follows long content in normal flow.
@@ -239,14 +238,6 @@ for (const language of ['pl', 'en']) {
       expect(initialFooter.top).toBeGreaterThanOrEqual(initialFooter.mainBottom - 1);
       if (width >= 1280) expect(Math.abs(initialFooter.bottom - initialFooter.viewport)).toBeLessThanOrEqual(1);
       await page.screenshot({ path: `../tmp/assistant-compact-${language}-${width}.png`, fullPage: true });
-      await credits.locator('summary').focus();
-      await page.keyboard.press('Enter');
-      await expect(details).toHaveAttribute('open');
-      const expandedFooter = await footerPosition();
-      expect(expandedFooter.top).toBeGreaterThanOrEqual(expandedFooter.mainBottom - 1);
-      if (width >= 1280) expect(expandedFooter.bottom).toBe(initialFooter.bottom);
-      await page.keyboard.press('Enter');
-      await expect(details).not.toHaveAttribute('open');
       if (width === 834) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       const finalFooter = await footerPosition();

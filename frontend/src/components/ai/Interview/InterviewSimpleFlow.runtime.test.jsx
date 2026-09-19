@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import InterviewFlow from './InterviewFlow';
@@ -99,7 +99,7 @@ it.each(['source', 'answer', 'resume'])('shows only progress while the next ques
   expect(screen.queryByRole('button', { name: 'Następne pytanie' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Wybierz szablon', exact: true })).not.toBeInTheDocument();
   expect(screen.queryByText('Odpowiedź zapisana. Idziemy dalej?')).not.toBeInTheDocument();
-  expect(screen.getByText('Kredyty rozmowy')).toBeVisible();
+  expect(screen.getByText('Kredyty')).toBeVisible();
   await release();
   expect(await screen.findByRole('textbox', { name: 'Twoja odpowiedź' })).toBeEnabled();
   expect(screen.getByRole('heading', { name: 'Rozmowa o doświadczeniu' })).toHaveFocus();
@@ -171,12 +171,32 @@ it('retains a saved answer after the next question fails and retry does not subm
 
 it('requires an explicit retry after first-question failure; loading the saved state never calls AI', async () => {
   failNext = true; mount();
-  await userEvent.click(await screen.findByRole('tab', { name: /Importy/ }));
   await userEvent.click(await screen.findByRole('button', { name: 'Import.pdf' }));
   await screen.findByRole('alert');
   expect(writes()[0][2]).toMatchObject({ source_import_id: 8, include_profile: false });
   await userEvent.click(screen.getByRole('button', { name: 'Wczytaj zapisany stan' }));
   expect(writes().filter(([path]) => path.endsWith('/next'))).toHaveLength(1);
+});
+
+it('an onboarding source marks the CV step complete and waits on the conversation step without paid work', async () => {
+  mount({ initialSource: { cv_data: { name: 'Anna Example' }, source_document_id: 7, language: 'pl' } });
+  const steps = within(await screen.findByRole('list', { name: 'Etapy rozmowy' })).getAllByRole('listitem');
+  expect(steps[0]).toHaveTextContent('CV');
+  expect(steps[0]).toHaveTextContent('ukończono');
+  expect(steps[0]).not.toHaveAttribute('aria-current');
+  expect(steps[1]).toHaveAttribute('aria-current', 'step');
+  expect(await screen.findByRole('button', { name: 'Rozpocznij rozmowę' })).toBeEnabled();
+  expect(writes()).toHaveLength(0);
+});
+
+it('the guided tailoring host shows no CV content toggle and no stage rail', async () => {
+  session = { ...session, phase: 'ready', confirmed: true, mode: 'tailor',
+    evidence_profile: { revision: 0, facts: [fact] },
+    answers: [{ question, answer: 'Raporty' }] };
+  mount({ sessionId: session.id, guided: true, onDocumentSaved: vi.fn() });
+  await screen.findByRole('button', { name: 'Następne pytanie' });
+  expect(screen.queryByRole('button', { name: 'Treść CV', exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByRole('list', { name: 'Etapy rozmowy' })).not.toBeInTheDocument();
 });
 
 it.each([false, true])('template selection never saves unverified output and preserves verified save retry (clarify: %s)', async needsClarification => {
