@@ -38,7 +38,11 @@ def main():
     hero = ROOT / "frontend/public/hero-templates/en"
     packs = ROOT / "frontend/src/templates/en"
     for directory in (previews, hero, packs): directory.mkdir(parents=True, exist_ok=True)
-    for template in TEMPLATES:
+    selected = sys.argv[1:] or TEMPLATES
+    unknown = set(selected) - set(TEMPLATES)
+    if unknown:
+        raise SystemExit(f"Unknown template IDs: {sorted(unknown)}")
+    for template in selected:
         cv = deepcopy(ENGLISH_DEMO)
         if template in {"atrium", "aurelia", "monument", "vellum", "cadenza"}:
             for entry in cv["experience"]: entry["bullets"] = entry["bullets"][:1]

@@ -101,7 +101,13 @@
     "newCvSetupModal.twoColumns": "Dwie kolumny",
     "newCvSetupModal.oneColumn": "Jedna kolumna",
     "templateLayouts.moreCreative": "bardziej kreatywny",
-    "templateLayouts.verySafe": "bardzo bezpieczny"
+    "templateLayouts.verySafe": "bardzo bezpieczny",
+    "facet.description": "Białe tło, ukośne detale i dwie kolumny z wyraźnym podziałem treści.",
+    "facet.heading": "Geometria, która porządkuje doświadczenie",
+    "facet.body": "Facet łączy wąskie litery Barlow Condensed z czytelnym Lato. Skośna linia otwiera dwie kolumny: krótsze informacje po lewej, historia pracy po prawej. Cztery białe i dwie ciemne palety zachowują ten sam układ.",
+    "facet.highlight1": "Geometryczne narożniki i skośny podział nagłówka.",
+    "facet.highlight2": "Edytowalne sekcje, kontakty i rozmiary tekstu S–XL.",
+    "facet.highlight3": "Cztery palety na białym tle oraz dwie wersje ciemne."
   },
   "ai": {
     "aiAssistant.tailorYourCvToASpecificJob": "Dopasuj CV do konkretnej oferty"

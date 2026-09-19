@@ -1,3 +1,7 @@
+import {
+  FACET_PALETTES, FACET_TEXT_SIZES, getFacetAppearance, applyFacetPalette,
+  applyFacetTextSizeLayout, applyFacetRenderedHeightsLayout,
+} from "../../../utils/facetAppearance";
 import { getUiLocale } from '../../../i18n/index.js';
 import { t as uiText } from "../../../i18n/index.js";
 import { useTranslation } from 'react-i18next';
@@ -5,7 +9,7 @@ import { useTranslation } from 'react-i18next';
  * Template-mode customization panel ("Dostosuj CV"): document status, section
  * structure, density presets, precise spacing, and template-scoped appearance
  * tools for Atrium, Regent, Sterling, Linden, Monument, Slate, Meridian,
- * Cadenza, Vellum, and Aurelia. A
+ * Cadenza, Vellum, Aurelia, and Facet. A
  * main-column Skills section's list row also gets a layout icon opening
  * `SkillsLayoutPanel` (same panel the canvas heading hover control opens —
  * see `SectionRecordAdd`), so the mode picker is reachable without hunting
@@ -248,6 +252,7 @@ export default function SectionsPanel({ onClose }) {
   // Appearance is intentionally released template by template. The tab is
   // gated by the selected template ID so a visually similar document never
   // receives another template's semantic colour or typography contract.
+  const isFacetAppearance = activeTemplateId === "facet";
   const isSterlingAppearance = activeTemplateId === "sterling";
   const isLindenAppearance = activeTemplateId === "linden";
   const isMonumentAppearance = activeTemplateId === "monument";
@@ -259,6 +264,7 @@ export default function SectionsPanel({ onClose }) {
   const isAtriumAppearance = activeTemplateId === "atrium";
   const isRegentAppearance = activeTemplateId === "regent";
   const appearanceEnabled = isAtriumAppearance
+    || isFacetAppearance
     || isRegentAppearance
     || isSterlingAppearance
     || isLindenAppearance
@@ -270,6 +276,13 @@ export default function SectionsPanel({ onClose }) {
     || isAureliaAppearance;
   const renderedTab = appearanceEnabled ? activeTab : "layout";
   const appearanceDefinition = useMemo(() => {
+    if (isFacetAppearance) return {
+      templateName: "Facet", palettes: FACET_PALETTES, textSizes: FACET_TEXT_SIZES,
+      value: getFacetAppearance(A4_Elements), applyPalette: applyFacetPalette,
+      applyTextSizeLayout: applyFacetTextSizeLayout,
+      applyRenderedHeightsLayout: applyFacetRenderedHeightsLayout,
+      paletteDescription: uiText("editor:facet.palettes"),
+    };
     if (isRegentAppearance) return {
       templateName: "Regent",
       palettes: REGENT_PALETTES,
@@ -367,7 +380,7 @@ export default function SectionsPanel({ onClose }) {
       applyTextSizeLayout: applySterlingTextSizeLayout,
       applyRenderedHeightsLayout: applySterlingRenderedHeightsLayout,
     };
-  }, [A4_Elements, isAtriumAppearance, isAureliaAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isRegentAppearance, isSlateAppearance, isVellumAppearance]);
+  }, [A4_Elements, isFacetAppearance, isAtriumAppearance, isAureliaAppearance, isCadenzaAppearance, isLindenAppearance, isMeridianAppearance, isMonumentAppearance, isRegentAppearance, isSlateAppearance, isVellumAppearance]);
 
   useEffect(() => {
     if (!onClose) return undefined;
@@ -630,11 +643,19 @@ export default function SectionsPanel({ onClose }) {
                       onClick={() => handleAppearancePalette(palette.id)}
                     >
                       <span
-                        className={`${classes.palettePaper} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isRegentAppearance ? classes.palettePaperRegent : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""} ${isAureliaAppearance ? classes.palettePaperAurelia : ""}`}
+                        className={`${classes.palettePaper} ${isFacetAppearance ? classes.palettePaperFacet : ""} ${isAtriumAppearance ? classes.palettePaperAtrium : ""} ${isRegentAppearance ? classes.palettePaperRegent : ""} ${isLindenAppearance ? classes.palettePaperLinden : ""} ${isMonumentAppearance ? classes.palettePaperMonument : ""} ${isSlateAppearance ? classes.palettePaperSlate : ""} ${isMeridianAppearance ? classes.palettePaperMeridian : ""} ${isCadenzaAppearance ? classes.palettePaperCadenza : ""} ${isVellumAppearance ? classes.palettePaperVellum : ""} ${isAureliaAppearance ? classes.palettePaperAurelia : ""}`}
                         style={cardStyle}
                         aria-hidden="true"
                       >
-                        {isAureliaAppearance ? (
+                        {isFacetAppearance ? (
+                          <>
+                            <span className={classes.paletteFacetCorner} />
+                            <span className={classes.paletteFacetName} />
+                            <span className={classes.paletteFacetRule} />
+                            <span className={classes.paletteFacetRail} />
+                            <span className={classes.paletteFacetCopy} />
+                          </>
+                        ) : isAureliaAppearance ? (
                           <>
                             <span className={classes.paletteAureliaFrame} />
                             <span className={classes.paletteAureliaName} />

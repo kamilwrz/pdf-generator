@@ -14,6 +14,7 @@ from app.services.cv.templates.generators.linden import _gen_linden
 from app.services.cv.templates.generators.cadenza import _gen_cadenza
 from app.services.cv.templates.generators.vellum import _gen_vellum
 from app.services.cv.templates.generators.aurelia import _gen_aurelia
+from app.services.cv.templates.generators.facet import _gen_facet
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,10 @@ class TemplateMetadata:
 
 
 TEMPLATE_CATALOG: tuple[TemplateMetadata, ...] = (
+    TemplateMetadata(
+        "facet", "Facet", "Białe tło, ukośne akcenty i dwie kolumny", "pro",
+        ("sidebar", "icons"), "#657537", "/template-mockups/facet.png",
+    ),
     TemplateMetadata(
         "monument", "Monument", "Monochromatyczny editorial", "pro",
         ("single",), "#343434", "/template-mockups/monument.png",
@@ -78,6 +83,7 @@ TEMPLATE_CATALOG: tuple[TemplateMetadata, ...] = (
 )
 
 TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
+    "facet": frozenset({"sidebar", "icons"}),
     "monument": frozenset({"single"}),
     "slate": frozenset({"sidebar", "icons"}),
     "atrium": frozenset({"single", "icons"}),
@@ -91,6 +97,7 @@ TEMPLATE_LAYOUTS: dict[str, frozenset[str]] = {
 }
 
 _GENERATORS = {
+    "facet": _gen_facet,
     "monument": _gen_monument,
     "slate": _gen_slate,
     "atrium": _gen_atrium,

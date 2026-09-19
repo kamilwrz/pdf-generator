@@ -249,3 +249,11 @@
 @media (max-width: 720px) {
   .panel { position: fixed; right: 0; left: 56px; width: auto; border-left: 1px solid var(--chrome-border); box-shadow: var(--shadow-pop); }
 }
+
+/* Miniature document pixels follow Facet's authored palette; controls retain UI tokens. */
+.palettePaperFacet { overflow: hidden; }
+.paletteFacetCorner { position: absolute; inset: 0 0 auto auto; width: 28%; height: 10%; background: var(--palette-accent); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.paletteFacetName { position: absolute; left: 24%; top: 16%; width: 52%; height: 5%; background: var(--palette-ink); }
+.paletteFacetRule { position: absolute; left: 8%; right: 8%; top: 31%; height: 3%; background: var(--palette-accent); clip-path: polygon(0 70%, 100% 0, 100% 30%, 0 100%); }
+.paletteFacetRail { position: absolute; left: 0; top: 35%; bottom: 0; width: 35%; background: var(--palette-sidebar); border-right: 1px solid var(--palette-rule); }
+.paletteFacetCopy { position: absolute; left: 42%; top: 41%; width: 47%; height: 2%; background: var(--palette-ink); box-shadow: 0 8px 0 var(--palette-rule), 0 16px 0 var(--palette-rule), 0 28px 0 var(--palette-ink), 0 36px 0 var(--palette-rule), 0 44px 0 var(--palette-rule); }

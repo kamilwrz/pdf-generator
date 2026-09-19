@@ -866,7 +866,20 @@
     "icons.website": "Website",
     "icons.calendar": "Date",
     "icons.portrait": "Photo",
-    "inspector.textLower": "text"
+    "inspector.textLower": "text",
+    "facet.palettes": "Four white and two dark palettes change the paper, text, icons and geometric details.",
+    "facet.olive": "White Olive",
+    "facet.oliveDetail": "White paper and olive geometry",
+    "facet.cobalt": "White Cobalt",
+    "facet.cobaltDetail": "White paper and blue accents",
+    "facet.copper": "White Copper",
+    "facet.copperDetail": "White paper and warm details",
+    "facet.plum": "White Plum",
+    "facet.plumDetail": "White paper and plum accents",
+    "facet.carbon": "Olive Night",
+    "facet.carbonDetail": "Graphite paper and light olive",
+    "facet.midnight": "Blue Night",
+    "facet.midnightDetail": "Navy paper and cool blue"
   },
   "ai": {
     "jobMatch.back": "Back to assistant actions",

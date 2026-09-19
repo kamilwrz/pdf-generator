@@ -19,9 +19,12 @@ import { applySlateTextSizeLayout } from "./slateTypographyLayout.js";
 import { applySterlingTextSizeLayout } from "./sterlingTypographyLayout.js";
 import { applyVellumTextSizeLayout } from "./vellumTypographyLayout.js";
 
+import { applyFacetTextSizeLayout } from "./facetAppearance.js";
+
 const SMALL_TEXT_SIZE_ID = "S";
 
 const typographyLayouts = new Map([
+  ["facet", applyFacetTextSizeLayout],
   ["atrium", applyAtriumTextSizeLayout],
   ["aurelia", applyAureliaTextSizeLayout],
   ["cadenza", applyCadenzaTextSizeLayout],

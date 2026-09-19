@@ -369,6 +369,14 @@ _ATRIUM_GLYPHS = [
 # Only these subsets are generated, so existing themes are untouched.
 # Format: theme -> (colour, [icon names]).
 SUBSET_THEMES = {
+    # Facet contact glyphs match each light/dark document palette in PDF.
+    "facet-olive": ("#657537", ["email", "phone", "location", "linkedin", "github", "website"]),
+    "facet-cobalt": ("#315F9C", ["email", "phone", "location", "linkedin", "github", "website"]),
+    "facet-copper": ("#9B522F", ["email", "phone", "location", "linkedin", "github", "website"]),
+    "facet-plum": ("#7A4B80", ["email", "phone", "location", "linkedin", "github", "website"]),
+    "facet-carbon": ("#C0D875", ["email", "phone", "location", "linkedin", "github", "website"]),
+    "facet-midnight": ("#8FC8F2", ["email", "phone", "location", "linkedin", "github", "website"]),
+
     # Slate (Sidebar collection) uses two colour variants of the same glyph set:
     #   * `slate`        — white glyphs meant to sit inside filled steel-blue
     #                      section-heading badges (white-on-accent).

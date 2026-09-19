@@ -876,7 +876,20 @@
     "icons.website": "Strona WWW",
     "icons.calendar": "Data",
     "icons.portrait": "Zdjęcie",
-    "inspector.textLower": "tekst"
+    "inspector.textLower": "tekst",
+    "facet.palettes": "Cztery białe i dwie ciemne palety zmieniają tło, tekst, ikony i geometryczne detale.",
+    "facet.olive": "Biała Oliwka",
+    "facet.oliveDetail": "Biały papier i oliwkowa geometria",
+    "facet.cobalt": "Biały Kobalt",
+    "facet.cobaltDetail": "Biały papier i niebieski akcent",
+    "facet.copper": "Biała Miedź",
+    "facet.copperDetail": "Biały papier i ciepłe detale",
+    "facet.plum": "Biała Śliwka",
+    "facet.plumDetail": "Biały papier i śliwkowy akcent",
+    "facet.carbon": "Nocna Oliwka",
+    "facet.carbonDetail": "Grafitowe tło i jasna oliwka",
+    "facet.midnight": "Nocny Błękit",
+    "facet.midnightDetail": "Granatowe tło i chłodny błękit"
   },
   "ai": {
     "jobMatch.back": "Wróć do działań asystenta",

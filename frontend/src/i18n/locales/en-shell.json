@@ -101,7 +101,13 @@
     "newCvSetupModal.twoColumns": "Two columns",
     "newCvSetupModal.oneColumn": "One column",
     "templateLayouts.moreCreative": "more creative",
-    "templateLayouts.verySafe": "very safe"
+    "templateLayouts.verySafe": "very safe",
+    "facet.description": "White paper, angled details and two columns with clearly separated content.",
+    "facet.heading": "Geometry that organises your experience",
+    "facet.body": "Facet pairs narrow Barlow Condensed lettering with readable Lato. An angled rule opens two columns: shorter details on the left, career history on the right. Four white and two dark palettes retain the same layout.",
+    "facet.highlight1": "Geometric corners and an angled header divider.",
+    "facet.highlight2": "Editable sections, contacts and S–XL text sizes.",
+    "facet.highlight3": "Four white-paper palettes and two dark editions."
   },
   "ai": {
     "aiAssistant.tailorYourCvToASpecificJob": "Tailor your CV to a specific job"

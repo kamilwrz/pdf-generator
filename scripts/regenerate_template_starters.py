@@ -269,6 +269,7 @@ REGENT_DEMO_CV = {
 
 # Template identifiers regenerated into one frontend starter module each.
 TEMPLATES = [
+    "facet",
     "slate",
     "monument",
     "atrium",
@@ -282,6 +283,7 @@ TEMPLATES = [
 ]
 
 DOC_BLURBS = {
+    "facet": "Facet: white paper, angular inlays, Barlow Condensed and Lato, two flowing columns.",
     "nova": (
         "Nova template (`layouts: [\"icons\"]`).\n"
         " *\n"
@@ -455,7 +457,7 @@ def main() -> None:
             cv = AURELIA_DEMO_CV
         elif template_id in COMPACT_TEMPLATE_IDS:
             cv = COMPACT_DEMO_CV
-        elif template_id in {"sterling", "linden"}:
+        elif template_id in {"sterling", "linden", "facet"}:
             cv = SIDEBAR_DEMO_CV
         else:
             cv = DEMO_CV

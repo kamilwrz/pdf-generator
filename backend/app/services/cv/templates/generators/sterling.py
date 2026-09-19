@@ -101,6 +101,8 @@ def _gen_sterling(
     anchored_main_sections: frozenset[str] = frozenset({"experience"}),
     page1_sidebar_start: float | None = None,
     sidebar_section_rule_height: float = SIDEBAR_SECTION_RULE_HEIGHT,
+    masthead_font: str = "CormorantGaramond",
+    body_font: str = "Montserrat",
 ) -> list[dict]:
     """Build Sterling or a presentation variant on its column planner.
 
@@ -109,15 +111,18 @@ def _gen_sterling(
     algorithm. ``page1_sidebar_start`` reserves template-specific masthead
     furniture above the first rail bucket. Derived presentation variants can
     retain a legacy ``sidebar_section_rule_height`` while restyling their own
-    chrome, which avoids shifting unrelated template geometry. These
-    parameters are private generator contracts; the public registry continues
+    chrome, which avoids shifting unrelated template geometry. The
+    ``masthead_font`` parameter measures a derived template's name in its display
+    face before the column budgets are calculated; ``body_font`` does the same
+    for records, contacts and sidebar packing. These parameters are private
+    generator contracts; the public registry continues
     to call Sterling with its original defaults.
     """
     C = {
         'paper': '#F7F8FA', 'ink': '#26313F',
         'accent': '#4A6FA5', 'accent_deep': '#33517A',
         'muted': '#6B7684', 'sidebar_bg': '#EDF1F6', 'rule': '#C7CFDA',
-        'display': 'CormorantGaramond', 'sans': 'Montserrat',
+        'display': masthead_font, 'sans': body_font,
     }
     SANS, DISPLAY = (C['sans'], C['display'])
     lbl = _labels(cv)

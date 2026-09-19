@@ -62,6 +62,7 @@ describe("all template starters expose a reversible masthead title", () => {
         "atrium",
         "aurelia",
         "cadenza",
+        "facet",
         "linden",
         "meridian",
         "monument",

@@ -104,13 +104,13 @@ _register_ttf('Times-Roman', FONT_PATH_TIMESROMAN)
 # Stylish display/serif/mono options — all OFL, all with full Latin
 # Extended-A coverage (verified for Polish ą/ć/ę/ł/ń/ó/ś/ź/ż incl. uppercase).
 _FONTS_DIR = _BACKEND_DIR / "fonts"
-for _fam in ("PlayfairDisplay", "CormorantGaramond", "Lora", "Montserrat", "JetBrainsMono"):
+for _fam in ("PlayfairDisplay", "CormorantGaramond", "Lora", "Montserrat", "JetBrainsMono", "BarlowCondensed", "Lato"):
     _register_ttf(_fam, _FONTS_DIR / f'{_fam}.ttf')
 
 # Real bold/italic cuts (latin) for the custom TTF families, so styled text
 # uses true variants (matching the browser, which @font-faces the same files)
 # instead of faux stroke/skew.
-for _fam in ("Inter", "Roboto", "PlayfairDisplay", "CormorantGaramond", "Lora", "Montserrat", "JetBrainsMono"):
+for _fam in ("Inter", "Roboto", "PlayfairDisplay", "CormorantGaramond", "Lora", "Montserrat", "JetBrainsMono", "BarlowCondensed", "Lato"):
     _register_ttf(f'{_fam}-Bold', _FONTS_DIR / f'{_fam}-Bold.ttf')
     _register_ttf(f'{_fam}-Italic', _FONTS_DIR / f'{_fam}-Italic.ttf')
     _register_ttf(f'{_fam}-BoldItalic', _FONTS_DIR / f'{_fam}-BoldItalic.ttf')
@@ -547,6 +547,8 @@ class PDF_Generator:
     # Helvetica and Courier fonts use WinAnsi encoding, so they cannot render
     # Polish letters and must resolve to the Unicode-safe Inter family.
     _VARIANT_FONTS = {
+        'BarlowCondensed': ('BarlowCondensed-Bold', 'BarlowCondensed-Italic', 'BarlowCondensed-BoldItalic'),
+        'Lato': ('Lato-Bold', 'Lato-Italic', 'Lato-BoldItalic'),
         'Inter':             ('Inter-Bold', 'Inter-Italic', 'Inter-BoldItalic'),
         'Roboto':            ('Roboto-Bold', 'Roboto-Italic', 'Roboto-BoldItalic'),
         'Times-Roman':       ('Times-Roman-Bold', 'Times-Roman-Italic', 'Times-Roman-BoldItalic'),

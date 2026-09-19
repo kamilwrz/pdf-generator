@@ -389,12 +389,28 @@ export function applySterlingTextSize(
   textSizeId,
   { measureTextWidth = null } = {},
 ) {
+  return applyColumnTextSize(elements, textSizeId, {
+    measureTextWidth, contactBandId: "sterling-contact",
+    getAppearance: getSterlingAppearance, persistSettings: stampSettings,
+  });
+}
+
+/**
+ * Resize a measured two-column template using Sterling's shared type rhythm.
+ * The caller supplies its contact-band and appearance persistence contracts;
+ * explicit appearanceTypographyRole tags override legacy role detection.
+ * Returns a new graph with conservative heights, without packing or saving it.
+ */
+export function applyColumnTextSize(
+  elements, textSizeId,
+  { measureTextWidth = null, contactBandId, getAppearance, persistSettings },
+) {
   const scale = TEXT_SCALE[textSizeId];
   if (!scale) return elements;
-  const currentSettings = getSterlingAppearance(elements);
+  const currentSettings = getAppearance(elements);
   const resized = elements.map((element) => {
     const source = resizeMastheadTitleDescriptor(element, scale);
-    if (source.contactBand?.id === "sterling-contact") {
+    if (source.contactBand?.id === contactBandId) {
       const baseContactSize = Number(
         source.contactBand.appearanceBaseFontSize
         ?? source.contactBand.text?.fontSizePt
@@ -422,7 +438,8 @@ export function applySterlingTextSize(
       };
     }
     if (!["text", "textarea"].includes(source.category) || Number(source.fontSize) <= 1) return source;
-    const role = source.appearanceTypographyRole || typographyRole(source);
+    const role = source.appearanceTypographyRole
+      || (source.contactBandId === contactBandId ? "contact" : typographyRole(source));
     const baseFontSize = Number(source.appearanceBaseFontSize ?? source.fontSize);
     const hasLineHeight = Number.isFinite(Number(source.lineHeight));
     const baseLineHeight = hasLineHeight
@@ -470,5 +487,5 @@ export function applySterlingTextSize(
     }
     return next;
   });
-  return stampSettings(resized, { ...currentSettings, textSize: textSizeId });
+  return persistSettings(resized, { ...currentSettings, textSize: textSizeId });
 }

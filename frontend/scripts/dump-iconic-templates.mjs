@@ -13,6 +13,7 @@ import { lindenTemplate } from "../src/templates/linden.js";
 import { cadenzaTemplate } from "../src/templates/cadenza.js";
 import { vellumTemplate } from "../src/templates/vellum.js";
 import { aureliaTemplate } from "../src/templates/aurelia.js";
+import { facetTemplate } from "../src/templates/facet.js";
 
 const out = {
     monument: monumentTemplate,
@@ -25,6 +26,7 @@ const out = {
     cadenza: cadenzaTemplate,
     vellum: vellumTemplate,
     aurelia: aureliaTemplate,
+    facet: facetTemplate,
 };
 writeFileSync(new URL("./iconic-templates.json", import.meta.url), JSON.stringify(out, null, 2));
 console.log("wrote iconic-templates.json");

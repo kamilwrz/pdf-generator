@@ -30,6 +30,7 @@ def _anchor(elements):
 @pytest.mark.parametrize(
     "template_id,mode",
     [
+        ("facet", "centered"),
         ("aurelia", "centered"),
         ("atrium", "centered"),
         ("slate", "wrapping"),

@@ -19,6 +19,8 @@ export const CANVAS_FONT_STACKS = {
   CormorantGaramond: "CormorantGaramond, serif",
   Lora: "Lora, serif",
   Montserrat: "Montserrat, sans-serif",
+  BarlowCondensed: "BarlowCondensed, sans-serif",
+  Lato: "Lato, sans-serif",
   JetBrainsMono: "JetBrainsMono, monospace",
 };
 

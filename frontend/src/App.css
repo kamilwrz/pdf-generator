@@ -447,3 +447,61 @@ body:has(.main-container) {
    --ink-2: var(--color-editor-ink);
 }
 
+
+/* Facet document fonts: the same local cuts are embedded in exported PDFs. */
+@font-face {
+    font-family: BarlowCondensed;
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    src: url("/fonts/BarlowCondensed.ttf") format("truetype");
+}
+@font-face {
+    font-family: BarlowCondensed;
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url("/fonts/BarlowCondensed-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: BarlowCondensed;
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+    src: url("/fonts/BarlowCondensed-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: BarlowCondensed;
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+    src: url("/fonts/BarlowCondensed-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+    font-family: Lato;
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    src: url("/fonts/Lato.ttf") format("truetype");
+}
+@font-face {
+    font-family: Lato;
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url("/fonts/Lato-Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: Lato;
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+    src: url("/fonts/Lato-Italic.ttf") format("truetype");
+}
+@font-face {
+    font-family: Lato;
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+    src: url("/fonts/Lato-BoldItalic.ttf") format("truetype");
+}

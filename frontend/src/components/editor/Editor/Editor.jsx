@@ -91,6 +91,8 @@ const FONT_OPTIONS = [
   { value: "CormorantGaramond", label: "Cormorant" },
   { value: "Lora", label: "Lora" },
   { value: "Montserrat", label: "Montserrat" },
+    { value: "BarlowCondensed", label: "Barlow Condensed" },
+    { value: "Lato", label: "Lato" },
   { value: "JetBrainsMono", label: "JetBrains" },
 ];
 

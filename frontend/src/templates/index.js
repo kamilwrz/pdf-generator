@@ -19,6 +19,24 @@ export { TEMPLATE_LAYOUT_TAGS } from "../utils/templateLayouts";
 
 export const TEMPLATES = [
     {
+        id: "facet",
+        tier: "paid",
+        name: "Facet",
+        get description() { return uiText("editor:facet.description"); },
+        details: {
+            get heading() { return uiText("editor:facet.heading"); },
+            get body() { return uiText("editor:facet.body"); },
+            highlights: localisedList([
+                () => uiText("editor:facet.highlight1"),
+                () => uiText("editor:facet.highlight2"),
+                () => uiText("editor:facet.highlight3"),
+            ]),
+        },
+        layouts: ["sidebar", "icons"],
+        accent: "#657537",
+        serverMaterialized: true,
+    },
+    {
         id: "monument",
         tier: "paid",
         name: "Monument",
