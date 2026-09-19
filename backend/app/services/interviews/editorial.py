@@ -19,7 +19,7 @@ from app.services.ai.assistant.scoped import preserves_protected_tokens
 # Restart unfinished attempts under the advisory readability contract.
 # Reusing a pre-upgrade attempt could pair its reservation key with a changed
 # prompt hash after interruption. Existing saved previews remain readable.
-PIPELINE_VERSION = 9
+PIPELINE_VERSION = 10
 # Only prose leaves can be rewritten. Identity, role titles, employers, dates,
 # skill names/levels and section placement stay read-only, including in custom CVs.
 PROSE_PATH = re.compile(
@@ -28,13 +28,21 @@ PROSE_PATH = re.compile(
     r"custom_sections/[0-9]{1,2}/items/[0-9]{1,2}"
     r"(?:/(?:description|bullets/[0-9]{1,2}))?)$"
 )
+# A generated skill name followed by a dash- or colon-introduced description.
+# The separator needs surrounding space (dash) or a trailing space (colon), so a
+# hyphenated name ("e-commerce", "C++") or a bare name is never truncated.
+_SKILL_NAME_ONLY = re.compile(r"^\s*(.+?)(?:\s[—–]\s|:\s+).+$")
 EDITORIAL_TASK = f"""{STYLE_REVIEW_POLICY}
 {CV_READABILITY_POLICY}
 Redaguj selektywnie: jeden punkt to jedna czytelna jednostka informacji, zwykle
 jedno krótkie zdanie. Usuń wypełniacze, nie przepisuj całych odpowiedzi. Podsumowanie
 ma wybierać najważniejsze obszary doświadczenia zamiast streszczać wszystkie role.
-Utrzymaj jedną formę gramatyczną opisów; dla polskiego CV z formami rzeczownikowymi
-zachowaj ten styl, zamiast mieszać 'koordynacja', 'koordynowała' i 'robiłam'.
+Utrzymaj jedną formę gramatyczną opisów w całym CV; dla polskiego CV z formami
+rzeczownikowymi zachowaj ten styl, zamiast mieszać 'koordynacja', 'koordynowała' i 'robiłam'.
+Nie powielaj tej samej informacji w podsumowaniu i w punktach roli: podsumowanie
+syntetyzuje najważniejsze obszary, a rola opisuje konkret. Unikaj szablonowych fraz
+i pustych kwalifikatorów ('odpowiedzialny za', 'dynamiczny zespół', 'wszechstronny')
+oraz sztucznego tonu; nazwij rzeczywiste działanie prostym, naturalnym językiem.
 Oceń merytoryczną przydatność opisów: wyraź jasno potwierdzone działanie, osobisty
 wkład, kontekst i rezultat, ale nie dopisuj brakujących elementów. Użytkownik może
 pisać potocznie, skrótowo lub z błędami; nie oceniaj jego kompetencji po języku.
@@ -79,15 +87,17 @@ def prepare_editorial_draft(raw, profile):
     before the style provider starts; the caller retains the saved evidence.
     """
     draft = deepcopy(raw)
-    # A flat skill is already an explicit list item. The legacy CV normalizer
-    # interprets "Tool: prose, clause" as a category and splits its commas.
-    # Use a display dash for generated flat units so tool names and dependent
-    # clauses survive every subsequent normalization, template fill and export.
-    # User-approved literal framing is not eligible for this punctuation repair.
+    # A skill entry is a bare capability or tool name, so it stays scannable in
+    # the skills list. Drop any generated dash- or colon-introduced description
+    # ("SQL — analiza danych w raportowaniu" -> "SQL"): the explanatory content
+    # belongs to the experience bullets, which still carry it from the same
+    # source. User-approved literal framing is preserved verbatim.
     framings = {f["id"] for f in profile["facts"] if f["kind"] == "framing"}
     for field in draft["fields"]:
         if re.fullmatch(r"/skills/[0-9]{1,2}", field["path"]) and not framings.intersection(field["evidence_refs"]):
-            field["value"] = re.sub(r"^([^:]{2,48}):\s+", r"\1 — ", field["value"], count=1)
+            match = _SKILL_NAME_ONLY.match(field["value"])
+            if match and len(match.group(1).strip()) >= 2:
+                field["value"] = match.group(1).strip()
     paths = [field["path"] for field in draft["fields"]]
     if len(paths) != len(set(paths)):
         raise ValueError("Duplicate draft paths")

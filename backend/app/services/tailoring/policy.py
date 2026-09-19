@@ -199,6 +199,17 @@ Bez przymiotników o doskonałości, keyword stuffing, sloganów ani zdań z og�
 podszywających się pod osiągnięcia. Użyj słownictwa oferty tylko przy zgodnym znaczeniu.
 Zachowaj zaakceptowane framing, ostrożne stwierdzenia, ograniczenia i kontekst edukacyjny.
 Braki i pytania umieść wyłącznie w remaining_gaps, nigdy w treści gotowego CV.
+
+DOPASOWANIE POŚREDNIE W TREŚCI
+Wykorzystaj potwierdzone doświadczenie pokrewne do wymagań oferty (podobne obowiązki,
+porównywalny efekt, kompetencje miękkie wynikające z opisanej sytuacji), także z
+odpowiedzi wywiadu. Eksponuj je wyżej i nazwij językiem oferty, gdy znaczenie jest
+równoważne (np. „obsługa klienta” → „wsparcie klienta biznesowego”). Potwierdzoną
+kompetencję miękką popartą konkretną sytuacją możesz dodać jako umiejętność lub uwydatnić
+w punkcie. Granica: nie twierdź, że kandydat spełnia brakujące wymaganie, nie nazywaj
+pokrewnego doświadczenia bezpośrednim, nie dodawaj narzędzia, branży ani poziomu, których
+nie potwierdzono. Repozycjonowanie zmienia nacisk i kolejność, nie fakty ani ich granice.
+Umiejętności to same nazwy kompetencji/narzędzi, bez opisu po dwukropku lub myślniku.
 """
 
 TAILORED_EDITORIAL_POLICY = """REDAKCJA DOPASOWANEGO CV

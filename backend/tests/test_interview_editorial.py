@@ -80,7 +80,7 @@ def test_pipeline_checks_edited_text_against_unchanged_raw_answers(environment, 
     assert saved['preview']['cv_data']['summary'] == PROFESSIONAL
     assert any(PROFESSIONAL in str(element) for element in saved['preview']['elements'])
     assert saved['preview']['changes'][0]['evidence_refs'] == ['answer-q']
-    assert saved['preview']['pipeline_version'] == 9
+    assert saved['preview']['pipeline_version'] == 10
     assert saved['usage']['cost_pln_estimate'] == pytest.approx(.03)
     assert saved['answers'] == session['answers']
     assert 'generation_attempt' not in saved
@@ -151,7 +151,7 @@ def test_assembly_recovery_requires_complete_current_pipeline(environment, chang
     assert result.json()['preview']['recovered_previous_attempt'] is not changed_profile
 
 
-@pytest.mark.parametrize('previous_version', [2, 5, 6, 7, 8])
+@pytest.mark.parametrize('previous_version', [2, 5, 6, 7, 8, 9])
 def test_upgraded_policy_does_not_replay_completed_older_generation_stages(environment, previous_version):
     """Unfinished older attempts restart under the current editorial contract."""
     client, db, user, _ = environment
@@ -171,7 +171,7 @@ def test_upgraded_policy_does_not_replay_completed_older_generation_stages(envir
         upgraded = generate(client, legacy.json())
     assert upgraded.status_code == 200, upgraded.text
     assert provider.call_count == 3
-    assert upgraded.json()['preview']['pipeline_version'] == 9
+    assert upgraded.json()['preview']['pipeline_version'] == 10
     assert upgraded.json()['preview']['recovered_previous_attempt'] is False
     assert upgraded.json()['answers'] == session['answers']
     assert service.interview_profile(db, db.get(InterviewSession, session['id'], populate_existing=True)) == before
@@ -213,6 +213,26 @@ def test_semantic_changes_must_be_rejected_by_independent_verifier(environment, 
     assert saved['phase'] == 'clarification' and not saved['preview']['changes']
     assert unsafe not in str(saved['preview']['cv_data'])
     assert saved['pending_clarifications'][0]['suggested_text'] == unsafe
+
+
+def test_generated_skills_are_reduced_to_bare_names():
+    profile = {'facts': [{'id': 'literal', 'kind': 'framing', 'path': '/skills/2', 'text': 'SQL — zapytania ad hoc'}]}
+    original = {'fields': [
+        {'path': '/skills/0', 'value': 'SQL — analiza danych w raportowaniu', 'evidence_refs': ['s0']},
+        {'path': '/skills/1', 'value': 'Transaction Monitoring: obsługa alertów AML', 'evidence_refs': ['s1']},
+        {'path': '/skills/2', 'value': 'SQL — zapytania ad hoc', 'evidence_refs': ['literal']},
+        {'path': '/skills/3', 'value': 'MS Office', 'evidence_refs': ['s3']},
+        {'path': '/name', 'value': 'Anna — analityk', 'evidence_refs': ['name']},
+    ], 'remaining_gaps': []}
+    by_path = {f['path']: f['value'] for f in prepare_editorial_draft(original, profile)['fields']}
+    # A generated skill loses its dash/colon description and becomes a bare name.
+    assert by_path['/skills/0'] == 'SQL'
+    assert by_path['/skills/1'] == 'Transaction Monitoring'
+    # A user-approved literal framing skill is preserved verbatim.
+    assert by_path['/skills/2'] == 'SQL — zapytania ad hoc'
+    # A bare skill and non-skill fields (even with a dash) are untouched.
+    assert by_path['/skills/3'] == 'MS Office'
+    assert by_path['/name'] == 'Anna — analityk'
 
 
 def test_editorial_keeps_order_citations_and_covers_omitted_source_prose():
