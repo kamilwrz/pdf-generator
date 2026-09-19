@@ -131,7 +131,6 @@
 .answerForm textarea { font-weight: 400; padding: var(--space-3); }
 .answerForm > .actions { margin-top: var(--space-3); margin-bottom: var(--space-4); }
 .answerForm > .actions > button:not(.primary) { border-color: transparent; text-decoration: underline; text-underline-offset: var(--space-1); font-weight: 400; }
-.answerForm > details { font-size: var(--text-ui); color: var(--color-muted); }
 .preparation > .hint { max-width: 65ch; }
 .preparation > .actions > button { font-size: var(--text-ui); font-weight: 400; }
 
