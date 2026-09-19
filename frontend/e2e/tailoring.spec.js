@@ -86,9 +86,8 @@ for (const width of [390, 834, 1280, 1920]) {
     expect(api.calls.filter(call => call.path.endsWith('/next'))).toHaveLength(0);
     await page.getByRole('button', { name: 'Next question', exact: true }).click();
     await page.locator('textarea').fill('Weekly SQL reports for the operations team.');
-    await page.getByRole('button', { name: 'Save answer', exact: true }).click();
-    await page.getByRole('button', { name: /Continue to CV preparation/i }).click();
-    await page.getByRole('button', { name: /Prepare CV from confirmed information/i }).click();
+    await page.getByRole('button', { name: 'Send answer', exact: true }).click();
+    await page.getByRole('button', { name: /Create CV · Linden/i }).click();
     await page.getByRole('button', { name: 'Save and continue to download', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Your CV is saved and ready to download' })).toBeVisible();
     const download = page.waitForEvent('download');

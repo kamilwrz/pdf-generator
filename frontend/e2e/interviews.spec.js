@@ -236,26 +236,25 @@ for (const width of [390, 834, 1280, 1920]) {
     await page.getByRole('button', { name: 'Dopasuj do oferty', exact: true }).click();
     await page.getByRole('radio', { name: 'Wklej treść', exact: true }).check();
     await page.getByLabel('Lub wklej treść oferty', { exact: true }).fill('Szukamy programisty React. Firma Przykład.');
+    await page.screenshot({ path: `../tmp/job-match-intake-${width}.png`, fullPage: true });
     await page.getByRole('button', { name: 'Dopasuj CV do ogłoszenia', exact: true }).click();
     const flow = page.getByRole('region', { name: 'Asystent CV' });
     await expect(flow).toBeVisible();
     await flow.getByRole('button', { name: 'Rozpocznij rozmowę', exact: true }).click();
-    await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
-    await openPreparation(flow);
-    await expect(flow.getByLabel('Szablon nowego CV')).toHaveValue('sterling');
-    await expect(flow.getByLabel('Szablon nowego CV')).toBeDisabled();
+    await flow.getByRole('button', { name: 'Zakończ rozmowę i wybierz szablon', exact: true }).click();
+    await expect(flow.getByRole('button', { name: 'Utwórz CV · Sterling', exact: true })).toBeVisible();
     await expect(flow.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' })).toHaveCount(0);
-    await openInformation(flow);
+    await flow.getByRole('button', { name: 'Treść CV', exact: true }).click();
     await flow.getByRole('button', { name: 'Wczytaj aktualne CV do rozmowy' }).click();
-    await flow.getByRole('button', { name: /Przejdź do (rozmowy|przygotowania CV)/ }).click();
-    await openPreparation(flow);
-    await flow.getByRole('button', { name: 'Przygotuj CV z potwierdzonych informacji' }).click();
+    await flow.getByRole('button', { name: 'Wróć', exact: true }).click();
+    await flow.getByRole('button', { name: 'Wybierz szablon', exact: true }).click();
+    await flow.getByRole('button', { name: 'Utwórz CV · Sterling', exact: true }).click();
     await expect(flow.getByRole('heading', { name: 'Twoja nowa wersja CV' })).toBeVisible();
     await expect(flow.getByRole('region', { name: 'Kredyty rozmowy' })).toContainText('Ostatnie zapytanie AI — Przygotowanie CV: 18 kredytów');
     // The embedded host owns the account balance; the interview receipt only
     // repeats its own settled cost, avoiding two competing balance readouts.
     await expect(flow.getByRole('region', { name: 'Kredyty rozmowy' })).not.toContainText('Pozostało na koncie:');
-    await expect(page.getByTitle('Wykorzystano 18 z 200 kredytów AI w tym miesiącu')).toContainText('182');
+    await expect(page.getByTitle('Wykorzystano 25 z 200 kredytów AI w tym miesiącu')).toContainText('175');
     await flow.getByRole('region', { name: 'Kredyty rozmowy' }).locator('summary').click();
     await expect(flow.getByText('Redakcja języka i stylu: 6 kredytów')).toBeVisible();
     await page.screenshot({ path: `../tmp/interview-assistant-${width}.png`, fullPage: true });

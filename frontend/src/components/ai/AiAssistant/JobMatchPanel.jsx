@@ -16,6 +16,7 @@ export default function JobMatchPanel({ url, description, notes, onUrl, onDescri
   return <section className={classes.workspace} aria-labelledby="job-match-heading" aria-busy={busy}>
     <header><button className={classes.back} onClick={onBack}>{t('ai:jobMatch.back')}</button>
       <h2 id="job-match-heading" tabIndex={-1} ref={heading}>{t('ai:aiAssistant.tailorToAJob')}</h2>
+      <p className={classes.intro}>{t('ai:jobMatch.intro')}</p>
     </header>
     <fieldset disabled={busy} className={classes.form}>
       <legend>{t('ai:task.offerSource')}</legend>
@@ -49,8 +50,8 @@ export default function JobMatchPanel({ url, description, notes, onUrl, onDescri
     </section>}
     <footer className={classes.footer}>
       {analysis && <p>{t('ai:jobMatch.interviewHint')}</p>}
-      <div><button className={!analysis ? classes.primary : undefined} disabled={busy || !hasInput} onClick={onAnalyse}>{t('ai:jobMatch.analyse')}</button>
-      <button ref={interviewRef} className={analysis ? classes.primary : undefined} disabled={busy || !hasInput} onClick={onInterview}>{t('ai:jobMatch.interview')}</button></div>
+      <div><button ref={interviewRef} className={classes.primary} disabled={busy || !hasInput} onClick={onInterview}>{t('ai:jobMatch.interview')}</button>
+      <button disabled={busy || !hasInput} onClick={onAnalyse}>{t('ai:jobMatch.analyse')}</button></div>
       <p className={classes.note}>{t('ai:jobMatch.credits')}</p>
     </footer>
   </section>;

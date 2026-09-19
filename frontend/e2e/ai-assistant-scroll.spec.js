@@ -212,7 +212,7 @@ test("job-offer form restores its height after a long tailoring result", async (
 
   const jobOfferUrl = page.getByLabel("Link do oferty", { exact: true });
   const jobForm = jobOfferUrl.locator("..");
-  const analyseButton = page.getByRole("button", { name: "Tylko analiza" });
+  const analyseButton = page.getByRole("button", { name: "Sprawdź samo dopasowanie" });
   await jobOfferUrl.fill("https://example.com/oferty/analityk-kyc");
   const firstOpenHeight = await stableElementHeight(jobForm);
 
