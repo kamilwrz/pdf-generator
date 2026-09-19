@@ -19,7 +19,7 @@
 .back { background: transparent; color: var(--chrome-ink); border-color: transparent; padding-inline: var(--space-2); }
 .primary:hover:not(:disabled) { background: var(--color-accent); }
 .secondary:hover:not(:disabled), .back:hover:not(:disabled) { background: var(--color-canvas); }
-.content :is(button, a, input, summary, h1):focus-visible, .footer :is(button, a):focus-visible, .actions button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.content :is(button, a, input, summary, h1, h2):focus-visible, .footer :is(button, a):focus-visible, .actions button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .content button:active:not(:disabled), .footer button:active:not(:disabled) { box-shadow: inset 0 0 0 2px var(--chrome-border); }
 .content :is(button, input):disabled, .footer button:disabled { opacity: .55; cursor: not-allowed; }
 .footer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-4); width: min(100%, 1200px); margin-inline: auto; }

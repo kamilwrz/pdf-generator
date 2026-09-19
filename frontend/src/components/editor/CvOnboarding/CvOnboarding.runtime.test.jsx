@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setUiLanguage } from '../../../i18n/index.js';
 import { createDefaultStarterConfig } from '../../../utils/cvStarter.js';
@@ -184,8 +184,13 @@ describe('CV onboarding', () => {
     await screen.findByText('Wybierz CV w formacie PDF.');
     fireEvent.change(input, { target: { files: [new File(['%PDF'], 'cv.pdf', { type: 'application/pdf' })] } });
     extractCvPdf.mockRejectedValueOnce(new Error('Timeout'));
-    click('Odczytaj CV z PDF'); click('Odczytaj CV z PDF');
+    const submit = screen.getByRole('button', { name: 'Odczytaj CV z PDF' });
+    fireEvent.click(submit); fireEvent.click(submit);
     await screen.findByText('Timeout');
+    expect(input).toBeVisible();
+    expect(input.files[0].name).toBe('cv.pdf');
+    expect(submit).toHaveFocus();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     const key = extractCvPdf.mock.calls[0][1];
     extractCvPdf.mockResolvedValueOnce({ import: { id: 8 }, cv_data: cvData });
     click('Odczytaj CV z PDF');
@@ -197,6 +202,40 @@ describe('CV onboarding', () => {
     expect(stored).not.toContain('%PDF');
     expect(loadOnboarding('Kamil').config.language).toBe('en');
     expect(stored).not.toContain('Existing content');
+  });
+
+  it('shows truthful PDF activity, keeps status outside busy ancestors and blocks duplicate requests', async () => {
+    let complete;
+    extractCvPdf.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+    mount({ initialIntent: 'import' });
+    const input = screen.getByLabelText('Upuść tutaj CV lub wybierz plik');
+    fireEvent.change(input, { target: { files: [new File(['%PDF'], 'Anna-CV.pdf', { type: 'application/pdf' })] } });
+    const submit = screen.getByRole('button', { name: 'Odczytaj CV z PDF' });
+    fireEvent.click(submit); fireEvent.click(submit);
+    expect(screen.getByRole('heading', { name: 'Odczytujemy Twoje CV' })).toHaveFocus();
+    expect(screen.getByRole('progressbar', { name: 'Odczytujemy Twoje CV' })).not.toHaveAttribute('aria-valuenow');
+    const status = screen.getByText('Po odczytaniu wybierzesz, co chcesz zrobić ze swoim CV.');
+    expect(status.closest('[aria-busy="true"]')).toBeNull();
+    expect(input).not.toBeVisible();
+    expect(submit).toBeDisabled();
+    expect(extractCvPdf).toHaveBeenCalledOnce();
+    await act(async () => complete({ import: { id: 9 }, cv_data: cvData }));
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Co chcesz zrobić ze swoim CV?' })).toHaveFocus();
+  });
+
+  it('discards a late PDF result after cancellation without advancing the journal', async () => {
+    let complete;
+    extractCvPdf.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+    const ui = mount({ initialIntent: 'import' });
+    fireEvent.change(screen.getByLabelText('Upuść tutaj CV lub wybierz plik'), { target: { files: [new File(['%PDF'], 'cv.pdf')] } });
+    click('Odczytaj CV z PDF');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(ui.onClose).toHaveBeenCalledWith('cancelled');
+    ui.unmount();
+    await act(async () => complete({ import: { id: 9 }, cv_data: cvData }));
+    expect(loadOnboarding('Kamil')).toBeNull();
+    expect(ui.onImportCreate).not.toHaveBeenCalled();
   });
 
   it('ignores a source response after unmount and clears only on deliberate cancellation', async () => {

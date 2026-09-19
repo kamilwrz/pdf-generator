@@ -511,7 +511,7 @@ At `/app/documents`, choose **Saved CVs** to search, sort, open, download or del
 
 No database, API contract, dependency or PDF renderer changes are introduced. The new module belongs beside `DocumentsPage` in `frontend/src/pages/Site/`; existing upload history remains available in the editor.
 
-Implementation: `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, lines 1–93, `SavedImports`; `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–323, `CvOnboarding`. Tests: `frontend/e2e/documents-library.spec.js`, lines 1–69; run `cd frontend` then `npm run test:e2e -- documents-library.spec.js cv-onboarding.spec.js --workers=1`. Coverage includes tab keyboard navigation, import reuse, deletion focus, read retry, empty state and 390/834/1280/1920px layouts plus 640px reflow and reduced motion.
+Implementation: `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, lines 1–93, `SavedImports`; `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–335, `CvOnboarding`. Tests: `frontend/e2e/documents-library.spec.js`, lines 1–69; run `cd frontend` then `npm run test:e2e -- documents-library.spec.js cv-onboarding.spec.js --workers=1`. Coverage includes tab keyboard navigation, import reuse, deletion focus, read retry, empty state and 390/834/1280/1920px layouts plus 640px reflow and reduced motion.
 
 Reference: [W3C tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) explains tab selection, panel relationships and keyboard navigation.
 
@@ -637,7 +637,7 @@ Implementation (verified whole-module extents):
 - `frontend/src/pages/Site/DocumentsPage.jsx`, lines 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, lines 1–89, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, lines 1–374, `Hero`.
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–323, `CvOnboarding`.
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–335, `CvOnboarding`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, lines 1–52, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–571, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, lines 1–88, `SiteLayout`.
@@ -2102,7 +2102,7 @@ Implementation/test references (current file ranges):
 - `frontend/src/services/signIn.js`, lines 2–26, `establishSession`, `signIn`.
 - `frontend/src/pages/Register/Register.jsx`, lines 1–375, `Register`.
 - `frontend/src/pages/Login/Login.jsx`, lines 1–233, `Login`.
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–323, `CvOnboarding`.
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–335, `CvOnboarding`.
 - `frontend/e2e/first-cv-download.spec.js`, lines 1–165, `first-PDF browser scenarios`.
 
 Validation commands from `frontend/`: `npm run test:runtime -- src/components/editor/CvOnboarding/CvOnboarding.runtime.test.jsx src/components/editor/SaveGateModal/SaveGateModal.runtime.test.jsx src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.runtime.test.jsx`; `npm run test:e2e -- e2e/first-cv-download.spec.js e2e/hero-templates.spec.js e2e/guest-entry.spec.js e2e/cv-onboarding.spec.js`; `npm run lint`; `npm run build`. Browser fixtures isolate API calls, exercise 390/834/1280/1920px and a 640px viewport equivalent to 200% zoom, preserve keyboard order, and assert one export with the latest name and no save. They do not validate live production PDF pixels.
@@ -2882,6 +2882,17 @@ Tests:
 
 ### New A4 CV setup
 
+While `extractCvPdf` is pending, `CvImportLoading` replaces the visible upload/history area with a warm paper panel, the selected filename and a schematic CV with an indeterminate scanning line. The illustration contains no personal data. It never reports invented percentages or server stages. After 30 seconds, a single polite status explains the longer wait without retrying. Reduced motion keeps the scan static. The underlying file input remains mounted and hidden, preserving its selection for a failed request; failure restores the upload action and its focus, while success focuses the goal heading. Close/Escape still invalidates late callbacks. The status sits outside the busy source region so assistive technology can announce it. All of this remains outside the document/PDF tree.
+
+Loading implementation and tests (within the existing onboarding directory):
+
+- `frontend/src/components/editor/CvOnboarding/CvImportLoading.jsx`, lines 1–49, `CvImportLoading`: receives a filename, focuses its heading and owns only the cleared-on-unmount notice timer.
+- `frontend/src/components/editor/CvOnboarding/CvImportLoading.module.css`, lines 1–74: token-based panel, schematic page and reduced-motion scan.
+- `frontend/src/components/editor/CvOnboarding/CvImportLoading.runtime.test.jsx`, lines 1–21, and `CvOnboarding.runtime.test.jsx`, lines 1–257: bilingual waiting copy, honest progress semantics, pending lock, failure recovery, success focus and late-response cancellation.
+- `frontend/e2e/cv-import-loading.spec.js`, lines 1–60: mocked pending/success responses at 390/834/1280/1920px in PL/EN, keyboard focus, 200% text/reflow, reduced motion and print isolation. Run `npm run test:runtime -- src/components/editor/CvOnboarding` and `npm run test:e2e -- e2e/cv-import-loading.spec.js --project=desktop-chromium --workers=1` from `frontend/`. These tests do not call a live AI provider. No API, database, configuration or dependency changes are needed.
+
+[WAI range properties](https://www.w3.org/WAI/ARIA/apg/practices/range-related-properties/) explains why indeterminate progress omits `aria-valuenow`; [MDN reduced motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion) explains the user's motion preference used by the CSS.
+
 The shared `CvOnboarding` creates each new CV for guests and signed-in users. Opening a saved document or a browser draft resumes its editor. This flow replaces the previous start chooser, standalone import panel and new-CV modal; `TemplateCarousel` remains in the existing Change template feature.
 
 1. Open **Create CV** from navigation, the library, landing or the editor. The first screen combines the welcome with **Do you already have a CV to start from?**. A selected landing template is retained; otherwise `createDefaultStarterConfig()` selects Meridian. There is no automatic creation, timed welcome or forced pause.
@@ -2899,7 +2910,7 @@ The ordinary welcome, PDF source, goal and template screens fit without scrollin
 
 Implementation and folder inventory:
 
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–323, `CvOnboarding`.
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–335, `CvOnboarding`.
 - `frontend/src/components/editor/CvOnboarding/CvSetupOptions.jsx`, lines 1–296, `CvSetupOptions`.
 - `frontend/src/components/editor/CvOnboarding/CvOnboarding.module.css`, lines 1–95, `progress, intro, source, goals`.
 - `frontend/src/components/editor/CvOnboarding/CvSetupOptions.module.css`, lines 1–129, `templateGrid, preview, sectionList`.
@@ -3295,7 +3306,7 @@ Implementation:
 - `backend/app/models/models.py`, lines 1–608, classes `Plan`, `UserSubscription`, and `UsageCounter` — persisted limit, legacy flag, and monthly count
 - `backend/app/services/billing/entitlements.py`, lines 380–432 (`_usage_row`), 512–554 (`assert_can_create_project`), 629–643 (`assert_can_extract_cv`), 660–688 (`assert_template_allowed`), 691–766 (`record_export`), and 800–847 (`record_cv_import`) — race-safe Free limits, transactional import claims, and paid-template enforcement
 - `backend/app/api/routes/ai.py`, lines 267–400, function `extract_cv`, and `backend/app/crud/cv_import_snapshots.py`, lines 71–100, function `mark_snapshot_succeeded` — one successful-normalization transaction for the import claim and snapshot, with safe rollback/error mapping
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–323, component `CvOnboarding` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, lines 1–335, component `CvOnboarding` — disables extraction at zero remaining, displays the remaining count, recovers long-running snapshots through history, and refreshes entitlements after success
 - `backend/app/crud/pdfs.py`, line 87, function `elements_from_rows` — reconstructs full `PdfElement` objects (including `runs`, connectors, `flowRole`, `borderRadius`, …) from stored rows, the inverse of this file's existing `extra_properties` packing in `create_new_pdf` / `update_pdf_elements`
 - `backend/app/main.py`, lines 1–436, `block_generated_pdf_static_access` — keeps template assets public but makes every retired generated-PDF URL return 404 before the SPA fallback
 - `backend/app/services/documents/service.py`, lines 367–373 (`render_document_bytes`), 663–766 (`create_pdf_document`), 769–900 (`update_pdf_document`), and 990–1099 (`render_pdf_for_download`) — always renders clean, never returns the storage locator, and rebuilds legacy marked local/S3 bytes
@@ -4488,7 +4499,7 @@ Na `/app/documents` wybierz **Zapisane CV**, aby wyszukiwać, sortować, otwiera
 
 Zmiana nie wprowadza zmian bazy, kontraktu API, zależności ani renderera PDF. Nowy moduł znajduje się obok `DocumentsPage` w `frontend/src/pages/Site/`; dotychczasowa historia przesyłania pozostaje dostępna w edytorze.
 
-Implementacja: `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, linie 1–93, `SavedImports`; `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–323, `CvOnboarding`. Testy: `frontend/e2e/documents-library.spec.js`, linie 1–69; uruchom `cd frontend`, następnie `npm run test:e2e -- documents-library.spec.js cv-onboarding.spec.js --workers=1`. Zakres obejmuje klawiaturę zakładek, ponowne użycie importu, fokus po usuwaniu, ponowienie odczytu, pusty stan oraz układy 390/834/1280/1920 px, reflow 640 px i ograniczony ruch.
+Implementacja: `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`; `frontend/src/pages/Site/SavedImports.jsx`, linie 1–93, `SavedImports`; `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–335, `CvOnboarding`. Testy: `frontend/e2e/documents-library.spec.js`, linie 1–69; uruchom `cd frontend`, następnie `npm run test:e2e -- documents-library.spec.js cv-onboarding.spec.js --workers=1`. Zakres obejmuje klawiaturę zakładek, ponowne użycie importu, fokus po usuwaniu, ponowienie odczytu, pusty stan oraz układy 390/834/1280/1920 px, reflow 640 px i ograniczony ruch.
 
 Źródło: [wzorzec zakładek W3C](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) wyjaśnia wybór zakładek, powiązania paneli i obsługę klawiatury.
 
@@ -4614,7 +4625,7 @@ Implementacja (zweryfikowane zakresy całych modułów):
 - `frontend/src/pages/Site/DocumentsPage.jsx`, linie 1–116, `DocumentsPage`.
 - `frontend/src/pages/Site/AccountPage.jsx`, linie 1–89, `AccountPage`.
 - `frontend/src/pages/Hero/Hero.jsx`, linie 1–374, `Hero`.
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–323, `CvOnboarding`.
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–335, `CvOnboarding`.
 - `frontend/src/pages/Site/InterviewPage.jsx`, linie 1–52, `InterviewPage`.
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–571, `InterviewFlow`.
 - `frontend/src/components/common/SiteLayout/SiteLayout.jsx`, linie 1–88, `SiteLayout`.
@@ -6069,7 +6080,7 @@ Referencje implementacji/testów (aktualne zakresy plików):
 - `frontend/src/services/signIn.js`, linie 2–26, `establishSession`, `signIn`.
 - `frontend/src/pages/Register/Register.jsx`, linie 1–375, `Register`.
 - `frontend/src/pages/Login/Login.jsx`, linie 1–233, `Login`.
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–323, `CvOnboarding`.
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–335, `CvOnboarding`.
 - `frontend/e2e/first-cv-download.spec.js`, linie 1–165, `first-PDF browser scenarios`.
 
 Polecenia walidacji z `frontend/`: `npm run test:runtime -- src/components/editor/CvOnboarding/CvOnboarding.runtime.test.jsx src/components/editor/SaveGateModal/SaveGateModal.runtime.test.jsx src/components/editor/ClaimGuestDocumentModal/ClaimGuestDocumentModal.runtime.test.jsx`; `npm run test:e2e -- e2e/first-cv-download.spec.js e2e/hero-templates.spec.js e2e/guest-entry.spec.js e2e/cv-onboarding.spec.js`; `npm run lint`; `npm run build`. Atrapy API izolują wywołania; testy obejmują 390/834/1280/1920px oraz viewport 640px odpowiadający zoomowi 200%, kolejność klawiatury i jeden eksport z najnowszym imieniem bez zapisu. Nie weryfikują pikseli PDF z produkcji.
@@ -6843,6 +6854,17 @@ Testy:
 
 ### Konfiguracja nowego CV A4
 
+Podczas żądania `extractCvPdf` komponent `CvImportLoading` zastępuje widoczny obszar przesyłania i historii panelem w ciepłym kolorze papieru, nazwą wybranego pliku oraz schematycznym CV z przesuwającą się linią odczytu. Ilustracja nie zawiera danych osobowych. Nie pokazuje wymyślonych procentów ani etapów serwera. Po 30 sekundach pojedynczy uprzejmy komunikat wyjaśnia dłuższe oczekiwanie bez ponawiania żądania. Reduced motion zatrzymuje animację. Pole pliku pozostaje zamontowane i ukryte, zachowując wybór po błędzie; błąd przywraca przycisk odczytu i fokus, a sukces przenosi fokus na nagłówek wyboru celu. Zamknięcie/Escape nadal unieważnia spóźnione odpowiedzi. Komunikat znajduje się poza zajętym regionem źródeł, aby technologie asystujące mogły go ogłosić. Całość pozostaje poza drzewem dokumentu/PDF.
+
+Implementacja i testy oczekiwania (w istniejącym katalogu onboardingu):
+
+- `frontend/src/components/editor/CvOnboarding/CvImportLoading.jsx`, linie 1–49, `CvImportLoading`: przyjmuje nazwę pliku, ustawia fokus nagłówka i zarządza wyłącznie timerem komunikatu, usuwanym przy odmontowaniu.
+- `frontend/src/components/editor/CvOnboarding/CvImportLoading.module.css`, linie 1–74: panel oparty na tokenach, schemat kartki i odczyt respektujący reduced motion.
+- `frontend/src/components/editor/CvOnboarding/CvImportLoading.runtime.test.jsx`, linie 1–21, oraz `CvOnboarding.runtime.test.jsx`, linie 1–257: dwujęzyczne komunikaty, uczciwa semantyka postępu, blokada ponownego wysłania, odzyskiwanie po błędzie, fokus po sukcesie i anulowanie spóźnionej odpowiedzi.
+- `frontend/e2e/cv-import-loading.spec.js`, linie 1–60: atrapy odpowiedzi oczekiwania/sukcesu przy 390/834/1280/1920px w PL/EN, fokus klawiatury, tekst 200% i reflow, reduced motion oraz izolacja druku. W `frontend/` uruchom `npm run test:runtime -- src/components/editor/CvOnboarding` i `npm run test:e2e -- e2e/cv-import-loading.spec.js --project=desktop-chromium --workers=1`. Testy nie wywołują działającego dostawcy AI. Nie są potrzebne zmiany API, bazy danych, konfiguracji ani zależności.
+
+[Właściwości zakresu WAI](https://www.w3.org/WAI/ARIA/apg/practices/range-related-properties/) objaśniają pominięcie `aria-valuenow` przy nieznanym postępie; [MDN reduced motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion) opisuje preferencję ograniczenia ruchu używaną przez CSS.
+
 Wspólny `CvOnboarding` tworzy każde nowe CV gościa i zalogowanego użytkownika. Otwarcie zapisanego dokumentu lub szkicu przeglądarki wznawia edytor. Ten przepływ zastępuje poprzedni ekran startowy, samodzielny panel importu i modal nowego CV; `TemplateCarousel` pozostaje w istniejącej funkcji zmiany szablonu.
 
 1. Otwórz **Stwórz CV** z nawigacji, biblioteki, landingu lub edytora. Pierwszy ekran łączy powitanie z pytaniem **Masz już CV, od którego chcesz zacząć?**. Wybór szablonu z landingu zostaje zachowany; bez niego `createDefaultStarterConfig()` wybiera Meridian. Nie ma automatycznego tworzenia, powitania na czas ani wymuszonego oczekiwania.
@@ -6860,7 +6882,7 @@ Podstawowe ekrany powitania, źródła PDF, celu i szablonu mieszczą się bez p
 
 Implementacja i struktura plików:
 
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–323, `CvOnboarding`.
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–335, `CvOnboarding`.
 - `frontend/src/components/editor/CvOnboarding/CvSetupOptions.jsx`, linie 1–296, `CvSetupOptions`.
 - `frontend/src/components/editor/CvOnboarding/CvOnboarding.module.css`, linie 1–95, `progress, intro, source, goals`.
 - `frontend/src/components/editor/CvOnboarding/CvSetupOptions.module.css`, linie 1–129, `templateGrid, preview, sectionList`.
@@ -7251,7 +7273,7 @@ Implementacja:
 - `backend/app/models/models.py`, linie 1–608, klasy `Plan`, `UserSubscription`, `UsageCounter` — utrwalony limit, legacy flag i miesięczny licznik
 - `backend/app/services/billing/entitlements.py`, linie 380–432 (`_usage_row`), 512–554 (`assert_can_create_project`), 629–643 (`assert_can_extract_cv`), 660–688 (`assert_template_allowed`), 691–766 (`record_export`) i 800–847 (`record_cv_import`) — odporne na wyścigi limity Free, transakcyjny claim importu i kontrola płatnych szablonów
 - `backend/app/api/routes/ai.py`, linie 267–400, funkcja `extract_cv`, oraz `backend/app/crud/cv_import_snapshots.py`, linie 71–100, funkcja `mark_snapshot_succeeded` — jedna transakcja sukcesu dla claimu importu i snapshotu, z bezpiecznym rollbackiem/mapowaniem błędów
-- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–323, komponent `CvOnboarding` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
+- `frontend/src/components/editor/CvOnboarding/CvOnboarding.jsx`, linie 1–335, komponent `CvOnboarding` — blokuje przy zerze, pokazuje pozostałą liczbę, odzyskuje długo działający snapshot przez historię i odświeża entitlements po sukcesie
 - `backend/app/crud/pdfs.py`, linia 87, funkcja `elements_from_rows` — rekonstruuje pełne obiekty `PdfElement` (w tym `runs`, konektory, `flowRole`, `borderRadius`, …) z zapisanych wierszy, odwrotność istniejącego pakowania `extra_properties` w `create_new_pdf` / `update_pdf_elements`
 - `backend/app/main.py`, linie 1–436, `block_generated_pdf_static_access` — pozostawia zasoby szablonów publiczne, ale każdy wycofany URL wygenerowanego PDF-a zatrzymuje 404 przed fallbackiem SPA
 - `backend/app/services/documents/service.py`, linie 367–373 (`render_document_bytes`), 663–766 (`create_pdf_document`), 769–900 (`update_pdf_document`) i 990–1099 (`render_pdf_for_download`) — zawsze renderuje czysto, nie zwraca lokatora storage i przebudowuje starsze oznaczone bajty lokalne/S3

@@ -1,0 +1,74 @@
+.panel {
+  border-block: 1px solid var(--chrome-border);
+  background: var(--color-canvas);
+  color: var(--chrome-ink);
+}
+
+.main {
+  display: grid;
+  grid-template-columns: var(--space-24) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+}
+
+/* A schematic page communicates reading activity without displaying or
+   inferring any extracted fields. All geometry remains outside the CV tree. */
+.document { position: relative; width: 100%; aspect-ratio: 3 / 4; overflow: clip; }
+.paper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--chrome-border);
+  background: var(--color-paper);
+}
+.paper > span { display: block; flex-shrink: 0; height: 2px; background: var(--chrome-border); }
+.paper .identity { width: 60%; height: var(--space-2); background: var(--color-accent); }
+.paper .shortLine { width: 65%; }
+.paper .rule { height: 1px; background: var(--color-surface); }
+.scanner {
+  position: absolute;
+  inset: 0 calc(-1 * var(--space-2)) auto;
+  height: 100%;
+  transform: translateY(45%);
+}
+.scanner::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--color-accent);
+}
+.copy { min-width: 0; }
+.file { display: flex; align-items: baseline; gap: var(--space-2); margin: 0 0 var(--space-3); font: 400 var(--text-label)/1.4 var(--font-mono); }
+.file > span:first-child { flex-shrink: 0; font-weight: 700; }
+.file > span:last-child { overflow-wrap: anywhere; color: var(--chrome-muted); }
+.copy h2 { margin: 0; font: 700 1.5rem/1.25 var(--font-body); text-wrap: balance; }
+.description { margin: var(--space-2) 0 0; max-width: 42ch; color: var(--chrome-muted); font: 400 var(--text-ui)/1.55 var(--font-body); }
+.note { margin: 0; padding: var(--space-4) var(--space-8); border-top: 1px solid var(--chrome-border); font: 400 var(--text-ui)/1.55 var(--font-body); }
+
+/* One slow scan is the activity indicator; no timer advances a fictional
+   extraction stage. Reduced motion keeps the page and reading rule static. */
+@media (prefers-reduced-motion: no-preference) {
+  .scanner { animation: scan calc(var(--motion-slow) * 8) var(--motion-ease) infinite; }
+  @keyframes scan {
+    0%, 100% { transform: translateY(5%); opacity: 0; }
+    12% { opacity: 1; }
+    80%, 95% { transform: translateY(90%); opacity: 1; }
+    98% { transform: translateY(90%); opacity: 0; }
+  }
+}
+
+@media (max-width: 767px) {
+  .main { grid-template-columns: var(--space-16) minmax(0, 1fr); gap: var(--space-4); padding: var(--space-6) var(--space-4); }
+  .paper { padding: var(--space-2); gap: var(--space-1); }
+  .note { padding-inline: var(--space-4); }
+}
+
+@media (max-width: 359px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .document { width: var(--space-16); }
+}

@@ -12,6 +12,7 @@ import { interviewRequest } from '../../../services/interviews';
 import { extractCvPdf, readCvSource, validateCvPdf } from '../../../services/cvImport';
 import DialogShell from '../../common/DialogShell/DialogShell';
 import CvSetupOptions from './CvSetupOptions';
+import CvImportLoading from './CvImportLoading';
 import styles from './CvOnboarding.module.css';
 
 /**
@@ -39,6 +40,7 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
   const [nextCursor, setNextCursor] = useState(null);
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [loadingSources, setLoadingSources] = useState(false);
   const [error, setError] = useState('');
   const [listError, setListError] = useState('');
@@ -51,6 +53,8 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
   const completed = useRef(false);
   const departing = useRef(false);
   const fileInput = useRef(null);
+  const importButton = useRef(null);
+  const wasImporting = useRef(false);
   const lock = useRef(false);
   const epoch = useRef(0);
   const alive = useRef(true);
@@ -76,6 +80,12 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
   }, []);
   useEffect(() => { setStorageFailed(!saveOnboarding(draft)); }, [draft]);
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [draft.step]);
+  useEffect(() => {
+    // A failed import reveals the same mounted file input and returns focus
+    // to Retry's original action. Successful extraction uses step-heading focus.
+    if (wasImporting.current && !importing && draft.step === 'source') importButton.current?.focus({ preventScroll: true });
+    wasImporting.current = importing;
+  }, [importing, draft.step]);
   useEffect(() => {
     const previous = document.title;
     document.title = `${t('onboarding:stepCount', { current: activeIndex + 1, total: rail.length })}: ${t(`onboarding:step.${draft.step}`)} | CV Studio`;
@@ -125,7 +135,7 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
     const current = () => alive.current && epoch.current === request;
     try { await work(current); }
     catch (failure) { if (current()) setError(failure.message || t('onboarding:operationError')); }
-    finally { if (current() && !departing.current) { lock.current = false; setBusy(false); } }
+    finally { if (current() && !departing.current) { lock.current = false; setBusy(false); setImporting(false); } }
   }
 
   function go(step) {
@@ -153,6 +163,7 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
   function upload() {
     if (!file || !importAllowed) return;
     void run(async current => {
+      setImporting(true);
       const key = draft.importKey || crypto.randomUUID();
       patch({ importKey: key });
       try {
@@ -258,7 +269,7 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
         {draft.step === 'template' && <button type="button" className={styles.primary} disabled={busy || !isTemplateAllowed(template, templateEntitlements) || (draft.mode === 'existing' && !sourceData)} onClick={() => finish()}>{t(busy ? 'onboarding:working' : 'onboarding:openEditor')}<FiArrowRight aria-hidden="true" /></button>}
       </div>
     </div>}>
-    {confirming ? <p className={styles.confirmation}>{t('editor:newCvSetupModal.youCanReturnToYourCurrentCv')}</p> : <div className={styles.content} data-wide={draft.step === 'template'} aria-busy={busy}>
+    {confirming ? <p className={styles.confirmation}>{t('editor:newCvSetupModal.youCanReturnToYourCurrentCv')}</p> : <div className={styles.content} data-wide={draft.step === 'template'}>
       <ol className={styles.progress} aria-label={t('onboarding:progress')}>
         {rail.map((step, index) => <li key={step} aria-current={step === draft.step ? 'step' : undefined} data-complete={index < activeIndex}>
           <span aria-hidden="true">{index < activeIndex ? <FiCheck /> : index + 1}</span><span>{t(`onboarding:step.${step}`)}</span>
@@ -272,7 +283,8 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
       </header>
       {storageFailed && <p role="status" className={styles.notice}>{t('onboarding:storageUnavailable')}</p>}
       {error && <div id="onboarding-error" role="alert" className={styles.error}><p>{error}</p>{draft.source && !sourceData && <button type="button" disabled={busy} onClick={restoreSource}>{t('onboarding:retrySource')}</button>}</div>}
-      {busy && <p className={styles.notice} role="status">{t('onboarding:working')}</p>}
+      {busy && !importing && <p className={styles.notice} role="status">{t('onboarding:working')}</p>}
+      {importing && <CvImportLoading filename={file?.name} />}
       {draft.step === 'start' && <div className={styles.startChoices}>
         <button type="button" className={styles.primary} disabled={busy} onClick={() => patch({ mode: 'existing', step: 'source' })}><FiUpload aria-hidden="true" />{t('onboarding:haveCv')}</button>
         <button type="button" className={styles.secondary} disabled={busy} onClick={blank}><FiFileText aria-hidden="true" />{t('onboarding:fromScratch')}</button>
@@ -281,12 +293,12 @@ export default function CvOnboarding({ initialTemplateId, initialIntent, initial
       {draft.step === 'source' && (isGuest ? <section className={styles.accountGate}>
         <h2>{t('onboarding:accountTitle')}</h2><p>{t('onboarding:accountHint')}</p>
         <div className={styles.actions}><button className={styles.primary} onClick={() => leave('/register?start=onboarding')}>{t('onboarding:register')}</button><button className={styles.secondary} onClick={() => leave('/login?start=onboarding')}>{t('public:siteLayout.signIn')}</button></div>
-      </section> : <section className={styles.source}>
+      </section> : <section className={styles.source} hidden={importing} aria-busy={busy}>
         <div className={styles.dropzone} data-dragging={dragging} onDragOver={event => { event.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={event => { event.preventDefault(); setDragging(false); if (importAllowed) selectFile(event.dataTransfer.files?.[0]); }}>
           <div className={styles.uploadHeading}><FiUpload aria-hidden="true" /><div><label htmlFor="onboarding-pdf">{t('onboarding:uploadLabel')}</label><p id="onboarding-file-help">{t('onboarding:pdfHelp')}</p></div></div>
           <div className={styles.uploadControls}>
             <input ref={fileInput} id="onboarding-pdf" type="file" accept="application/pdf,.pdf" disabled={busy || !importAllowed} aria-describedby={`onboarding-file-help${error ? ' onboarding-error' : ''}`} aria-invalid={Boolean(error)} onChange={event => selectFile(event.target.files?.[0])} />
-            <button type="button" className={styles.primary} disabled={busy || !file || !importAllowed} onClick={upload}>{t('onboarding:readPdf')}</button>
+            <button ref={importButton} type="button" className={styles.primary} disabled={busy || !file || !importAllowed} onClick={upload}>{t('onboarding:readPdf')}</button>
           </div>
           {file && <p className={styles.fileName}>{file.name}</p>}
           {!knownImportAccess ? <p className={styles.allowance} role="status">{t('onboarding:checkingAccess')} <button className={styles.back} disabled={busy} onClick={refreshEntitlements}>{t('onboarding:retry')}</button></p> : remaining != null && <p className={styles.allowance}>{t('onboarding:importsRemaining', { count: remaining })}</p>}

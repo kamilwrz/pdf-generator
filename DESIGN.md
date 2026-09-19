@@ -342,6 +342,8 @@ The editor and other task-heavy screens may be denser, but must remain grid-base
 
 ### 5.6 Feedback and asynchronous states
 
+- During onboarding PDF extraction, replace the visible source controls with a token-based warm panel showing the actual filename, a schematic page and an indeterminate scanning rule. The scan is a pending-operation cue, contains no personal data and stops for reduced motion. Never invent stages or percentages. After 30 seconds, explain the continued wait once without retrying. Keep file selection mounted but hidden for recovery, return focus to the upload action on failure and to the next heading on success, and retain Close/Escape with stale-response protection. Keep live status outside the busy source region and all loading chrome outside PDF output.
+
 - Use skeletons that match final geometry for initial content loading.
 - Use an inline progress indicator for a known-duration task and a restrained spinner only for small, indeterminate actions. Never replace an entire working screen with an unexplained spinner.
 - Empty states explain what is absent and offer the next relevant action.
