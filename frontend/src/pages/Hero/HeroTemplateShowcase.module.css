@@ -10,7 +10,6 @@
 .loadedImage { visibility: visible; }
 .imageFallback { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: var(--space-4); padding: var(--space-4); font: 400 var(--text-ui)/1.4 var(--font-ui); color: var(--color-muted); }
 .imageFallback strong { color: var(--color-ink); }
-.showcase figcaption { margin-top: var(--space-4); text-align: center; color: var(--color-muted); font: 400 var(--text-label)/1.55 var(--font-ui); }
 .error { font-size: var(--text-ui); line-height: 1.4; color: var(--color-muted); }
 @media (max-width: 767px) {
   .showcase { max-width: 560px; justify-self: center; }

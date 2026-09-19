@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { heroPreviewPath } from '../../i18n/templatePreviews.js';
 import { t as uiText } from '../../i18n/index.js';
@@ -11,14 +11,13 @@ import classes from './HeroTemplateShowcase.module.css';
  */
 export default function HeroTemplateShowcase({ templates }) {
   useTranslation();
-  const captionId = useId();
   const [imageStates, setImageStates] = useState({});
   const foreground = templates.find((template) => template.id === 'linden') || templates[0];
 
   if (!foreground) return <p>{uiText('public:heroTemplateShowcase.couldNotLoadPreviewsYouCanStill')}</p>;
 
   return (
-    <figure className={classes.showcase} aria-labelledby={captionId}>
+    <div className={classes.showcase}>
       <div className={classes.stage} aria-hidden="true">
         {templates.map((template, index) => {
           const imageState = imageStates[template.id];
@@ -44,8 +43,7 @@ export default function HeroTemplateShowcase({ templates }) {
           </div>;
         })}
       </div>
-      <figcaption id={captionId}>{uiText('public:heroTemplateShowcase.examples')}</figcaption>
       {imageStates[foreground.id] === 'error' && <p className={classes.error} role="status">{uiText('public:heroTemplateShowcase.couldNotLoadPreviewsYouCanStill')}</p>}
-    </figure>
+    </div>
   );
 }

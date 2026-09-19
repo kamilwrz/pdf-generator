@@ -430,6 +430,7 @@
     "hero.tailorDemo.exampleAnswer": "Co tydzień robię raport sprzedaży w Excelu. Korzystam z tabel przestawnych, żeby porównać wyniki sklepów.",
     "hero.tailorDemo.exampleResult": "Cotygodniowe raporty sprzedaży w Excelu. Porównywanie wyników sklepów za pomocą tabel przestawnych.",
     "hero.tailorDemo.demoReviewHint": "Przed zapisaniem sprawdź, czy opis zgadza się z Twoim doświadczeniem.",
+    "hero.kicker": "Darmowy kreator CV",
     "hero.intro": "Przygotuj czytelne CV i pobierz PDF bez znaku wodnego.",
     "hero.accountNote": "Start bez konta. Darmowe konto do zapisu i pobrania PDF.",
     "hero.tools": "Narzędzia CV Studio",
@@ -439,7 +440,6 @@
     "hero.importHint": "Wczytaj swój PDF",
     "hero.improveContent": "Popraw treść",
     "hero.tailorToJob": "Dopasuj do oferty",
-    "heroTemplateShowcase.examples": "Przykładowe CV. Szablon wybierzesz w kreatorze.",
     "heroTemplateShowcase.previewUnavailable": "Podgląd niedostępny."
   },
   "account": {

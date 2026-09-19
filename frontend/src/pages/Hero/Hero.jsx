@@ -163,6 +163,7 @@ export default function Hero() {
             <main id="site-content" tabIndex={-1} className={classes.content}>
             <section id="top" className={classes.hero} tabIndex={-1}>
                 <div className={classes.heroCopy}>
+                    <p className={classes.kicker} data-section-index="01">{uiText('public:hero.kicker')}</p>
                     <div className={classes.heroHeading}>
                         <h1>{uiText("public:hero.yourCv")}<br /><span>{uiText("public:hero.readyToSend")}</span></h1>
                         <p className={classes.heroSubheading}>{uiText("public:hero.intro")}</p>

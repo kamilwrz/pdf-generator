@@ -2412,6 +2412,7 @@
     "careerProfilePage.deleteConversationWarning": "Trwale usuniesz rozmowę, odpowiedzi i niezapisany wynik. Zapisane CV pozostaną dostępne. Tej operacji nie można cofnąć.",
     "careerProfilePage.deletingConversation": "Usuwanie rozmowy…",
     "careerProfilePage.deleteConversationPermanently": "Usuń tę rozmowę",
+    "hero.kicker": "Darmowy kreator CV",
     "hero.intro": "Przygotuj czytelne CV i pobierz PDF bez znaku wodnego.",
     "hero.accountNote": "Start bez konta. Darmowe konto do zapisu i pobrania PDF.",
     "hero.tools": "Narzędzia CV Studio",
@@ -2421,7 +2422,6 @@
     "hero.importHint": "Wczytaj swój PDF",
     "hero.improveContent": "Popraw treść",
     "hero.tailorToJob": "Dopasuj do oferty",
-    "heroTemplateShowcase.examples": "Przykładowe CV. Szablon wybierzesz w kreatorze.",
     "heroTemplateShowcase.previewUnavailable": "Podgląd niedostępny."
   },
   "documents": {

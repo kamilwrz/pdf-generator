@@ -430,6 +430,7 @@
     "hero.tailorDemo.exampleAnswer": "I prepare a sales report in Excel every week. I use pivot tables to compare results across stores.",
     "hero.tailorDemo.exampleResult": "Weekly sales reports in Excel. Comparing store results using pivot tables.",
     "hero.tailorDemo.demoReviewHint": "Before saving, check that the description matches your experience.",
+    "hero.kicker": "Free CV builder",
     "hero.intro": "Build a clear CV and download a PDF without watermarks.",
     "hero.accountNote": "Start without an account. A free account is needed to save and download your PDF.",
     "hero.tools": "CV Studio tools",
@@ -439,7 +440,6 @@
     "hero.importHint": "Upload your PDF",
     "hero.improveContent": "Improve content",
     "hero.tailorToJob": "Tailor to a job",
-    "heroTemplateShowcase.examples": "Example CVs. Choose your template in the setup.",
     "heroTemplateShowcase.previewUnavailable": "Preview unavailable."
   },
   "account": {
