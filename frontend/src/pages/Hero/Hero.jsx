@@ -7,17 +7,12 @@ import { useTranslation } from 'react-i18next';
  *
  * Page order: hero → interview → job tailoring → Studio tools + templates → privacy → pricing → FAQ → final CTA → footer.
  *
- * The hero selects a Free template before A4 setup; demo is its secondary
- * action. Import remains in the capabilities section:
- *   - A4 setup → guest editor → register to save or export
- *   - Import → register → extract data → pick template → editor (metered request)
- *
- * Only the "import" CTA still detours through registration/login, because it
- * calls the account-scoped `POST /ai/extract_cv` endpoint. Template-specific
- * setup and demo links go straight to the editor; generic creation links use
- * `/app/new` so signed-in users can choose any creation method while guests
- * retain direct A4 setup. Anonymous CTA activity is not buffered or sent as
- * analytics.
+ * Free template starts preserve selection through shared onboarding. Guests
+ * can edit locally; saving and exporting require an account. Import enters the
+ * account-scoped flow, while the demo opens sample content. Navigation to an
+ * Assistant workflow or its credit explanation never starts paid AI. Gallery
+ * plan labels describe registry access rather than the visitor's entitlement.
+ * Anonymous CTA activity is not buffered or sent as analytics.
  */
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -25,7 +20,7 @@ import classes from "./Hero.module.css";
 import { TEMPLATES } from "../../templates";
 import HeroTemplateShowcase from "./HeroTemplateShowcase";
 import InterviewDemo from "./InterviewDemo";
-import { SiteHeader, SiteFooter } from "../../components/common/SiteLayout/SiteLayout";
+import { SiteHeader, SiteFooter, SkipToContent } from "../../components/common/SiteLayout/SiteLayout";
 import { wakeBackend } from "../../services/api";
 import { getAccessToken, getEditorPath } from "../../utils/authSession";
 import { hasGuestDocument, loadGuestDocument } from "../../utils/guestDocument";
@@ -37,6 +32,7 @@ import {
 const TEMPLATE_PREVIEWS = TEMPLATES.map((template) => ({
     id: template.id,
     name: template.name,
+    tier: template.tier,
     get image() { return templatePreviewPath(template.id); },
 }));
 
@@ -133,9 +129,9 @@ function TemplateGallery() {
                 <div className={classes.templatePreview}>
                     {failedImages[template.image]
                         ? <span>{uiText('public:publicPages.couldNotLoadThePreview')}</span>
-                        : <img src={template.image} alt={uiText("public:hero.cvTemplate", { value0: template.name })} loading="lazy" onError={() => setFailedImages(current => ({ ...current, [template.image]: true }))} />}
+                        : <img src={template.image} alt="" loading="lazy" onError={() => setFailedImages(current => ({ ...current, [template.image]: true }))} />}
                 </div>
-                <span><b>{template.name}</b><ArrowIcon /></span>
+                <span><span className={classes.templateCaption}><b>{template.name}</b> <small>{template.tier === 'free' ? 'Free' : 'Pro'}</small></span><ArrowIcon /></span>
             </Link>)}
         </div>
     </>;
@@ -158,6 +154,8 @@ export default function Hero() {
     const importUrl = buildStartUrl("import", "free");
     const newCvUrl = "/app/new";
     const selectedTemplateUrl = getEditorPath({ start: "new", template: selectedTemplateId });
+    const selectedTemplate = FREE_TEMPLATES.find((template) => template.id === selectedTemplateId);
+    const templateAction = uiText('public:hero.startWithTemplate', { template: selectedTemplate?.name });
     const demoUrl = getEditorPath({ start: "demo" });
     const canResumeGuestDraft = !getAccessToken() && hasGuestDocument() && !loadGuestDocument()?.isDemoContent;
     // Existing accounts manage their plan in the account workspace; this
@@ -165,9 +163,10 @@ export default function Hero() {
     const proUrl = getAccessToken() ? "/app/account" : "/register?plan=pro";
 
     return (
-        <main className={classes.page}>
+        <div className={classes.page}>
+            <SkipToContent />
             <SiteHeader showLanguageSelect />
-
+            <main id="site-content" tabIndex={-1} className={classes.content}>
             <section id="top" className={classes.hero} tabIndex={-1}>
                 <div className={classes.heroCopy}>
                     <p className={classes.kicker} data-section-index="01">CV Studio online</p>
@@ -176,7 +175,7 @@ export default function Hero() {
                         <p className={classes.heroSubheading}>{uiText("public:hero.chooseATemplateAndEnterContentDirectly")}</p>
                     </div>
                     <div className={classes.heroActions}>
-                        <CtaLink to={selectedTemplateUrl}>{uiText("public:hero.createACvWithThisTemplate")}</CtaLink>
+                        <CtaLink to={selectedTemplateUrl}>{templateAction}</CtaLink>
                         {canResumeGuestDraft ? <Link to={getEditorPath()} className={classes.buttonSecondary}>{uiText("public:hero.returnToCvDraft")} <ArrowIcon /></Link> : <CtaLink to={demoUrl} variant="secondary">{uiText("public:hero.exploreTheEditor")}</CtaLink>}
                     </div>
                     <p className={classes.accountNote}>{uiText("public:hero.startWithoutAnAccountFreeRegistrationIs")}</p>
@@ -198,7 +197,7 @@ export default function Hero() {
                     templates={FREE_TEMPLATES}
                     selectedId={selectedTemplateId}
                     onSelect={setSelectedTemplateId}
-                    mobileAction={<CtaLink to={selectedTemplateUrl}>{uiText("public:hero.createACvWithTheSelectedTemplate")}</CtaLink>}
+                    mobileAction={<CtaLink to={selectedTemplateUrl}>{templateAction}</CtaLink>}
                 />
             </section>
 
@@ -209,6 +208,7 @@ export default function Hero() {
                     <p className={classes.interviewLead}>{uiText("public:hero.interviewBody")}</p>
                     <CtaLink to="/app/interview">{uiText("public:hero.openInterview")}</CtaLink>
                     <p className={classes.accountNote}>{uiText("public:hero.interviewAccess")}</p>
+                    <CtaLink to="/help#kredyty-ai" variant="link">{uiText('public:hero.creditHelp')}</CtaLink>
                 </div>
                 <InterviewDemo />
             </section>
@@ -220,6 +220,7 @@ export default function Hero() {
                     <p className={classes.interviewLead}>{uiText('public:hero.tailoringBody')}</p>
                     <CtaLink to="/app/tailor">{uiText('tailoring:title')}</CtaLink>
                     <p className={classes.accountNote}>{uiText('public:hero.tailoringAccess')}</p>
+                    <CtaLink to="/help#kredyty-ai" variant="link">{uiText('public:hero.creditHelp')}</CtaLink>
                 </div>
                 <InterviewDemo tailoring />
             </section>
@@ -314,6 +315,8 @@ export default function Hero() {
                             <p className={classes.planPrice}>59 <small>{uiText("account:planSelectModal.pln")}</small></p>
                             <p className={classes.planSummary}>{uiText("public:hero.workOnYourWritingWithAiAnd")}</p>
                             <p className={classes.planPeriod}>{uiText("public:hero.daysOfFullAccess")}</p>
+                            <p className={classes.creditNote}>{uiText('public:hero.creditExplanation')}</p>
+                            <CtaLink to="/help#kredyty-ai" variant="link">{uiText('public:hero.creditHelp')}</CtaLink>
                         </div>
                         <ul>
                             {PRO_PLAN_HIGHLIGHTS.map((feature) => (
@@ -373,7 +376,8 @@ export default function Hero() {
                 <CtaLink to={newCvUrl} event="final_wizard">{uiText("public:hero.createACvForFree")}</CtaLink>
             </section>
 
+            </main>
             <SiteFooter />
-        </main>
+        </div>
     );
 }

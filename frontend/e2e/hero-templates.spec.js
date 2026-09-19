@@ -9,9 +9,9 @@ for (const name of ["Sterling", "Meridian", "Linden"]) {
     await expect(hero.getByRole("radio")).toHaveCount(3);
     await hero.locator("label").filter({ hasText: name }).click();
     await expect(hero.getByRole("radio", { name, exact: true })).toBeChecked();
-    await expect(hero.getByRole("link", { name: "Stwórz CV z tym szablonem" })).toHaveAttribute("href", `/cvstudio/guest?start=new&template=${name.toLowerCase()}`);
+    await expect(hero.getByRole("link", { name: `Zacznij z szablonem ${name}`, exact: true }).first()).toHaveAttribute("href", `/cvstudio/guest?start=new&template=${name.toLowerCase()}`);
     const request = page.waitForRequest((request) => request.url().endsWith("/ai/fill_template") && request.method() === "POST");
-    await hero.getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
+    await hero.getByRole("link", { name: `Zacznij z szablonem ${name}`, exact: true }).first().click();
     await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
     await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
     expect((await request).postDataJSON().template_id).toBe(name.toLowerCase());
@@ -44,7 +44,7 @@ test("unavailable images retain template selection and a working CTA", async ({ 
   await page.goto("/");
   const hero = page.locator("#top");
   await expect(hero.getByText("Nie udało się wczytać podglądu. Wybierz szablon po nazwie i przejdź do edytora.")).toBeVisible();
-  await hero.getByRole("link", { name: "Stwórz CV z tym szablonem" }).click();
+  await hero.getByRole("link", { name: "Zacznij z szablonem Linden", exact: true }).first().click();
     await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
     await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();
@@ -115,7 +115,7 @@ test("compact CTA preserves selection through onboarding and refresh restores th
   await page.goto("/");
   const hero = page.locator("#top");
   await hero.locator("label").filter({ hasText: "Meridian" }).click();
-  await hero.getByRole("link", { name: "Stwórz CV z wybranym szablonem" }).click();
+  await hero.getByRole("link", { name: "Zacznij z szablonem Meridian", exact: true }).last().click();
     await page.getByRole("button", { name: "Zaczynam od zera", exact: true }).click();
     await page.getByRole("button", { name: "Otwórz CV w edytorze", exact: true }).click();
   await expect(page.locator('[contenteditable="true"][data-placeholder="Imię i nazwisko"]')).toBeFocused();

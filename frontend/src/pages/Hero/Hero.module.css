@@ -20,7 +20,7 @@
     padding-inline: max(var(--landing-gutter), calc((100% - 1440px) / 2 + var(--landing-gutter)));
     background: var(--color-paper);
 }
-.page > section + section { border-top: 1px solid var(--color-border); }
+.content > section + section { border-top: 1px solid var(--color-border); }
 .interviewSection, .trustStrip, .faqSection { background: var(--color-canvas); }
 .interviewSection { --demo-surface: var(--color-paper); }
 .tailoringSection { background: var(--color-paper); --demo-surface: var(--color-canvas); }
@@ -99,6 +99,8 @@
 .templatePreview > span { padding: var(--space-4); color: var(--color-muted); font-size: var(--text-ui); line-height: 1.55; text-align: center; }
 .templateCard > span { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); min-height: var(--control-height); padding-block: var(--space-3); }
 .templateCard b { font-size: var(--text-ui); font-weight: 500; }
+.templateCaption { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-2); }
+.templateCaption small { color: var(--color-muted); font-size: var(--text-label); }
 .templateCard > span svg { width: var(--space-4); color: var(--color-muted); }
 .templateCard:hover .templatePreview { border-color: var(--color-accent); }
 .templateCard:hover b, .templateCard:focus-visible b { text-decoration: underline; text-underline-offset: var(--space-1); }
@@ -129,6 +131,7 @@
 .planPrice small { color: var(--color-muted); font-size: var(--text-ui); font-weight: 400; letter-spacing: 0; }
 .planSummary { margin: 0; max-width: 56ch; color: var(--color-muted); font-size: var(--text-ui); line-height: 1.55; }
 .planPeriod { margin: var(--space-3) 0 0; color: var(--color-accent); font-size: var(--text-label); line-height: 1.55; }
+.creditNote { max-width: 56ch; margin: var(--space-4) 0 0; color: var(--color-muted); font-size: var(--text-ui); line-height: 1.55; }
 .planFootnote { margin: var(--space-3) 0 0; color: var(--color-muted); font-size: var(--text-label); line-height: 1.55; }
 .priceCard ul { margin: 0 0 var(--space-6); padding: var(--space-6) 0 0; border-top: 1px solid var(--color-border-soft); list-style: none; }
 .priceCard li { padding-block: var(--space-2); }

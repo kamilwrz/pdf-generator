@@ -20,7 +20,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
     // Full-width backgrounds must preserve the shared header content edges,
     // including beyond the 1440px container and without scrollbar overflow.
     const pageWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    const headerEdge = await page.locator('main > header').evaluate(node =>
+    const headerEdge = await page.getByRole('banner').evaluate(node =>
       node.getBoundingClientRect().left + parseFloat(getComputedStyle(node).paddingLeft));
     expect(metrics[0].x).toBe(0);
     expect(metrics[0].width).toBe(pageWidth);
@@ -32,7 +32,7 @@ for (const language of ['pl', 'en']) for (const width of [390, 834, 1280, 1920])
       const firstFeatures = await plans.nth(0).locator('ul').boundingBox();
       const secondFeatures = await plans.nth(1).locator('ul').boundingBox();
       const firstAction = await plans.nth(0).locator('a').boundingBox();
-      const secondAction = await plans.nth(1).locator('a').boundingBox();
+      const secondAction = await plans.nth(1).locator('a[href="/register?plan=pro"]').boundingBox();
       expect(Math.abs(firstFeatures.y - secondFeatures.y)).toBeLessThan(1);
       expect(Math.abs(firstAction.y - secondAction.y)).toBeLessThan(1);
     }

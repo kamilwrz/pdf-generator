@@ -120,7 +120,7 @@
 .guideStep li::marker { color: var(--color-accent); font-weight: 700; }
 .guideFaq { margin-block: var(--space-6); border-top: 1px solid var(--color-border); }
 .guideFaq details { border-bottom: 1px solid var(--color-border); }
-.guideFaq summary { min-height: var(--control-height); padding-block: var(--space-3); font-weight: 600; cursor: pointer; }
+.guideFaq summary { min-height: var(--control-height); padding-block: var(--space-3); font-weight: 600; cursor: pointer; scroll-margin-top: var(--space-6); }
 .guideFaq summary:hover { color: var(--color-accent); }
 .guideFaq details[open] { padding-bottom: var(--space-3); }
 .library, .accountPlan { background: var(--color-paper); border: 1px solid var(--color-border); padding: var(--space-6); }

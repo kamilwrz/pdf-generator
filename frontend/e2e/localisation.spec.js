@@ -58,7 +58,7 @@ test('English guest CV survives registration, verification and one PDF download'
   await page.addInitScript(() => localStorage.setItem('cvstudio.uiLanguage', 'en'));
   const api = await installMockApi(page);
   await page.goto('/');
-  await page.locator('#top').getByRole('link', { name: 'Create a CV with this template', exact: true }).click();
+  await page.locator('#top').getByRole('link', { name: 'Start with the Linden template', exact: true }).first().click();
   await page.getByRole('button', { name: 'Start from scratch', exact: true }).click();
   await page.getByRole('button', { name: 'Open CV in the editor', exact: true }).click();
   const name = page.locator('[contenteditable="true"][data-placeholder="Full name"]');

@@ -7,6 +7,12 @@ import { getAccessToken } from '../../../utils/authSession';
 import classes from './SiteLayout.module.css';
 import LanguageSelect from '../LanguageSelect/LanguageSelect';
 
+/** Bypass repeated navigation; each host provides the focusable content target. */
+export function SkipToContent() {
+  useTranslation();
+  return <a className={classes.skip} href="#site-content">{uiText("public:siteLayout.skipToContent")}</a>;
+}
+
 /** Public and workspace menus share order, active indicators, and the primary start action. */
 export function SiteHeader({ workspace = false, showLanguageSelect = false }) {
   useTranslation();
@@ -56,12 +62,16 @@ export default function SiteLayout({ title, eyebrow = 'CV STUDIO', intro, worksp
       // Client-side route links mount help content after navigation. Restore
       // the native anchor destination once that content exists, including focus.
       const target = document.getElementById(hash.slice(1));
+      // Deep links to help summaries reveal their answer before scrolling and
+      // focusing it. Opening a native disclosure never starts an application task.
+      const disclosure = target?.closest('details');
+      if (disclosure) disclosure.open = true;
       target?.scrollIntoView({ behavior: 'instant', block: 'start' });
       target?.focus({ preventScroll: true });
     }
   }, [pathname, hash]);
   return <div className={`${classes.site} ${focused ? classes.focused : ''}`}>
-    <a className={classes.skip} href="#site-content">{uiText("public:siteLayout.skipToContent")}</a>
+    <SkipToContent />
     <SiteHeader workspace={workspace} />
     <main id="site-content" tabIndex={-1} className={`${classes.main} ${workspace ? classes.workspace : ''}`}>
       <div className={focused ? classes.workspaceHeading : undefined}>

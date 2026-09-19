@@ -38,7 +38,7 @@ for (const language of ['pl', 'en']) {
         }
       }, { lang: language, authenticated: signedIn });
       await page.goto('/');
-      const pro = page.locator('#cennik article').last().getByRole('link');
+      const pro = page.locator('#cennik article').last().getByRole('link', { name: language === 'pl' ? 'Wybierz Pro na 30 dni' : 'Choose Pro for 30 days', exact: true });
       await expect(pro).toHaveAttribute('href', signedIn ? '/app/account' : '/register?plan=pro');
       await pro.click();
       await expect(page).toHaveURL(signedIn ? /\/app\/account$/ : /\/register\?plan=pro$/);
@@ -53,6 +53,26 @@ for (const language of ['pl', 'en']) {
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/');
+      // The first Tab bypasses the shared navigation and reaches the named
+      // template start. Plan names are available without opening each preview.
+      await expect(page.getByRole('banner')).toHaveCount(1);
+      await expect(page.getByRole('contentinfo')).toHaveCount(1);
+      await page.keyboard.press('Tab');
+      await expect(page.getByRole('link', { name: language === 'pl' ? 'Przejdź do treści' : 'Skip to content', exact: true })).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('main')).toBeFocused();
+      await page.keyboard.press('Tab');
+      const templateName = name => language === 'pl' ? `Zacznij z szablonem ${name}` : `Start with the ${name} template`;
+      const hero = page.locator('#top');
+      await expect(hero.getByRole('link', { name: templateName('Linden'), exact: true }).first()).toBeFocused();
+      await hero.getByRole('radio', { name: 'Linden', exact: true }).focus();
+      await page.keyboard.press('ArrowLeft');
+      const starts = hero.getByRole('link', { name: templateName('Meridian'), exact: true });
+      await expect(starts).toHaveCount(width < 768 ? 2 : 1);
+      for (const start of await starts.all()) await expect(start).toHaveAttribute('href', '/cvstudio/guest?start=new&template=meridian');
+      const gallery = page.locator('#landing-template-gallery');
+      for (const name of ['Sterling', 'Meridian', 'Linden']) await expect(gallery.getByRole('link', { name: `${name} Free`, exact: true })).toHaveCount(1);
+      for (const name of ['Monument', 'Slate', 'Aurelia', 'Regent', 'Cadenza', 'Vellum', 'Atrium']) await expect(gallery.getByRole('link', { name: `${name} Pro`, exact: true })).toHaveCount(1);
       const paths = page.locator('#top nav');
       const links = paths.getByRole('link');
       await expect(links).toHaveCount(2);
@@ -82,4 +102,24 @@ for (const language of ['pl', 'en']) {
       await expect(page).toHaveURL(/#wywiad$/);
     });
   }
+
+  test(`credit links reveal the explanation without starting AI: ${language}`, async ({ page }) => {
+    const api = await installMockApi(page);
+    await page.addInitScript(lang => localStorage.setItem('cvstudio.uiLanguage', lang), language);
+    await page.goto('/');
+    const links = page.getByRole('link', { name: language === 'pl' ? 'Jak działają kredyty AI?' : 'How do AI credits work?', exact: true });
+    await expect(links).toHaveCount(3);
+    await expect(page.locator('#cennik')).toContainText(language === 'pl' ? 'Sam zapis odpowiedzi jest bezpłatny' : 'Saving an answer is free');
+    await links.last().click();
+    await expect(page).toHaveURL(/\/help#kredyty-ai$/);
+    const summary = page.locator('#kredyty-ai');
+    await expect(summary).toBeFocused();
+    await expect(summary.locator('..')).toHaveAttribute('open', '');
+    await expect(summary.locator('..')).toContainText(language === 'pl' ? 'Nie ma stałej ceny całej rozmowy' : 'There is no fixed conversation price');
+    await page.keyboard.press('Enter');
+    await expect(summary.locator('..')).not.toHaveAttribute('open');
+    await page.reload();
+    await expect(summary.locator('..')).toHaveAttribute('open', '');
+    expect(api.calls.some(call => call.method === 'POST' && call.path.includes('/ai/'))).toBe(false);
+  });
 }
