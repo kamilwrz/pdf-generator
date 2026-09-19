@@ -310,8 +310,8 @@ export function applySelectedSectionIcon(
  * reused verbatim). `style.markers` (from `deriveSectionStyle`) already
  * samples a sibling heading's cluster in the DESTINATION lane; this only
  * swaps that sample's icon glyph for the one matching the moved section's own
- * title and re-anchors the whole cluster under the moved heading. Templates
- * with no icon chrome (Sterling) sample zero markers and this returns `[]`.
+ * title and re-anchors the whole cluster under the moved heading. Geometric
+ * markers also work without an icon theme (Facet); empty styles return `[]`.
  *
  * @param {object} args
  * @param {object} args.style - destination-lane style from `deriveSectionStyle`
@@ -321,17 +321,20 @@ export function applySelectedSectionIcon(
  * @param {"sidebar"|null} [args.flowLane]
  * @param {() => string} args.idFactory
  * @param {number} [args.pageHeight=842]
- * @returns {object[]} new marker elements, or `[]` when the template has no icon chrome
+ * @returns {object[]} New decorative markers, or `[]` for an empty marker style.
  */
 export function buildSectionIconChromeMarkers({
   style, elements, heading, flowRole = "section-chrome", flowLane = null, idFactory, pageHeight = 842,
 }) {
   if (!heading || !Array.isArray(style?.markers) || style.markers.length === 0) return [];
   const theme = resolveIconTheme(null, elements);
-  if (!theme) return [];
-  const iconName = suggestSectionIconName(heading.content, THEME_ICON_NAMES[theme] || []);
-  if (!iconName) return [];
-  const iconStyle = applySelectedSectionIcon(style, elements, pageHeight, { iconName });
+  const iconName = theme && suggestSectionIconName(heading.content, THEME_ICON_NAMES[theme] || []);
+  // Geometric accents do not require an icon theme. Preserve those destination
+  // shapes even when no section glyph exists (Facet uses contact icons only).
+  // Unsupported image glyphs still stay out of the rebuilt section.
+  const iconStyle = iconName
+    ? applySelectedSectionIcon(style, elements, pageHeight, { iconName })
+    : { ...style, markers: style.markers.filter((shape) => shape.category !== "image") };
   return (iconStyle.markers || []).map((shape) => decorativeShapeElement({
     elementId: idFactory(),
     shape,

@@ -383,6 +383,11 @@ export function decorativeShapeElement({
   };
   if (shape.borderWidth != null) base.borderWidth = shape.borderWidth;
   if (shape.filled != null) base.filled = shape.filled;
+  if (shape.category === "polygon") {
+    // Each new section owns its vertices; editing one ornament must never
+    // mutate the sampled source or another section built from that style.
+    base.points = (shape.points || []).map((point) => [...point]);
+  }
   // Section-heading icons (Cardinal / Nova / Tessera / …) are image markers.
   // Without src the canvas would render an empty chrome slot beside the title.
   if (shape.category === "image") {

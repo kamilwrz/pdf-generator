@@ -553,6 +553,42 @@ function documentSectionContext(elements, pageHeight) {
 }
 
 /**
+ * Repair Facet underlines saved before polygons participated in textarea flow.
+ * Only its authored tapered accents are snapped to the rule owned by the same
+ * section and lane. Text, custom polygons and fixed page artwork stay intact.
+ * Run before packing and before the saved clean baseline is established so
+ * reopening an affected CV repairs the ornament without marking text as edited.
+ * Returns the original array when no geometry needs repair; never mutates input.
+ */
+export function healFacetRuleAccents(elements, pageHeight = 842) {
+  const list = elements || [];
+  if (!list.some((element) => element.appearanceTemplateId === "facet")) return list;
+  const fixes = new Map();
+  const healLane = (sections, memberIdsFor) => {
+    for (const section of sections) {
+      const ids = memberIdsFor(section.headingId);
+      const members = list.filter((element) => ids.has(element.element_id));
+      const rule = members.filter((element) => element.category === "line"
+        && isChromeLike(element) && Number(element.height) <= 4)
+        .sort((a, b) => Number(b.width) - Number(a.width))[0];
+      if (!rule) continue;
+      for (const accent of members) {
+        if (accent.category !== "polygon" || accent.fixedToPage || !accent.filled
+          || accent.flowRole !== rule.flowRole || Number(accent.height) > 4
+          || Number(accent.width) > 40 || Math.abs(accent.left - rule.left) > 0.5
+          || JSON.stringify(accent.points) !== "[[0,0],[1,0],[0.82,1],[0,1]]") continue;
+        if (Math.abs(absoluteTop(accent, pageHeight) - absoluteTop(rule, pageHeight)) > 0.01) {
+          fixes.set(accent.element_id, { ...accent, top: rule.top, page: rule.page });
+        }
+      }
+    }
+  };
+  healLane(listDocumentSections(list, pageHeight), (id) => sectionElementIds(list, id, pageHeight));
+  healLane(listSidebarSections(list, pageHeight), (id) => sidebarSectionElementIds(list, id, pageHeight));
+  return fixes.size ? list.map((element) => fixes.get(element.element_id) || element) : list;
+}
+
+/**
  * List document sections in reading order.
  * @param {object[]} elements
  * @param {number} [pageHeight=842]
@@ -3065,6 +3101,7 @@ export function applyFlowSpacing(elements, spacing, pageHeight = 842, options = 
   } : element);
   next = healSkillChipLabelBaselines(next);
   next = healSimpleChromeRuleGaps(next, pageHeight);
+  next = healFacetRuleAccents(next, pageHeight);
   // A caller mid masthead transition may pass the pre-toggle document as the
   // membership reference: content is allowed to move through a page boundary
   // during that transition, but it must never let that temporary geometry
@@ -3134,7 +3171,7 @@ const DEFAULT_SIDEBAR_SECTION_STYLE = Object.freeze({
  * faithfully reproduced on a new section. Skipping it (rather than guessing a
  * number) matches the rest of that badge's shapes without an incorrect digit.
  */
-const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "line", "image"]);
+const DECORATIVE_SHAPE_CATEGORIES = new Set(["rectangle", "circle", "ellipse", "polygon", "line", "image"]);
 
 /**
  * Choose which linear body element supplies type metrics for transfers / add.
@@ -3499,6 +3536,13 @@ export function deriveSectionStyle(
       }
       if (shape.category === "circle" || shape.category === "ellipse") {
         built.filled = Boolean(shape.filled);
+      }
+      // Keep native vertices when sampling Facet accents for Add section or
+      // lane transfer; a polygon without points cannot reproduce its outline.
+      if (shape.category === "polygon") {
+        built.points = (shape.points || []).map((point) => [...point]);
+        built.filled = Boolean(shape.filled);
+        built.borderWidth = Number(shape.borderWidth) || 0;
       }
       // Iconic section glyphs: keep the asset URL and text-alignment flag so
       // buildSectionElements can place the same size/offset with a chosen icon.

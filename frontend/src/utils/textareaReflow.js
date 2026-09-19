@@ -12,8 +12,11 @@ import { DEFAULT_FLOW_SPACING, normalizeFlowSpacing } from "./flowSpacing.js";
 import { applyChannelRelayout } from "./contactBandOps.js";
 import { layoutEditorialMasthead } from "./editorialMastheadLayout.js";
 
-const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "image"]);
-const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse"]);
+// Facet's tapered underline is a native polygon. It must travel with the
+// heading/rule cluster during each browser measurement, including page jumps.
+// Fixed page-corner artwork remains excluded by the ordinary position guard.
+const FLOWABLE_CATEGORIES = new Set(["text", "textarea", "line", "rectangle", "circle", "ellipse", "polygon", "image"]);
+const NEARBY_DECORATION_CATEGORIES = new Set(["line", "rectangle", "circle", "ellipse", "polygon"]);
 const DECORATION_LANE_TOLERANCE = 32;
 // Text-aligned section icons may hang a few dozen px left of the text column.
 const TEXT_ALIGNED_IMAGE_LANE_TOLERANCE = 40;

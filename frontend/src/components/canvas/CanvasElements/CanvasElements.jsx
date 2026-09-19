@@ -75,7 +75,7 @@ import classes from './CanvasElements.module.css';
  * Lane-transfer hover control: templates whose generator output carries the
  * `flowLane: "sidebar"` / `flowRole` tags `transferSectionLane.js` depends on
  * to restyle a section for its destination column. Sterling, Slate,
- * and Linden emit the required tags for their sidebar sections, so the same
+ * Linden and Facet emit the required tags for their sidebar sections, so the same
  * general utility works unchanged for all of them.
  */
 // Keep this capability list aligned with generators that emit
@@ -85,6 +85,7 @@ const LANE_TRANSFER_TEMPLATE_IDS = new Set([
   "sterling",
   "slate",
   "linden",
+  "facet",
 ]);
 
 const STRUCTURAL_TOOLBAR_HINT_KEY = "cv-studio:structuralToolbarHintSeen";
