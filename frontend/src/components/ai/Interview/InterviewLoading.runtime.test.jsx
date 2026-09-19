@@ -11,7 +11,14 @@ it('keeps an indeterminate server operation truthful after a long wait', () => {
   expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
   expect(screen.getByText(/osobną redakcję języka i stylu/)).toHaveTextContent('niezależne sprawdzenie faktów');
   act(() => vi.advanceTimersByTime(45000));
-  expect(screen.getByText(/Nadal czekamy na wynik/)).toBeVisible();
+  const note = screen.getByText(/Nadal czekamy na wynik/);
+  expect(note).toBeVisible();
+  // Regression: the wait note shares role="status" for polite announcement,
+  // but only the heading block may carry the grid-row-1 pinning class. The
+  // old [role='status'] selector caught the note too and rendered it on top
+  // of the operation title after 30 seconds.
+  expect(screen.getByRole('heading', { name: 'Przygotowujemy CV' }).parentElement.className).toMatch(/status/);
+  expect(note.className).not.toMatch(/status/);
   expect(screen.getByRole('progressbar')).toHaveAttribute('aria-label', 'Przygotowanie i kontrola CV');
   expect(screen.queryByText(/Gotowe|100%/)).not.toBeInTheDocument();
   rerender(<InterviewLoading operation="sync" answers={8} facts={42} />);

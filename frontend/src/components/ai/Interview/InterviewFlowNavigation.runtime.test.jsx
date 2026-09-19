@@ -128,6 +128,62 @@ describe('interview task navigation', () => {
     expect(writes()).toEqual([]);
   });
 
+  it('keeps a multi-page generation on the preview with the automatic one-page comparison instead of saving past it', async () => {
+    // Regression: the simplified three-step creation used to disarm the queued
+    // automatic template check and save the document immediately, so the free
+    // one-page comparison never started and a two-page CV was saved unseen.
+    interviewRequest.mockImplementation(async (path, method) => {
+      if (path === '/career-profile') return profile;
+      if (path.endsWith('/credits')) return { credits_charged: 0, requests: [] };
+      if (method !== 'POST') return session;
+      if (path.endsWith('/preview')) {
+        session = { ...session, revision: session.revision + 1, phase: 'preview', profile_revision: profile.revision,
+          preview: { pages: 2, profile_revision: profile.revision, cv_data: { name: name.text },
+            elements: [{ element_id: 'original-name', content: name.text }], changes: [], remaining_gaps: [],
+            fit: { status: 'complete', original_pages: 2 } } };
+      }
+      if (path.endsWith('/preview-templates')) return { revision: session.revision, candidates: [alternative] };
+      if (path.endsWith('/document')) {
+        savedTemplates.push({ template_id: session.template_id });
+        return { document_id: 91 };
+      }
+      return session;
+    });
+    renderInterview();
+    await userEvent.click(await screen.findByRole('button', { name: 'Wybierz szablon', exact: true }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Utwórz CV · Linden' }));
+    // The automatic free comparison starts by itself for the multi-page result.
+    await waitFor(() => expect(writes()).toContain('preview-templates'));
+    expect(await screen.findByRole('combobox', { name: 'Pasujący szablon' })).toBeVisible();
+    // Nothing was saved behind the user's back; the explicit save remains.
+    expect(writes()).toEqual(['preview', 'preview-templates']);
+    expect(savedTemplates).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Zapisz jako nowe CV', exact: true })).toBeEnabled();
+  });
+
+  it('still saves a verified single-page generation directly from the template card', async () => {
+    interviewRequest.mockImplementation(async (path, method) => {
+      if (path === '/career-profile') return profile;
+      if (path.endsWith('/credits')) return { credits_charged: 0, requests: [] };
+      if (method !== 'POST') return session;
+      if (path.endsWith('/preview')) {
+        session = { ...session, revision: session.revision + 1, phase: 'preview', profile_revision: profile.revision,
+          preview: { pages: 1, profile_revision: profile.revision, cv_data: { name: name.text },
+            elements: [{ element_id: 'original-name', content: name.text }], changes: [], remaining_gaps: [] } };
+      }
+      if (path.endsWith('/document')) {
+        savedTemplates.push({ template_id: session.template_id });
+        return { document_id: 91 };
+      }
+      return session;
+    });
+    renderInterview();
+    await userEvent.click(await screen.findByRole('button', { name: 'Wybierz szablon', exact: true }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Utwórz CV · Linden' }));
+    await waitFor(() => expect(savedTemplates).toHaveLength(1));
+    expect(writes()).toEqual(['preview', 'document']);
+  });
+
   it('applies the selected alternative before saving with its new revision and measured geometry', async () => {
     const selector = await renderTemplateResult();
     await userEvent.selectOptions(selector, alternative.template_id);

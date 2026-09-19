@@ -368,6 +368,12 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
       setTemplate(selected.id);
       const result = await operation('preview', { template_id: selected.id });
       if (!alive.current || !result || result.phase !== 'preview' || result.preview?.fit?.status === 'pending') return;
+      // A fitted result that still needs several pages must stay on the
+      // preview: `operation` has already armed the free automatic one-page
+      // template comparison, and final saving waits for that check so a
+      // two-page CV is never saved past the user unseen. Disarming and
+      // direct saving remain reserved for a verified single-page result.
+      if (result.preview?.pages > 1) return;
       setAutoTemplateRevision(null);
       if (!guided) await operation('document');
     }, 'preview');

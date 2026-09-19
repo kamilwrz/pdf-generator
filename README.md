@@ -281,7 +281,7 @@ Numbered steps use a semantic list with `aria-current="step"`. The working panel
 
 The career-profile page, navigation entry, source option and same-person checkbox have been removed. Saved conversations live at `/app/conversations`, linked from the assistant and account; old `/app/career-profile` bookmarks redirect there. Existing profile data is preserved for older sessions and account export/erasure. New starts always send `include_profile: false`. The backend profile API remains for the eligible source index and historical compatibility; there is no schema or data migration.
 
-`start` chains `POST /ai/interviews → /confirm → /next`. `saveAnswer` chains `/answers → /next`, unless the user finishes or the round ends. `createWithTemplate` chains `/preview → /document` only after verification and fitting complete. Synchronous locking prevents duplicate clicks, and session/evidence refs pass the latest response revisions between requests. Failures retain saved work; reads never automatically retry paid operations. Saving itself is free, while the question/generation operations in these chains use the existing credits. Entitlements, ownership and version checks remain server-authoritative.
+`start` chains `POST /ai/interviews → /confirm → /next`. `saveAnswer` chains `/answers → /next`, unless the user finishes or the round ends. `createWithTemplate` chains `/preview → /document` only after verification and fitting complete **and** the fitted result is a single page; a result that still needs several pages stays on the preview with the queued free one-page template comparison instead of being saved past the user. Synchronous locking prevents duplicate clicks, and session/evidence refs pass the latest response revisions between requests. Failures retain saved work; reads never automatically retry paid operations. Saving itself is free, while the question/generation operations in these chains use the existing credits. Entitlements, ownership and version checks remain server-authoritative.
 
 Implementation and tests (verified full-file ranges):
 
@@ -393,7 +393,7 @@ The affected states include intake with and without optional notes, source revie
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, lines 1–572, function `InterviewFlow`, coordinates drafts, explicit operations and stage transitions; `goTo` persists changed information before leaving and retains it on failure.
 - `frontend/src/components/ai/Interview/Interview.module.css` owns the interview working layout. `InterviewCredits.jsx`, lines 13–75, and the adjacent `InterviewCredits.module.css` own the shared receipt; the CSS Module is the only new production file.
 - `frontend/src/i18n/locales/pl.json` and `en.json` are the source dictionaries. Generated workspace dictionaries come from `scripts/generate-locale-bundles.mjs`; edit source dictionaries only.
-- `InterviewFlowNavigation.runtime.test.jsx`, lines 1–299, covers primary actions, explicit paid boundaries and draft protection. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` and `InterviewLoading.runtime.test.jsx` cover confirmation, billing and operation feedback. `frontend/e2e/interview-simple-flow.spec.js`, lines 1–245, covers keyboard clarification, retained drafts and PL/EN at 390, 834, 1280 and 1920px, including enlarged text.
+- `InterviewFlowNavigation.runtime.test.jsx`, lines 1–339, covers primary actions, the multi-page stay-on-preview comparison, single-page direct save, explicit paid boundaries and draft protection. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` and `InterviewLoading.runtime.test.jsx` cover confirmation, billing and operation feedback. `frontend/e2e/interview-simple-flow.spec.js`, lines 1–245, covers keyboard clarification, retained drafts and PL/EN at 390, 834, 1280 and 1920px, including enlarged text.
 
 From `frontend`, run `npm test`, `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js`, `npm run test:e2e -- interview-simple-flow.spec.js interview-workspace.spec.js interviews.spec.js interview-sources.spec.js interview-answer-help.spec.js interview-prerequisites.spec.js interview-discovery.spec.js --project=desktop-chromium --workers=2`, `npm run lint -- --quiet`, and `npm run build`. Browser tests intercept API calls and use synthetic candidates. They verify behaviour and layout; reduced cognitive effort has not been measured with users. This change adds no API, database schema, dependency, environment variable or deployment step.
 
@@ -1380,9 +1380,9 @@ Implementation and tests (verified whole-module ranges; use the named symbols fo
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–21; InterviewSourceRequired |
 | `backend/app/services/interviews/sources.py` | 1–30; has_interview_source, available_interview_sources |
-| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–46; InterviewLoading |
-| `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–16; loading, compact, track |
-| `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
+| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–50; InterviewLoading |
+| `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–25; loading, status, compact, track |
+| `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–34; long wait, note placement, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–61; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
 | `frontend/src/components/ai/Interview/Interview.module.css` | 1–115; stages, question, preparation, resultActions |
@@ -4387,7 +4387,7 @@ Numeracja jest semantyczną listą z `aria-current="step"`. Panel pojawia się p
 
 Usunięto stronę profilu zawodowego, jej pozycję w nawigacji, opcję źródła i checkbox dołączania profilu. Zapisane rozmowy znajdują się pod `/app/conversations`, z odnośnikami z asystenta i konta; stare zakładki `/app/career-profile` przekierowują do historii. Wcześniejsze dane profilu pozostają dla starszych sesji oraz eksportu/usunięcia konta. Nowe rozmowy zawsze wysyłają `include_profile: false`. API profilu nadal udostępnia listę dostępnych źródeł i obsługuje starsze dane; nie ma migracji schematu ani danych.
 
-`start` wykonuje kolejno `POST /ai/interviews → /confirm → /next`. `saveAnswer` wykonuje `/answers → /next`, chyba że użytkownik kończy rozmowę lub kończy się runda. `createWithTemplate` wykonuje `/preview → /document` dopiero po zakończeniu weryfikacji i dopasowania. Synchroniczna blokada zapobiega podwójnym kliknięciom, a referencje sesji i informacji przekazują aktualne wersje z odpowiedzi serwera. Błędy zachowują zapisaną pracę; odczyt nigdy nie ponawia automatycznie płatnych operacji. Sam zapis jest bezpłatny, natomiast pytania i generowanie w tych sekwencjach korzystają z istniejących kredytów. Uprawnienia, własność i wersje nadal sprawdza serwer.
+`start` wykonuje kolejno `POST /ai/interviews → /confirm → /next`. `saveAnswer` wykonuje `/answers → /next`, chyba że użytkownik kończy rozmowę lub kończy się runda. `createWithTemplate` wykonuje `/preview → /document` dopiero po zakończeniu weryfikacji i dopasowania **oraz** gdy dopasowany wynik mieści się na jednej stronie; wynik nadal wymagający kilku stron pozostaje na podglądzie z zakolejkowanym darmowym porównaniem szablonów na jedną stronę, zamiast być zapisanym poza wiedzą użytkownika. Synchroniczna blokada zapobiega podwójnym kliknięciom, a referencje sesji i informacji przekazują aktualne wersje z odpowiedzi serwera. Błędy zachowują zapisaną pracę; odczyt nigdy nie ponawia automatycznie płatnych operacji. Sam zapis jest bezpłatny, natomiast pytania i generowanie w tych sekwencjach korzystają z istniejących kredytów. Uprawnienia, własność i wersje nadal sprawdza serwer.
 
 Implementacja i testy (sprawdzone zakresy całych plików):
 
@@ -4499,7 +4499,7 @@ Zakres obejmuje rozpoczęcie z opcjonalną notatką i bez niej, przegląd źród
 - `frontend/src/components/ai/Interview/InterviewFlow.jsx`, linie 1–572, funkcja `InterviewFlow`, koordynuje szkice, jawne operacje i przejścia; `goTo` zapisuje zmienione informacje przed opuszczeniem etapu i zachowuje je po błędzie.
 - `frontend/src/components/ai/Interview/Interview.module.css` odpowiada za układ wywiadu. `InterviewCredits.jsx`, linie 13–75, i sąsiedni `InterviewCredits.module.css` odpowiadają za wspólne rozliczenie; moduł CSS jest jedynym nowym plikiem produkcyjnym.
 - `frontend/src/i18n/locales/pl.json` i `en.json` są słownikami źródłowymi. Słowniki robocze generuje `scripts/generate-locale-bundles.mjs`; edytuj wyłącznie słowniki źródłowe.
-- `InterviewFlowNavigation.runtime.test.jsx`, linie 1–299, sprawdza główne akcje, jawne granice płatnych operacji i ochronę szkiców. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` i `InterviewLoading.runtime.test.jsx` sprawdzają zatwierdzanie, rozliczenia i komunikaty operacji. `frontend/e2e/interview-simple-flow.spec.js`, linie 1–245, obejmuje doprecyzowanie klawiaturą, zachowanie szkiców oraz PL/EN przy 390, 834, 1280 i 1920px, w tym powiększony tekst.
+- `InterviewFlowNavigation.runtime.test.jsx`, linie 1–339, sprawdza główne akcje, pozostanie wielostronicowego wyniku na podglądzie z porównaniem, bezpośredni zapis wyniku jednostronicowego, jawne granice płatnych operacji i ochronę szkiców. `Interview.runtime.test.jsx`, `InterviewCredits.runtime.test.jsx` i `InterviewLoading.runtime.test.jsx` sprawdzają zatwierdzanie, rozliczenia i komunikaty operacji. `frontend/e2e/interview-simple-flow.spec.js`, linie 1–245, obejmuje doprecyzowanie klawiaturą, zachowanie szkiców oraz PL/EN przy 390, 834, 1280 i 1920px, w tym powiększony tekst.
 
 W katalogu `frontend` uruchom `npm test`, `npm run test:runtime -- src/components/ai/Interview src/services/interviews.runtime.test.js`, `npm run test:e2e -- interview-simple-flow.spec.js interview-workspace.spec.js interviews.spec.js interview-sources.spec.js interview-answer-help.spec.js interview-prerequisites.spec.js interview-discovery.spec.js --project=desktop-chromium --workers=2`, `npm run lint -- --quiet` oraz `npm run build`. Testy przeglądarkowe przechwytują API i używają syntetycznych danych kandydatów. Sprawdzają zachowanie i układ; zmniejszenie wysiłku poznawczego nie zostało zmierzone z użytkownikami. Zmiana nie dodaje API, schematu bazy, zależności, zmiennej środowiskowej ani kroku wdrożenia.
 
@@ -5480,9 +5480,9 @@ Przy uwierzytelnionym odczycie właściciela `GET /ai/interviews/{id}` funkcja `
 | `backend/tests/test_interview_sources.py` | 1–76; source eligibility regression tests |
 | `frontend/src/components/ai/Interview/InterviewSourceRequired.jsx` | 1–21; InterviewSourceRequired |
 | `backend/app/services/interviews/sources.py` | 1–30; has_interview_source, available_interview_sources |
-| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–46; InterviewLoading |
-| `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–16; loading, compact, track |
-| `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–27; long wait, operation boundaries |
+| `frontend/src/components/ai/Interview/InterviewLoading.jsx` | 1–50; InterviewLoading |
+| `frontend/src/components/ai/Interview/InterviewLoading.module.css` | 1–25; loading, status, compact, track |
+| `frontend/src/components/ai/Interview/InterviewLoading.runtime.test.jsx` | 1–34; long wait, note placement, operation boundaries |
 | `frontend/src/components/ai/Interview/InterviewPreview.jsx` | 1–61; InterviewPreview |
 | `frontend/src/components/ai/Interview/InterviewPreview.module.css` | 1–38; preview, reading, pagination |
 | `frontend/src/components/ai/Interview/Interview.module.css` | 1–115; stages, question, preparation, resultActions |

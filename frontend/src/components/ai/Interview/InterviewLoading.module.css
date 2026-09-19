@@ -1,7 +1,10 @@
 /* An indeterminate activity indicator never suggests a completed percentage. */
 .loading { background: var(--color-canvas); padding: var(--space-6); margin-block: var(--space-4); }
 .body { min-width: 0; display: grid; grid-template-columns: var(--space-6) minmax(0, 1fr) auto; align-items: start; gap: var(--space-3) var(--space-4); }
-.body > [role='status'] { grid-column: 2; grid-row: 1; }
+/* Target the heading block by class, not [role='status']: the 30-second wait
+   note shares that ARIA role and must auto-flow below the disclosure rather
+   than being pinned into row 1 on top of the title. */
+.body > .status { grid-column: 2; grid-row: 1; }
 .loading .body h3 { font: 700 var(--interview-title-size, 1.125rem)/1.4 var(--font-ui); margin-bottom: var(--space-2); }
 .body p { max-width: 65ch; margin-bottom: 0; color: var(--color-muted); font-size: var(--text-ui); }
 .track { grid-column: 1; grid-row: 1; width: var(--space-6); height: var(--space-6); border: 2px solid var(--color-border); border-top-color: var(--color-accent); border-radius: var(--radius-pill); animation: turn 1s linear infinite; }
