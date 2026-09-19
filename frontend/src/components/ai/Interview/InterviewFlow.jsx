@@ -187,14 +187,35 @@ export default function InterviewFlow({ sessionId, initialSource = null, current
     }
   }
 
-  /** Append only explicitly chosen text; insertion is not the persistence boundary. */
-  function useAnswerHelp(text, suggestionId) {
-    if (busy || !text?.trim() || session.answer_help?.id !== suggestionId) return false;
-    const next = [answer.trimEnd(), text.trim()].filter(Boolean).join('\n');
+  /**
+   * Keep checked task suggestions in the answer field without making checkbox
+   * interaction a persistence boundary. Unchecking removes only text inserted
+   * by that option and leaves the user's independently authored lines intact.
+   */
+  function useAnswerHelp(text, suggestionId, checked) {
+    const suggestion = text?.trim();
+    if (busy || !suggestion || session.answer_help?.id !== suggestionId) return false;
+    const optionMode = typeof checked === 'boolean';
+    const selectedTexts = assistedAnswer?.questionId === session.question.id
+      && assistedAnswer.suggestionId === suggestionId ? assistedAnswer.selectedTexts || [] : [];
+    if (optionMode && !checked) {
+      const remaining = selectedTexts.filter(item => item !== suggestion);
+      const lines = answer.split('\n');
+      const index = lines.findIndex(line => line.trim() === suggestion);
+      if (index !== -1) lines.splice(index, 1);
+      setAnswer(lines.join('\n').replace(/^\n+|\n+$/g, ''));
+      setAssistedAnswer(remaining.length > 0
+        ? { questionId: session.question.id, suggestionId, selectedTexts: remaining }
+        : null);
+      return true;
+    }
+    if (optionMode && selectedTexts.includes(suggestion)) return true;
+    const next = [answer.trimEnd(), suggestion].filter(Boolean).join('\n');
     if (next.length > 4000) return false;
     setAnswer(next);
-    setAssistedAnswer({ questionId: session.question.id, suggestionId });
-    requestAnimationFrame(() => answerField.current?.focus());
+    setAssistedAnswer({ questionId: session.question.id, suggestionId,
+      ...(optionMode ? { selectedTexts: [...selectedTexts, suggestion] } : {}) });
+    if (!optionMode) requestAnimationFrame(() => answerField.current?.focus());
     return true;
   }
 

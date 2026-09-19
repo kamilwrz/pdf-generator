@@ -7,14 +7,14 @@ const QUESTION_ID = 'responsibilities-0';
 const HELP_ID = 'answer-help-0';
 const copy = {
   pl: {
-    suggest: 'Zaproponuj odpowiedź', use: 'Użyj propozycji', tasks: 'Użyj wybranych czynności',
+    suggest: 'Zaproponuj odpowiedź', use: 'Użyj propozycji',
     confirm: 'Potwierdzam i zapisuję odpowiedź', answer: 'Twoja odpowiedź', credits: 'Kredyty rozmowy',
     other: 'Inne odpowiedzi', unknown: 'Nie pamiętam', skip: 'Pomiń',
     retry: 'Spróbuj ponownie', error: 'Nie udało się przygotować propozycji. Twoja odpowiedź została zachowana.',
     cancel: 'Ukryj propozycję', reopen: 'Pokaż propozycję',
   },
   en: {
-    suggest: 'Suggest an answer', use: 'Use suggestion', tasks: 'Use selected tasks',
+    suggest: 'Suggest an answer', use: 'Use suggestion',
     confirm: 'Confirm and save answer', answer: 'Your answer', credits: 'Conversation credits',
     other: 'Other answers', unknown: 'I cannot remember', skip: 'Skip',
     retry: 'Try again', error: 'We could not prepare a suggestion. Your answer has been kept.',
@@ -211,15 +211,18 @@ for (const language of ['pl', 'en']) {
     const second = page.getByRole('checkbox', { name: uncheckedTask, exact: true });
     await expect(first).not.toBeChecked();
     await expect(second).not.toBeChecked();
-    const use = page.getByRole('button', { name: labels.tasks, exact: true });
-    await expect(use).toBeDisabled();
+    await expect(page.getByRole('button', { name: /Użyj wybranych czynności|Use selected tasks/ })).toHaveCount(0);
     await expect(flow.answer).toHaveValue(original);
     await first.focus();
     await page.keyboard.press('Space');
     await expect(first).toBeChecked();
-    await use.click();
     await expect(flow.answer).toHaveValue(new RegExp(`${original}[\\s\\S]*${selectedTask}`));
     expect(await flow.answer.inputValue()).not.toContain(uncheckedTask);
+    await page.keyboard.press('Space');
+    await expect(first).not.toBeChecked();
+    await expect(flow.answer).toHaveValue(original);
+    await page.keyboard.press('Space');
+    await expect(first).toBeChecked();
     expect(flow.saves()).toEqual([]);
     expect(flow.current().evidence_profile.facts).toEqual(flow.facts);
     await page.getByRole('button', { name: labels.confirm, exact: true }).click();
@@ -320,7 +323,7 @@ test(`guidance stays readable without becoming applicable answer text ${language
   await page.keyboard.press('Enter');
   await expect(page.getByText(messages.interview_answer_help_guidance_approach[language], { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: copy[language].use, exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: copy[language].tasks, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Użyj wybranych czynności|Use selected tasks/ })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   const heading = page.getByRole('heading', { name: language === 'pl' ? 'Propozycja odpowiedzi' : 'Answer suggestion', exact: true });
   await expect(heading).toBeFocused();

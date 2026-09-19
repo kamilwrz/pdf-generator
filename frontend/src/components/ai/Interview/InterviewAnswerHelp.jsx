@@ -29,8 +29,8 @@ function matchingHelp(help, questionId) {
  * @param {boolean} props.disabled - Another parent operation blocks interaction.
  * @param {boolean} props.canAi - Resolved permission to generate paid AI help.
  * @param {Function} props.onGenerate - Takes the answer draft; resolves a session.
- * @param {Function} props.onUse - Takes selected text and suggestion ID. Return
- * false or reject to retain the suggestion when the parent cannot append it.
+ * @param {Function} props.onUse - Takes suggestion text, suggestion ID and an
+ * optional checkbox state. Return false or reject to retain the previous state.
  * @param {Function} [props.onBusyChange] - Reports pending generation only.
  * @param {string|null} [props.usedSuggestionId] - Parent-controlled applied ID;
  * null re-enables cached use after the parent explicitly clears the answer.
@@ -146,6 +146,23 @@ function QuestionAnswerHelp({ session, answer, disabled = false, canAi = false, 
     }
   }
 
+  function toggleOption(option, checked) {
+    if (disabled || pending || applying || applyLock.current || !help) return;
+    const ids = checked ? [...selected, option.id] : selected.filter(id => id !== option.id);
+    try {
+      const accepted = onUse(option.text, help.id, checked);
+      if (accepted === false) {
+        setError('interview:answerHelp.useError');
+        return;
+      }
+      setSelection({ helpId: help.id, ids });
+      setUsedId(ids.length > 0 ? help.id : null);
+      setError(null);
+    } catch {
+      setError('interview:answerHelp.useError');
+    }
+  }
+
   const actionDisabled = disabled || pending || applying;
   return <section className={styles.panel} aria-label={uiText('interview:answerHelp.title')}>
     {!open && <>
@@ -169,20 +186,19 @@ function QuestionAnswerHelp({ session, answer, disabled = false, canAi = false, 
           <p className={styles.label}>{uiText('interview:answerHelp.guidanceLabel')}</p>
           <p>{help.guidance || help.draft}</p>
         </div>}
-        {help.mode === 'options' && <fieldset disabled={actionDisabled || used}>
+        {help.mode === 'options' && <fieldset disabled={actionDisabled}>
           <legend>{uiText('interview:answerHelp.optionsLegend')}</legend>
           <p className={classes.hint} id={`${regionId}-options-hint`}>{uiText('interview:answerHelp.optionsHint')}</p>
           {help.options.map(option => <label key={option.id} className={styles.option}>
             <input type="checkbox" checked={selected.includes(option.id)} aria-describedby={`${regionId}-options-hint`}
-              onChange={event => setSelection({ helpId: help.id, ids: event.target.checked
-                ? [...selected, option.id] : selected.filter(id => id !== option.id) })} />
+              onChange={event => toggleOption(option, event.target.checked)} />
             <span>{option.text}</span>
           </label>)}
         </fieldset>}
-        {help.mode !== 'guidance' && <div className={classes.actions}>
-          <button type="button" className={classes.primary} disabled={actionDisabled || used
-            || (help.mode === 'options' && selected.length === 0)} onClick={() => void applySuggestion()}>
-            {uiText(help.mode === 'draft' ? 'interview:answerHelp.useDraft' : 'interview:answerHelp.useSelected')}
+        {help.mode === 'draft' && <div className={classes.actions}>
+          <button type="button" className={classes.primary} disabled={actionDisabled || used}
+            onClick={() => void applySuggestion()}>
+            {uiText('interview:answerHelp.useDraft')}
           </button>
         </div>}
       </>}
@@ -203,7 +219,7 @@ function QuestionAnswerHelp({ session, answer, disabled = false, canAi = false, 
     </div>}
     <div role="status" aria-live="polite" aria-atomic="true">
       {pending && <p>{uiText('interview:answerHelp.loading')}</p>}
-      {open && used && <p>{uiText('interview:answerHelp.used')}</p>}
+      {open && (help?.mode === 'options' ? selected.length > 0 : used) && <p>{uiText('interview:answerHelp.used')}</p>}
     </div>
   </section>;
 }

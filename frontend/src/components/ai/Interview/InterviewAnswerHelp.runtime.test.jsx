@@ -52,28 +52,31 @@ it('generates from the unsaved draft and requires explicit use before notifying 
   expect(screen.getByRole('status')).toHaveTextContent(key('used'));
 });
 
-it('renders unchecked choices and applies only selected text in its authored order', async () => {
+it('inserts and removes an option as its checkbox changes without a separate action', async () => {
   const user = userEvent.setup();
   const onUse = vi.fn();
   setup({ session: result(choices), onUse });
   const boxes = screen.getAllByRole('checkbox');
   boxes.forEach(box => expect(box).not.toBeChecked());
-  const useButton = screen.getByRole('button', { name: key('useSelected') });
-  expect(useButton).toBeDisabled();
+  expect(screen.queryByRole('button', { name: key('useSelected') })).not.toBeInTheDocument();
   boxes[1].focus();
   await user.keyboard(' ');
-  await user.click(useButton);
-  expect(onUse).toHaveBeenCalledExactlyOnceWith(choices.options[1].text, choices.id);
+  expect(onUse).toHaveBeenCalledExactlyOnceWith(choices.options[1].text, choices.id, true);
+  expect(boxes[1]).toHaveFocus();
+  await user.keyboard(' ');
+  expect(onUse).toHaveBeenLastCalledWith(choices.options[1].text, choices.id, false);
   expect(onUse).not.toHaveBeenCalledWith(expect.stringContaining('Existing draft'), expect.anything());
 });
 
-it('joins multiple checked suggestions without including unchecked options', async () => {
+it('inserts each checked suggestion without including unchecked options', async () => {
   const onUse = vi.fn();
   setup({ session: result({ ...choices, options: [...choices.options, { id: 'third', text: 'Unchecked activity.' }] }), onUse });
   await userEvent.click(screen.getByRole('checkbox', { name: choices.options[1].text }));
   await userEvent.click(screen.getByRole('checkbox', { name: choices.options[0].text }));
-  await userEvent.click(screen.getByRole('button', { name: key('useSelected') }));
-  expect(onUse).toHaveBeenCalledExactlyOnceWith(choices.options.map(option => option.text).join('\n'), choices.id);
+  expect(onUse.mock.calls).toEqual([
+    [choices.options[1].text, choices.id, true],
+    [choices.options[0].text, choices.id, true],
+  ]);
 });
 
 it('renders guidance without an answer insertion action', () => {
@@ -153,16 +156,15 @@ it('does not carry checks into a replacement suggestion for the same question', 
   screen.getAllByRole('checkbox').forEach(box => expect(box).not.toBeChecked());
 });
 
-it('retains selected text when append is rejected by the parent length guard', async () => {
+it('retains the previous checkbox state when insertion is rejected by the parent length guard', async () => {
   const onUse = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true);
   setup({ session: result(choices), onUse });
-  await userEvent.click(screen.getByRole('checkbox', { name: choices.options[0].text }));
-  await userEvent.click(screen.getByRole('button', { name: key('useSelected') }));
+  const box = screen.getByRole('checkbox', { name: choices.options[0].text });
+  await userEvent.click(box);
   expect(await screen.findByRole('alert')).toHaveTextContent(key('useError'));
-  expect(screen.getByRole('checkbox', { name: choices.options[0].text })).toBeChecked();
-  expect(screen.getByRole('button', { name: key('useSelected') })).toBeEnabled();
-  await userEvent.click(screen.getByRole('button', { name: key('useSelected') }));
-  await waitFor(() => expect(screen.getByRole('button', { name: key('useSelected') })).toBeDisabled());
+  expect(box).not.toBeChecked();
+  await userEvent.click(box);
+  await waitFor(() => expect(box).toBeChecked());
 });
 
 it('keeps parent-owned applied status on remount and allows cached reuse after an explicit answer clear', () => {
